@@ -1,0 +1,6 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>RestoPOS.Domain</RootNamespace>
+    <AssemblyName>RestoPOS.Domain</AssemblyName>
+  </PropertyGroup>
+</Project>

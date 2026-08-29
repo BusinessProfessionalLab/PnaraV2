@@ -1,0 +1,25 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { api } from "@/lib/api";
+import { useAuthStore } from "@/lib/auth-store";
+import { applyTheme } from "@/lib/theme";
+import { useCartStore } from "@/lib/cart-store";
+
+export function ThemeEngine() {
+  const token = useAuthStore((s) => s.session?.accessToken);
+  const { data } = useQuery({
+    queryKey: ["settings"],
+    queryFn: api.settings,
+    enabled: Boolean(token),
+  });
+
+  useEffect(() => {
+    if (!data) return;
+    applyTheme(data.primaryColor, data.secondaryColor);
+    useCartStore.getState().setVatRate(data.vatRate);
+  }, [data]);
+
+  return null;
+}

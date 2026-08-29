@@ -1,0 +1,9 @@
+@RestoPOS.API_HostAddress = http://localhost:5088
+
+POST {{RestoPOS.API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "userName": "admin",
+  "password": "Admin@12345"
+}

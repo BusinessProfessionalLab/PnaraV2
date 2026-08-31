@@ -39,15 +39,6 @@ async function syncCartToServerInternal(): Promise<OrderDto> {
   };
 
   const syncOnce = async (retryCount = 0): Promise<OrderDto> => {
-    const state = useCartStore.getState();
-    if (state.serverOrderId) {
-      try {
-        await api.discardDraft(state.serverOrderId);
-      } catch {
-        /* draft may already be gone */
-      }
-    }
-
     const draft = await api.createDraft(draftPayload);
 
     try {
@@ -59,11 +50,6 @@ async function syncCartToServerInternal(): Promise<OrderDto> {
       return last;
     } catch (error) {
       if (error instanceof ApiError && error.status === 409 && retryCount === 0) {
-        try {
-          await api.discardDraft(draft.id);
-        } catch {
-          /* partial draft may already be gone */
-        }
         return syncOnce(1);
       }
       throw error;

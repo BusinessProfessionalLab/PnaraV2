@@ -115,6 +115,7 @@ export const api = {
     apiFetch<string>("/api/menu/recipes", { method: "PUT", body: JSON.stringify(payload) }),
   createDraft: (payload: unknown) =>
     apiFetch<import("./types").OrderDto>("/api/orders/drafts", { method: "POST", body: JSON.stringify(payload) }),
+  draftOrders: () => apiFetch<import("./types").OrderDto[]>("/api/orders/drafts"),
   addItem: (orderId: string, payload: unknown) =>
     apiFetch<import("./types").OrderDto>(`/api/orders/${orderId}/items`, {
       method: "POST",

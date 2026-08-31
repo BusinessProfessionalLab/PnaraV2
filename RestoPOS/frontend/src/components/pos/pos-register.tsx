@@ -61,6 +61,7 @@ export function PosRegister() {
   const inventory = useQuery({ queryKey: ["inventory"], queryFn: api.inventory });
   const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
   const shift = useQuery({ queryKey: ["shift"], queryFn: api.currentShift });
+  const drafts = useQuery({ queryKey: ["order-drafts"], queryFn: api.draftOrders, refetchInterval: 10000 });
 
   const customerQuery = useQuery({
     queryKey: ["customer", cart.customerPhone],
@@ -89,7 +90,19 @@ export function PosRegister() {
 
   const draftMut = useMutation({
     mutationFn: syncCartToServer,
-    onSuccess: (order) => toast.success(`پیش‌نویس ${order.orderNumber} ذخیره شد`),
+    onSuccess: (order) => {
+      qc.invalidateQueries({ queryKey: ["order-drafts"] });
+      toast.success(`پیش‌نویس ${order.orderNumber} ذخیره شد`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const loadDraftMut = useMutation({
+    mutationFn: (orderId: string) => api.getOrder(orderId),
+    onSuccess: (order) => {
+      cart.loadDraft(order);
+      toast.success(`پیش‌نویس ${order.orderNumber} باز شد`);
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -98,7 +111,10 @@ export function PosRegister() {
       if (cart.serverOrderId) await api.discardDraft(cart.serverOrderId);
       cart.clear();
     },
-    onSuccess: () => toast.message("فاکتور نیمه‌کاره حذف شد"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["order-drafts"] });
+      toast.message("فاکتور نیمه‌کاره حذف شد");
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -110,6 +126,7 @@ export function PosRegister() {
     onSuccess: (order) => {
       toast.success(`ارسال شد: ${order.orderNumber}`);
       qc.invalidateQueries({ queryKey: ["inventory"] });
+      qc.invalidateQueries({ queryKey: ["order-drafts"] });
       cart.clear();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -272,6 +289,28 @@ export function PosRegister() {
               onChange={(e) => cart.setMeta({ customerPhone: e.target.value.replace(/\D/g, "").slice(0, 11) })}
             />
             <CustomerBadge phone={cart.customerPhone} customer={customerQuery.data} error={customerQuery.error} />
+            <div className="mt-3 rounded-xl border bg-amber-50 p-2">
+              <div className="mb-2 flex items-center justify-between text-sm font-black">
+                <span>پیش‌نویس‌های ذخیره‌شده</span>
+                <Badge variant="warning">{drafts.data?.length ?? 0}</Badge>
+              </div>
+              <div className="max-h-28 space-y-1 overflow-y-auto">
+                {(drafts.data ?? []).map((draft) => (
+                  <button
+                    key={draft.id}
+                    className={`flex w-full items-center justify-between rounded-lg px-2 py-1 text-xs hover:bg-amber-100 ${
+                      cart.serverOrderId === draft.id ? "bg-amber-200" : ""
+                    }`}
+                    onClick={() => loadDraftMut.mutate(draft.id)}
+                    disabled={loadDraftMut.isPending}
+                  >
+                    <span>{draft.orderNumber}</span>
+                    <span>{draft.items.length} آیتم · {formatToman(draft.grandTotal)}</span>
+                  </button>
+                ))}
+                {!drafts.data?.length ? <p className="text-xs text-muted-foreground">پیش‌نویسی وجود ندارد</p> : null}
+              </div>
+            </div>
           </div>
           <div className="pos-scroll flex-1 space-y-2 overflow-y-auto p-3">
             {cart.lines.length === 0 ? (

@@ -48,6 +48,7 @@ public sealed record CancelDraftOrderCommand(Guid OrderId) : MediatR.IRequest;
 public sealed record CancelOrderCommand(Guid OrderId, string? Reason) : MediatR.IRequest<OrderDto>;
 public sealed record GetOrderByIdQuery(Guid Id) : MediatR.IRequest<OrderDto>;
 public sealed record GetActiveOrdersQuery : MediatR.IRequest<IReadOnlyList<OrderDto>>;
+public sealed record GetDraftOrdersQuery : MediatR.IRequest<IReadOnlyList<OrderDto>>;
 
 public static class OrderMapping
 {

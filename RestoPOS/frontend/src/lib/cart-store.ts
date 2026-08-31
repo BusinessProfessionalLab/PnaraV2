@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { priceCart } from "./currency";
-import type { MenuItemDto, ModifierDto, OrderType } from "./types";
+import type { MenuItemDto, ModifierDto, OrderDto, OrderType } from "./types";
 
 export type CartLine = {
   menuItemId: string;
@@ -34,6 +34,7 @@ type CartState = {
   removeLine: (lineIndex: number) => void;
   clear: () => void;
   hydrateServer: (orderId: string, orderNumber: string) => void;
+  loadDraft: (order: OrderDto) => void;
   totals: () => ReturnType<typeof priceCart>;
 };
 
@@ -94,6 +95,35 @@ export const useCartStore = create<CartState>()(
         }),
       hydrateServer: (orderId, orderNumber) =>
         set({ serverOrderId: orderId, serverOrderNumber: orderNumber, dirty: false }),
+      loadDraft: (order) =>
+        set({
+          orderType: order.orderType,
+          tableNumber: order.tableNumber ?? "",
+          customerPhone: order.customerPhone ?? "",
+          notes: order.notes ?? "",
+          discountPercent: order.discountPercent,
+          discountAmount: order.discountAmount,
+          vatRate: order.taxRate,
+          lines: order.items.map((item) => ({
+            menuItemId: item.menuItemId,
+            title: item.title,
+            unitPrice: item.unitPrice,
+            taxInclusive: true,
+            quantity: item.quantity,
+            ticketStation: item.ticketStation,
+            notes: item.notes ?? "",
+            categoryId: "",
+            modifiers: item.modifiers.map((modifier) => ({
+              id: modifier.menuItemModifierId,
+              name: modifier.name,
+              extraPrice: modifier.extraPrice,
+              quantity: modifier.quantity,
+            })),
+          })),
+          serverOrderId: order.id,
+          serverOrderNumber: order.orderNumber,
+          dirty: false,
+        }),
       totals: () => {
         const s = get();
         return priceCart(s.lines, s.vatRate, s.discountPercent, s.discountAmount);

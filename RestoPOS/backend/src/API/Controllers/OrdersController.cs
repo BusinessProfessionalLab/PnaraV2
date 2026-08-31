@@ -16,6 +16,11 @@ public sealed class OrdersController(ISender sender) : ControllerBase
     public async Task<ActionResult<IReadOnlyList<OrderDto>>> Active(CancellationToken ct) =>
         Ok(await sender.Send(new GetActiveOrdersQuery(), ct));
 
+    [HttpGet("drafts")]
+    [Authorize(Policy = Permissions.OrdersView)]
+    public async Task<ActionResult<IReadOnlyList<OrderDto>>> Drafts(CancellationToken ct) =>
+        Ok(await sender.Send(new GetDraftOrdersQuery(), ct));
+
     [HttpGet("{id:guid}")]
     [Authorize(Policy = Permissions.OrdersView)]
     public async Task<ActionResult<OrderDto>> Get(Guid id, CancellationToken ct) =>

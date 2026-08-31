@@ -16,6 +16,9 @@ export async function syncCartToServer(): Promise<OrderDto> {
 async function syncCartToServerInternal(): Promise<OrderDto> {
   const cart = useCartStore.getState();
   if (!cart.lines.length) throw new Error("سبد خرید خالی است.");
+  if (cart.serverOrderId && !cart.dirty) {
+    return api.getOrder(cart.serverOrderId);
+  }
 
   const snapshot = {
     ...cart,

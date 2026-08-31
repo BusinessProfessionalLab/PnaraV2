@@ -230,3 +230,17 @@ public sealed class GetActiveOrdersQueryHandler(IApplicationDbContext db) : IReq
         return orders.Select(OrderMapping.ToDto).ToList();
     }
 }
+
+public sealed class GetDraftOrdersQueryHandler(IApplicationDbContext db) : IRequestHandler<GetDraftOrdersQuery, IReadOnlyList<OrderDto>>
+{
+    public async Task<IReadOnlyList<OrderDto>> Handle(GetDraftOrdersQuery request, CancellationToken cancellationToken)
+    {
+        var orders = await db.Orders
+            .Include(o => o.Items).ThenInclude(i => i.Modifiers)
+            .Include(o => o.Payments)
+            .Where(o => o.Status == OrderStatus.Draft)
+            .OrderByDescending(o => o.CreatedAt)
+            .ToListAsync(cancellationToken);
+        return orders.Select(OrderMapping.ToDto).ToList();
+    }
+}

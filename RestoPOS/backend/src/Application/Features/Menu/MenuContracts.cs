@@ -9,6 +9,7 @@ public sealed record RecipeDto(Guid Id, Guid? MenuItemId, Guid? MenuItemModifier
 public sealed record MenuItemDto(
     Guid Id,
     string Title,
+    string? NameEn,
     string? Description,
     decimal BasePrice,
     bool TaxInclusive,
@@ -37,7 +38,8 @@ public sealed record CreateMenuItemCommand(
     Guid CategoryId,
     bool IsActive,
     TicketStation TicketStation,
-    int PrepTimeMinutes) : MediatR.IRequest<Guid>;
+    int PrepTimeMinutes,
+    string? NameEn = null) : MediatR.IRequest<Guid>;
 
 public sealed record UpdateMenuItemCommand(
     Guid Id,
@@ -50,11 +52,14 @@ public sealed record UpdateMenuItemCommand(
     Guid CategoryId,
     bool IsActive,
     TicketStation TicketStation,
-    int PrepTimeMinutes) : MediatR.IRequest;
+    int PrepTimeMinutes,
+    string? NameEn = null) : MediatR.IRequest;
 
 public sealed record DeleteMenuItemCommand(Guid Id) : MediatR.IRequest;
 public sealed record GetMenuQuery(bool ActiveOnly = true) : MediatR.IRequest<IReadOnlyList<MenuItemDto>>;
 public sealed record GetMenuItemQuery(Guid Id) : MediatR.IRequest<MenuItemDto>;
 
 public sealed record CreateModifierCommand(Guid MenuItemId, string Name, decimal ExtraPrice, TicketStation TicketStation, int DisplayPriority) : MediatR.IRequest<Guid>;
+public sealed record UpdateModifierCommand(Guid Id, string Name, decimal ExtraPrice, TicketStation TicketStation, int DisplayPriority, bool IsActive) : MediatR.IRequest;
+public sealed record DeleteModifierCommand(Guid Id) : MediatR.IRequest;
 public sealed record UpsertRecipeCommand(Guid? MenuItemId, Guid? MenuItemModifierId, string Name, IReadOnlyList<RecipeLineDto> Lines) : MediatR.IRequest<Guid>;

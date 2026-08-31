@@ -70,6 +70,22 @@ public sealed class MenuController(ISender sender) : ControllerBase
     public async Task<ActionResult<Guid>> CreateModifier(CreateModifierCommand command, CancellationToken ct) =>
         Ok(await sender.Send(command, ct));
 
+    [HttpPut("modifiers/{id:guid}")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<IActionResult> UpdateModifier(Guid id, UpdateModifierCommand command, CancellationToken ct)
+    {
+        await sender.Send(command with { Id = id }, ct);
+        return NoContent();
+    }
+
+    [HttpDelete("modifiers/{id:guid}")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<IActionResult> DeleteModifier(Guid id, CancellationToken ct)
+    {
+        await sender.Send(new DeleteModifierCommand(id), ct);
+        return NoContent();
+    }
+
     [HttpPut("recipes")]
     [Authorize(Policy = Permissions.MenuManage)]
     public async Task<ActionResult<Guid>> UpsertRecipe(UpsertRecipeCommand command, CancellationToken ct) =>

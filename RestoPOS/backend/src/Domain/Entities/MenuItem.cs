@@ -6,6 +6,7 @@ namespace RestoPOS.Domain.Entities;
 public class MenuItem : BaseEntity, ISoftDeletable
 {
     public string Title { get; set; } = default!;
+    public string? NameEn { get; set; }
     public string? Description { get; set; }
     public decimal BasePrice { get; set; }
     public bool TaxInclusive { get; set; }

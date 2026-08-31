@@ -63,6 +63,7 @@ public class MenuItemConfiguration : IEntityTypeConfiguration<MenuItem>
         builder.ToTable("MenuItems");
         builder.ConfigureSoftDelete();
         builder.Property(x => x.Title).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.NameEn).HasMaxLength(200);
         builder.Property(x => x.Description).HasMaxLength(2000);
         builder.Property(x => x.BasePrice).HasColumnType(MoneyConfig.Rial);
         builder.Property(x => x.ImageUrl).HasMaxLength(500);

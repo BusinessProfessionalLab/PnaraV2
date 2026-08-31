@@ -95,6 +95,7 @@ public sealed class CreateMenuItemCommandHandler(IApplicationDbContext db) : IRe
         var item = new MenuItem
         {
             Title = request.Title,
+            NameEn = request.NameEn,
             Description = request.Description,
             BasePrice = decimal.Round(request.BasePrice, 0, MidpointRounding.AwayFromZero),
             TaxInclusive = request.TaxInclusive,
@@ -118,6 +119,7 @@ public sealed class UpdateMenuItemCommandHandler(IApplicationDbContext db) : IRe
         var item = await db.MenuItems.FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken)
                    ?? throw new NotFoundException(nameof(MenuItem), request.Id);
         item.Title = request.Title;
+        item.NameEn = request.NameEn;
         item.Description = request.Description;
         item.BasePrice = decimal.Round(request.BasePrice, 0, MidpointRounding.AwayFromZero);
         item.TaxInclusive = request.TaxInclusive;
@@ -162,6 +164,34 @@ public sealed class CreateModifierCommandHandler(IApplicationDbContext db) : IRe
         db.MenuItemModifiers.Add(modifier);
         await db.SaveChangesAsync(cancellationToken);
         return modifier.Id;
+    }
+}
+
+public sealed class UpdateModifierCommandHandler(IApplicationDbContext db) : IRequestHandler<UpdateModifierCommand>
+{
+    public async Task Handle(UpdateModifierCommand request, CancellationToken cancellationToken)
+    {
+        var modifier = await db.MenuItemModifiers.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
+            ?? throw new NotFoundException(nameof(MenuItemModifier), request.Id);
+        modifier.Name = request.Name;
+        modifier.ExtraPrice = decimal.Round(request.ExtraPrice, 0, MidpointRounding.AwayFromZero);
+        modifier.TicketStation = request.TicketStation;
+        modifier.DisplayPriority = request.DisplayPriority;
+        modifier.IsActive = request.IsActive;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+}
+
+public sealed class DeleteModifierCommandHandler(IApplicationDbContext db) : IRequestHandler<DeleteModifierCommand>
+{
+    public async Task Handle(DeleteModifierCommand request, CancellationToken cancellationToken)
+    {
+        var modifier = await db.MenuItemModifiers.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
+            ?? throw new NotFoundException(nameof(MenuItemModifier), request.Id);
+        modifier.IsDeleted = true;
+        modifier.IsActive = false;
+        modifier.DeletedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
     }
 }
 
@@ -242,7 +272,7 @@ public sealed class GetMenuItemQueryHandler(IApplicationDbContext db) : IRequest
 internal static class MenuMapping
 {
     public static MenuItemDto ToDto(MenuItem m) => new(
-        m.Id, m.Title, m.Description, m.BasePrice, m.TaxInclusive, m.ImageUrl, m.DisplayPriority,
+        m.Id, m.Title, m.NameEn, m.Description, m.BasePrice, m.TaxInclusive, m.ImageUrl, m.DisplayPriority,
         m.CategoryId, m.Category.Name, m.IsActive, m.TicketStation, m.PrepTimeMinutes,
         m.Modifiers.Where(x => !x.IsDeleted).OrderBy(x => x.DisplayPriority)
             .Select(x => new ModifierDto(x.Id, x.MenuItemId, x.Name, x.ExtraPrice, x.IsActive, x.TicketStation, x.DisplayPriority)).ToList(),

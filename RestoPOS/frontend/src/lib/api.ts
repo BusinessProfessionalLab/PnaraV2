@@ -165,6 +165,15 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  updateModifier: (id: string, payload: unknown) =>
+    apiFetch<void>(`http://192.168.100.249:5000/api/menu/modifiers/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ ...(payload as object), id }),
+    }),
+  deleteModifier: (id: string) =>
+    apiFetch<void>(`http://192.168.100.249:5000/api/menu/modifiers/${id}`, {
+      method: "DELETE",
+    }),
   upsertRecipe: (payload: unknown) =>
     apiFetch<string>("http://192.168.100.249:5000/api/menu/recipes", {
       method: "PUT",

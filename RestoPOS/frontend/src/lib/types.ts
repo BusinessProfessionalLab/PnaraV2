@@ -73,6 +73,7 @@ export type ModifierDto = {
 export type MenuItemDto = {
   id: string;
   title: string;
+  nameEn?: string | null;
   description?: string | null;
   basePrice: number;
   taxInclusive: boolean;

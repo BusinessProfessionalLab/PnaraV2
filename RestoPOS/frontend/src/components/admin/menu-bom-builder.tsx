@@ -12,6 +12,26 @@ import type { MenuItemDto, TicketStation, UnitOfMeasure } from "@/lib/types";
 
 type Category = { id: string; name: string };
 
+async function cropImageToSquare(file: File): Promise<string> {
+  const source = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("امکان خواندن تصویر وجود ندارد."));
+      image.src = String(reader.result);
+    };
+    reader.onerror = () => reject(new Error("امکان خواندن فایل وجود ندارد."));
+    reader.readAsDataURL(file);
+  });
+  const side = Math.min(source.naturalWidth, source.naturalHeight);
+  const canvas = document.createElement("canvas");
+  canvas.width = 800;
+  canvas.height = 800;
+  canvas.getContext("2d")?.drawImage(source, (source.naturalWidth - side) / 2, (source.naturalHeight - side) / 2, side, side, 0, 0, 800, 800);
+  return canvas.toDataURL("image/jpeg", 0.86);
+}
+
 export function MenuBomBuilder() {
   const qc = useQueryClient();
   const cats = useQuery({ queryKey: ["categories", true], queryFn: () => api.categories(true) });

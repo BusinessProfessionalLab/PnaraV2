@@ -53,6 +53,24 @@ public sealed class CreateDraftOrderCommandHandler(
 
         var order = Order.CreateDraft(await numbers.NextAsync(cancellationToken), request.OrderType, cashierId, shift?.Id, settings.VatRate, request.TableNumber, phone);
         order.Notes = request.Notes;
+        foreach (var itemRequest in request.Items ?? [])
+        {
+            if (itemRequest.Quantity <= 0)
+                throw new DomainException("تعداد آیتم باید حداقل ۱ باشد.");
+
+            var menuItem = await db.MenuItems.Include(m => m.Modifiers)
+                .FirstOrDefaultAsync(m => m.Id == itemRequest.MenuItemId, cancellationToken)
+                ?? throw new NotFoundException(nameof(MenuItem), itemRequest.MenuItemId);
+
+            var line = order.AddItem(menuItem, itemRequest.Quantity, itemRequest.Notes);
+            foreach (var modifierRequest in itemRequest.Modifiers ?? [])
+            {
+                var modifier = menuItem.Modifiers.FirstOrDefault(m => m.Id == modifierRequest.MenuItemModifierId)
+                    ?? throw new NotFoundException(nameof(MenuItemModifier), modifierRequest.MenuItemModifierId);
+                line.AddModifier(modifier, modifierRequest.Quantity);
+            }
+        }
+        order.Recalculate();
         db.Orders.Add(order);
         await db.SaveChangesAsync(cancellationToken);
         return OrderMapping.ToDto(order);

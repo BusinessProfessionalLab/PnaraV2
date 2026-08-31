@@ -27,6 +27,12 @@ async function syncCartToServerInternal(): Promise<OrderDto> {
     tableNumber: snapshot.tableNumber || null,
     customerPhone: snapshot.customerPhone || null,
     notes: snapshot.notes || null,
+    items: snapshot.lines.map((line) => ({
+      menuItemId: line.menuItemId,
+      quantity: line.quantity,
+      notes: line.notes || null,
+      modifiers: line.modifiers.map((m) => ({ menuItemModifierId: m.id, quantity: m.quantity })),
+    })),
   };
 
   const syncOnce = async (retryCount = 0): Promise<OrderDto> => {
@@ -43,14 +49,6 @@ async function syncCartToServerInternal(): Promise<OrderDto> {
 
     try {
       let last = draft;
-      for (const line of snapshot.lines) {
-        last = await api.addItem(last.id, {
-          menuItemId: line.menuItemId,
-          quantity: line.quantity,
-          notes: line.notes || null,
-          modifiers: line.modifiers.map((m) => ({ menuItemModifierId: m.id, quantity: m.quantity })),
-        });
-      }
       if (snapshot.discountPercent || snapshot.discountAmount) {
         last = await api.applyDiscount(last.id, snapshot.discountPercent, snapshot.discountAmount);
       }

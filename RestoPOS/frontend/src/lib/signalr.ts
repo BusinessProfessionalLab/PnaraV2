@@ -1,10 +1,14 @@
-import { HubConnection, HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
+import {
+  HubConnection,
+  HubConnectionBuilder,
+  LogLevel,
+} from "@microsoft/signalr";
 import { getAccessToken } from "./auth-store";
 import type { OrderDto } from "./types";
 
 export function createKitchenConnection() {
   return new HubConnectionBuilder()
-    .withUrl("/hubs/kitchen", {
+    .withUrl("http://192.168.100.249:5000/hubs/kitchen", {
       accessTokenFactory: () => getAccessToken() ?? "",
     })
     .withAutomaticReconnect()
@@ -12,7 +16,10 @@ export function createKitchenConnection() {
     .build();
 }
 
-export async function joinKitchen(connection: HubConnection, station: "kitchen" | "bar") {
+export async function joinKitchen(
+  connection: HubConnection,
+  station: "kitchen" | "bar",
+) {
   if (connection.state !== "Connected") {
     await connection.start();
   }

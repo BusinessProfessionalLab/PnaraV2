@@ -29,7 +29,7 @@ async function tryRefresh() {
   if (!token) return false;
   if (!refreshing) {
     refreshing = (async () => {
-      const res = await fetch("/api/auth/refresh", {
+      const res = await fetch("http://192.168.100.249:5000/api/auth/refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken: token }),
@@ -48,9 +48,17 @@ async function tryRefresh() {
   return refreshing;
 }
 
-export async function apiFetch<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
+export async function apiFetch<T>(
+  path: string,
+  init: RequestInit = {},
+  retry = true,
+): Promise<T> {
   const headers = new Headers(init.headers);
-  if (!(init.body instanceof FormData) && !headers.has("Content-Type") && init.body) {
+  if (
+    !(init.body instanceof FormData) &&
+    !headers.has("Content-Type") &&
+    init.body
+  ) {
     headers.set("Content-Type", "application/json");
   }
   const access = getAccessToken();
@@ -64,8 +72,14 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}, retry = 
   const body = await parse(res);
   if (!res.ok) {
     const message =
-      (body && typeof body === "object" && "detail" in body && String(body.detail)) ||
-      (body && typeof body === "object" && "title" in body && String(body.title)) ||
+      (body &&
+        typeof body === "object" &&
+        "detail" in body &&
+        String(body.detail)) ||
+      (body &&
+        typeof body === "object" &&
+        "title" in body &&
+        String(body.title)) ||
       res.statusText;
     throw new ApiError(res.status, message, body);
   }
@@ -74,129 +88,257 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}, retry = 
 
 export const api = {
   login: (userName: string, password: string) =>
-    apiFetch<AuthResponse>("/api/auth/login", {
+    apiFetch<AuthResponse>("http://192.168.100.249:5000/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ userName, password }),
     }),
   refresh: (refreshToken: string) =>
-    apiFetch<AuthResponse>("/api/auth/refresh", {
+    apiFetch<AuthResponse>("http://192.168.100.249:5000/api/auth/refresh", {
       method: "POST",
       body: JSON.stringify({ refreshToken }),
     }),
-  staff: () => apiFetch<import("./types").StaffDto[]>("/api/staff"),
+  staff: () =>
+    apiFetch<import("./types").StaffDto[]>(
+      "http://192.168.100.249:5000/api/staff",
+    ),
   createStaff: (payload: unknown) =>
-    apiFetch<string>("/api/staff", { method: "POST", body: JSON.stringify(payload) }),
-  currentShift: () => apiFetch<import("./types").ShiftDto | null>("/api/shifts/current"),
+    apiFetch<string>("http://192.168.100.249:5000/api/staff", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  currentShift: () =>
+    apiFetch<import("./types").ShiftDto | null>(
+      "http://192.168.100.249:5000/api/shifts/current",
+    ),
   openShift: (openingCash: number, notes?: string) =>
-    apiFetch<string>("/api/shifts/open", { method: "POST", body: JSON.stringify({ openingCash, notes }) }),
+    apiFetch<string>("http://192.168.100.249:5000/api/shifts/open", {
+      method: "POST",
+      body: JSON.stringify({ openingCash, notes }),
+    }),
   closeShift: (shiftId: string, closingCash: number, notes?: string) =>
-    apiFetch<void>(`/api/shifts/${shiftId}/close`, {
+    apiFetch<void>(`http://192.168.100.249:5000/api/shifts/${shiftId}/close`, {
       method: "POST",
       body: JSON.stringify({ shiftId, closingCash, notes }),
     }),
   categories: (includeHidden = false) =>
-    apiFetch<import("./types").CategoryDto[]>(`/api/menu/categories?includeHidden=${includeHidden}`),
+    apiFetch<import("./types").CategoryDto[]>(
+      `http://192.168.100.249:5000/api/menu/categories?includeHidden=${includeHidden}`,
+    ),
   createCategory: (payload: unknown) =>
-    apiFetch<string>("/api/menu/categories", { method: "POST", body: JSON.stringify(payload) }),
-  updateCategory: (id: string, payload: unknown) =>
-    apiFetch<void>(`/api/menu/categories/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
-  deleteCategory: (id: string) => apiFetch<void>(`/api/menu/categories/${id}`, { method: "DELETE" }),
-  menuItems: (activeOnly = true) =>
-    apiFetch<import("./types").MenuItemDto[]>(`/api/menu/items?activeOnly=${activeOnly}`),
-  menuItem: (id: string) => apiFetch<import("./types").MenuItemDto>(`/api/menu/items/${id}`),
-  createMenuItem: (payload: unknown) =>
-    apiFetch<string>("/api/menu/items", { method: "POST", body: JSON.stringify(payload) }),
-  updateMenuItem: (id: string, payload: unknown) =>
-    apiFetch<void>(`/api/menu/items/${id}`, { method: "PUT", body: JSON.stringify({ ...(payload as object), id }) }),
-  deleteMenuItem: (id: string) => apiFetch<void>(`/api/menu/items/${id}`, { method: "DELETE" }),
-  createModifier: (payload: unknown) =>
-    apiFetch<string>("/api/menu/modifiers", { method: "POST", body: JSON.stringify(payload) }),
-  upsertRecipe: (payload: unknown) =>
-    apiFetch<string>("/api/menu/recipes", { method: "PUT", body: JSON.stringify(payload) }),
-  createDraft: (payload: unknown) =>
-    apiFetch<import("./types").OrderDto>("/api/orders/drafts", { method: "POST", body: JSON.stringify(payload) }),
-  draftOrders: () => apiFetch<import("./types").OrderDto[]>("/api/orders/drafts"),
-  addItem: (orderId: string, payload: unknown) =>
-    apiFetch<import("./types").OrderDto>(`/api/orders/${orderId}/items`, {
+    apiFetch<string>("http://192.168.100.249:5000/api/menu/categories", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  updateCategory: (id: string, payload: unknown) =>
+    apiFetch<void>(`http://192.168.100.249:5000/api/menu/categories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+  deleteCategory: (id: string) =>
+    apiFetch<void>(`http://192.168.100.249:5000/api/menu/categories/${id}`, {
+      method: "DELETE",
+    }),
+  menuItems: (activeOnly = true) =>
+    apiFetch<import("./types").MenuItemDto[]>(
+      `http://192.168.100.249:5000/api/menu/items?activeOnly=${activeOnly}`,
+    ),
+  menuItem: (id: string) =>
+    apiFetch<import("./types").MenuItemDto>(
+      `http://192.168.100.249:5000/api/menu/items/${id}`,
+    ),
+  createMenuItem: (payload: unknown) =>
+    apiFetch<string>("http://192.168.100.249:5000/api/menu/items", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateMenuItem: (id: string, payload: unknown) =>
+    apiFetch<void>(`http://192.168.100.249:5000/api/menu/items/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ ...(payload as object), id }),
+    }),
+  deleteMenuItem: (id: string) =>
+    apiFetch<void>(`http://192.168.100.249:5000/api/menu/items/${id}`, {
+      method: "DELETE",
+    }),
+  createModifier: (payload: unknown) =>
+    apiFetch<string>("http://192.168.100.249:5000/api/menu/modifiers", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  upsertRecipe: (payload: unknown) =>
+    apiFetch<string>("http://192.168.100.249:5000/api/menu/recipes", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+  createDraft: (payload: unknown) =>
+    apiFetch<import("./types").OrderDto>(
+      "http://192.168.100.249:5000/api/orders/drafts",
+      { method: "POST", body: JSON.stringify(payload) },
+    ),
+  draftOrders: () =>
+    apiFetch<import("./types").OrderDto[]>(
+      "http://192.168.100.249:5000/api/orders/drafts",
+    ),
+  addItem: (orderId: string, payload: unknown) =>
+    apiFetch<import("./types").OrderDto>(
+      `http://192.168.100.249:5000/api/orders/${orderId}/items`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+    ),
   removeItem: (orderId: string, itemId: string) =>
-    apiFetch<import("./types").OrderDto>(`/api/orders/${orderId}/items/${itemId}`, { method: "DELETE" }),
+    apiFetch<import("./types").OrderDto>(
+      `http://192.168.100.249:5000/api/orders/${orderId}/items/${itemId}`,
+      { method: "DELETE" },
+    ),
   applyDiscount: (orderId: string, percent: number, amount: number) =>
-    apiFetch<import("./types").OrderDto>(`/api/orders/${orderId}/discount`, {
-      method: "POST",
-      body: JSON.stringify({ orderId, percent, amount }),
-    }),
+    apiFetch<import("./types").OrderDto>(
+      `http://192.168.100.249:5000/api/orders/${orderId}/discount`,
+      {
+        method: "POST",
+        body: JSON.stringify({ orderId, percent, amount }),
+      },
+    ),
   submitOrder: (orderId: string) =>
-    apiFetch<import("./types").OrderDto>(`/api/orders/${orderId}/submit`, { method: "POST" }),
+    apiFetch<import("./types").OrderDto>(
+      `http://192.168.100.249:5000/api/orders/${orderId}/submit`,
+      { method: "POST" },
+    ),
   updateOrderStatus: (orderId: string, status: string) =>
-    apiFetch<import("./types").OrderDto>(`/api/orders/${orderId}/status`, {
-      method: "POST",
-      body: JSON.stringify({ orderId, status }),
+    apiFetch<import("./types").OrderDto>(
+      `http://192.168.100.249:5000/api/orders/${orderId}/status`,
+      {
+        method: "POST",
+        body: JSON.stringify({ orderId, status }),
+      },
+    ),
+  discardDraft: (orderId: string) =>
+    apiFetch<void>(`http://192.168.100.249:5000/api/orders/${orderId}/draft`, {
+      method: "DELETE",
     }),
-  discardDraft: (orderId: string) => apiFetch<void>(`/api/orders/${orderId}/draft`, { method: "DELETE" }),
   cancelOrder: (orderId: string, reason?: string) =>
-    apiFetch<import("./types").OrderDto>(`/api/orders/${orderId}/cancel`, {
-      method: "POST",
-      body: JSON.stringify({ orderId, reason }),
-    }),
-  getOrder: (id: string) => apiFetch<import("./types").OrderDto>(`/api/orders/${id}`),
-  activeOrders: () => apiFetch<import("./types").OrderDto[]>("/api/orders/active"),
+    apiFetch<import("./types").OrderDto>(
+      `http://192.168.100.249:5000/api/orders/${orderId}/cancel`,
+      {
+        method: "POST",
+        body: JSON.stringify({ orderId, reason }),
+      },
+    ),
+  getOrder: (id: string) =>
+    apiFetch<import("./types").OrderDto>(
+      `http://192.168.100.249:5000/api/orders/${id}`,
+    ),
+  activeOrders: () =>
+    apiFetch<import("./types").OrderDto[]>(
+      "http://192.168.100.249:5000/api/orders/active",
+    ),
   payCash: (orderId: string, amount: number) =>
-    apiFetch<import("./types").OrderDto>("/api/payments/cash", {
-      method: "POST",
-      body: JSON.stringify({ orderId, amount }),
-    }),
+    apiFetch<import("./types").OrderDto>(
+      "http://192.168.100.249:5000/api/payments/cash",
+      {
+        method: "POST",
+        body: JSON.stringify({ orderId, amount }),
+      },
+    ),
   payCardToCard: (orderId: string, amount: number, referenceNumber: string) =>
-    apiFetch<import("./types").OrderDto>("/api/payments/card-to-card", {
-      method: "POST",
-      body: JSON.stringify({ orderId, amount, referenceNumber }),
-    }),
+    apiFetch<import("./types").OrderDto>(
+      "http://192.168.100.249:5000/api/payments/card-to-card",
+      {
+        method: "POST",
+        body: JSON.stringify({ orderId, amount, referenceNumber }),
+      },
+    ),
   initiatePos: (orderId: string, deviceId: string) =>
-    apiFetch<import("./types").PaymentDto>("/api/payments/pos/initiate", {
-      method: "POST",
-      body: JSON.stringify({ orderId, deviceId }),
-    }),
-  pollPos: (paymentId: string) => apiFetch<import("./types").PaymentDto>(`/api/payments/pos/${paymentId}/poll`),
-  posDevices: () => apiFetch<import("./types").PosDeviceDto[]>("/api/payments/devices"),
-  inventory: () => apiFetch<import("./types").InventoryItemDto[]>("/api/inventory"),
-  lowStock: () => apiFetch<import("./types").InventoryItemDto[]>("/api/inventory/low-stock"),
+    apiFetch<import("./types").PaymentDto>(
+      "http://192.168.100.249:5000/api/payments/pos/initiate",
+      {
+        method: "POST",
+        body: JSON.stringify({ orderId, deviceId }),
+      },
+    ),
+  pollPos: (paymentId: string) =>
+    apiFetch<import("./types").PaymentDto>(
+      `http://192.168.100.249:5000/api/payments/pos/${paymentId}/poll`,
+    ),
+  posDevices: () =>
+    apiFetch<import("./types").PosDeviceDto[]>(
+      "http://192.168.100.249:5000/api/payments/devices",
+    ),
+  inventory: () =>
+    apiFetch<import("./types").InventoryItemDto[]>(
+      "http://192.168.100.249:5000/api/inventory",
+    ),
+  lowStock: () =>
+    apiFetch<import("./types").InventoryItemDto[]>(
+      "http://192.168.100.249:5000/api/inventory/low-stock",
+    ),
   inventoryTx: (inventoryItemId?: string) =>
     apiFetch<import("./types").InventoryTransactionDto[]>(
-      `/api/inventory/transactions${inventoryItemId ? `?inventoryItemId=${inventoryItemId}` : ""}`,
+      `http://192.168.100.249:5000/api/inventory/transactions${inventoryItemId ? `?inventoryItemId=${inventoryItemId}` : ""}`,
     ),
   createInventoryItem: (payload: unknown) =>
-    apiFetch<string>("/api/inventory/items", { method: "POST", body: JSON.stringify(payload) }),
+    apiFetch<string>("http://192.168.100.249:5000/api/inventory/items", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   receiveStock: (payload: unknown) =>
-    apiFetch<string>("/api/inventory/receive", { method: "POST", body: JSON.stringify(payload) }),
+    apiFetch<string>("http://192.168.100.249:5000/api/inventory/receive", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   recordWaste: (payload: unknown) =>
-    apiFetch<string>("/api/inventory/waste", { method: "POST", body: JSON.stringify(payload) }),
+    apiFetch<string>("http://192.168.100.249:5000/api/inventory/waste", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   customers: (term?: string) =>
-    apiFetch<import("./types").CustomerDto[]>(`/api/customers${term ? `?term=${encodeURIComponent(term)}` : ""}`),
+    apiFetch<import("./types").CustomerDto[]>(
+      `http://192.168.100.249:5000/api/customers${term ? `?term=${encodeURIComponent(term)}` : ""}`,
+    ),
   customerByPhone: (phone: string) =>
-    apiFetch<import("./types").CustomerDto>(`/api/customers/${encodeURIComponent(phone)}`),
-  settings: () => apiFetch<import("./types").StoreSettingsDto>("/api/settings"),
+    apiFetch<import("./types").CustomerDto>(
+      `http://192.168.100.249:5000/api/customers/${encodeURIComponent(phone)}`,
+    ),
+  settings: () =>
+    apiFetch<import("./types").StoreSettingsDto>(
+      "http://192.168.100.249:5000/api/settings",
+    ),
   updateSettings: (payload: unknown) =>
-    apiFetch<import("./types").StoreSettingsDto>("/api/settings", { method: "PUT", body: JSON.stringify(payload) }),
+    apiFetch<import("./types").StoreSettingsDto>(
+      "http://192.168.100.249:5000/api/settings",
+      { method: "PUT", body: JSON.stringify(payload) },
+    ),
   reportProducts: (fromUtc: string, toUtc: string) =>
     apiFetch<import("./types").SalesByProductRow[]>(
-      `/api/reports/sales/products?fromUtc=${fromUtc}&toUtc=${toUtc}`,
+      `http://192.168.100.249:5000/api/reports/sales/products?fromUtc=${fromUtc}&toUtc=${toUtc}`,
     ),
   reportCategories: (fromUtc: string, toUtc: string) =>
     apiFetch<import("./types").SalesByCategoryRow[]>(
-      `/api/reports/sales/categories?fromUtc=${fromUtc}&toUtc=${toUtc}`,
+      `http://192.168.100.249:5000/api/reports/sales/categories?fromUtc=${fromUtc}&toUtc=${toUtc}`,
     ),
   reportHourly: (fromUtc: string, toUtc: string) =>
-    apiFetch<import("./types").HourlySalesRow[]>(`/api/reports/sales/hourly?fromUtc=${fromUtc}&toUtc=${toUtc}`),
+    apiFetch<import("./types").HourlySalesRow[]>(
+      `http://192.168.100.249:5000/api/reports/sales/hourly?fromUtc=${fromUtc}&toUtc=${toUtc}`,
+    ),
   reportPeak: (fromUtc: string, toUtc: string) =>
-    apiFetch<import("./types").HourlySalesRow[]>(`/api/reports/sales/peak-hours?fromUtc=${fromUtc}&toUtc=${toUtc}`),
+    apiFetch<import("./types").HourlySalesRow[]>(
+      `http://192.168.100.249:5000/api/reports/sales/peak-hours?fromUtc=${fromUtc}&toUtc=${toUtc}`,
+    ),
   reportPerformance: (fromUtc: string, toUtc: string) =>
     apiFetch<import("./types").ProductPerformanceRow[]>(
-      `/api/reports/sales/performance?fromUtc=${fromUtc}&toUtc=${toUtc}`,
+      `http://192.168.100.249:5000/api/reports/sales/performance?fromUtc=${fromUtc}&toUtc=${toUtc}`,
     ),
   reportStaff: (fromUtc: string, toUtc: string) =>
-    apiFetch<import("./types").StaffPerformanceRow[]>(`/api/reports/staff?fromUtc=${fromUtc}&toUtc=${toUtc}`),
-  stockAlerts: () => apiFetch<import("./types").StockAlertRow[]>("/api/reports/stock-alerts"),
-  health: () => apiFetch<{ product: string; status: string }>("/api/health"),
+    apiFetch<import("./types").StaffPerformanceRow[]>(
+      `http://192.168.100.249:5000/api/reports/staff?fromUtc=${fromUtc}&toUtc=${toUtc}`,
+    ),
+  stockAlerts: () =>
+    apiFetch<import("./types").StockAlertRow[]>(
+      "http://192.168.100.249:5000/api/reports/stock-alerts",
+    ),
+  health: () =>
+    apiFetch<{ product: string; status: string }>(
+      "http://192.168.100.249:5000/api/health",
+    ),
 };

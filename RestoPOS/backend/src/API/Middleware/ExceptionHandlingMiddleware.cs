@@ -24,10 +24,10 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
     {
         var (status, title, detail) = exception switch
         {
-            DbUpdateConcurrencyException => (
+            DbUpdateConcurrencyException concurrency => (
                 HttpStatusCode.Conflict,
                 "OrderConcurrencyConflict",
-                "سبد سفارش در حالت فعلی همگام‌سازی ندارد. لطفاً دوباره تلاش کنید."
+                DescribeConcurrency(concurrency)
             ),
             ValidationException validationException => (HttpStatusCode.BadRequest, "ValidationFailed", validationException.Message),
             NotFoundException notFound => (HttpStatusCode.NotFound, "NotFound", notFound.Message),
@@ -37,7 +37,13 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
             _ => (HttpStatusCode.InternalServerError, "ServerError", exception.Message)
         };
 
-        if (status == HttpStatusCode.InternalServerError)
+        if (exception is DbUpdateConcurrencyException concurrencyException)
+        {
+            var entities = string.Join(", ", concurrencyException.Entries.Select(e =>
+                $"{e.Metadata.ClrType.Name}:{e.Properties.FirstOrDefault(p => p.Metadata.IsPrimaryKey())?.CurrentValue}"));
+            logger.LogWarning(exception, "EF concurrency conflict. Entries: {Entries}", entities);
+        }
+        else if (status == HttpStatusCode.InternalServerError)
             logger.LogError(exception, "Unhandled exception");
         else
             logger.LogWarning(exception, "Handled domain exception {Title}", title);
@@ -51,5 +57,13 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
 
         var payload = new { title, status = (int)status, detail, errors };
         await context.Response.WriteAsync(JsonSerializer.Serialize(payload));
+    }
+
+    private static string DescribeConcurrency(DbUpdateConcurrencyException exception)
+    {
+        var entities = string.Join(", ", exception.Entries.Select(e => e.Metadata.ClrType.Name));
+        return string.IsNullOrWhiteSpace(entities)
+            ? "رکورد توسط درخواست دیگری تغییر یا حذف شده است. لطفاً اطلاعات سفارش را تازه‌سازی کنید."
+            : $"رکورد {entities} توسط درخواست دیگری تغییر یا حذف شده است. لطفاً اطلاعات سفارش را تازه‌سازی کنید.";
     }
 }

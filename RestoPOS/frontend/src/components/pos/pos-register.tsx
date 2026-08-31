@@ -280,8 +280,8 @@ export function PosRegister() {
                 <p>آیتمی انتخاب نشده</p>
               </div>
             ) : (
-              cart.lines.map((line) => (
-                <div key={line.clientId} className="rounded-2xl border bg-white p-3">
+              cart.lines.map((line, lineIndex) => (
+                <div key={`${line.menuItemId}-${lineIndex}`} className="rounded-2xl border bg-white p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="font-bold">{line.title}</div>
@@ -293,17 +293,17 @@ export function PosRegister() {
                         ))}
                       </div>
                     </div>
-                    <button onClick={() => cart.removeLine(line.clientId)}>
+                    <button onClick={() => cart.removeLine(lineIndex)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </button>
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Button size="icon" variant="outline" onClick={() => cart.updateQty(line.clientId, line.quantity - 1)}>
+                      <Button size="icon" variant="outline" onClick={() => cart.updateQty(lineIndex, line.quantity - 1)}>
                         −
                       </Button>
                       <span className="w-6 text-center font-black">{line.quantity}</span>
-                      <Button size="icon" variant="outline" onClick={() => cart.updateQty(line.clientId, line.quantity + 1)}>
+                      <Button size="icon" variant="outline" onClick={() => cart.updateQty(lineIndex, line.quantity + 1)}>
                         +
                       </Button>
                     </div>
@@ -333,13 +333,30 @@ export function PosRegister() {
             <Tot k={`ارزش افزوده (${Math.round(cart.vatRate * 100)}٪)`} v={formatToman(totals.taxAmount)} />
             <Tot k="قابل پرداخت" v={formatToman(totals.grandTotal)} big />
             <div className="grid grid-cols-2 gap-2 pt-2">
-              <Button variant="outline" disabled={!cart.lines.length || draftMut.isPending} onClick={() => draftMut.mutate()}>
+              <Button
+                variant="outline"
+                disabled={!cart.lines.length || draftMut.isPending || sendMut.isPending || discardMut.isPending}
+                onClick={() => draftMut.mutate()}
+              >
                 ثبت موقت
               </Button>
-              <Button variant="destructive" disabled={!cart.lines.length && !cart.serverOrderId} onClick={() => discardMut.mutate()}>
+              <Button
+                variant="destructive"
+                disabled={
+                  (!cart.lines.length && !cart.serverOrderId) ||
+                  draftMut.isPending ||
+                  sendMut.isPending ||
+                  discardMut.isPending
+                }
+                onClick={() => discardMut.mutate()}
+              >
                 حذف نیمه‌کاره
               </Button>
-              <Button variant="secondary" disabled={!cart.lines.length || sendMut.isPending} onClick={() => sendMut.mutate()}>
+              <Button
+                variant="secondary"
+                disabled={!cart.lines.length || sendMut.isPending || draftMut.isPending || discardMut.isPending}
+                onClick={() => sendMut.mutate()}
+              >
                 ارسال به بار/آشپزخانه
               </Button>
               <Button disabled={!cart.lines.length} onClick={() => setCheckout(true)}>

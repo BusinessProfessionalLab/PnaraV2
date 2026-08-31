@@ -2,7 +2,18 @@ import { ApiError, api } from "./api";
 import { useCartStore } from "./cart-store";
 import type { OrderDto } from "./types";
 
+let syncInFlight: Promise<OrderDto> | null = null;
+
 export async function syncCartToServer(): Promise<OrderDto> {
+  if (syncInFlight) return syncInFlight;
+
+  syncInFlight = syncCartToServerInternal().finally(() => {
+    syncInFlight = null;
+  });
+  return syncInFlight;
+}
+
+async function syncCartToServerInternal(): Promise<OrderDto> {
   const cart = useCartStore.getState();
   if (!cart.lines.length) throw new Error("سبد خرید خالی است.");
 
@@ -34,7 +45,6 @@ export async function syncCartToServer(): Promise<OrderDto> {
       let last = draft;
       for (const line of snapshot.lines) {
         last = await api.addItem(last.id, {
-          orderId: last.id,
           menuItemId: line.menuItemId,
           quantity: line.quantity,
           notes: line.notes || null,

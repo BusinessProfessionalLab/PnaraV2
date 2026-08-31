@@ -115,6 +115,8 @@ public sealed class ConfirmCashPaymentCommandHandler(
     public async Task<OrderDto> Handle(ConfirmCashPaymentCommand request, CancellationToken cancellationToken)
     {
         var order = await OrderLoader.Load(db, request.OrderId, cancellationToken);
+        if (order.Status == OrderStatus.Paid)
+            return OrderMapping.ToDto(order);
         if (order.Status is OrderStatus.Draft)
             order.Submit();
 
@@ -142,6 +144,8 @@ public sealed class RecordCardToCardCommandHandler(
     public async Task<OrderDto> Handle(RecordCardToCardCommand request, CancellationToken cancellationToken)
     {
         var order = await OrderLoader.Load(db, request.OrderId, cancellationToken);
+        if (order.Status == OrderStatus.Paid)
+            return OrderMapping.ToDto(order);
         var payment = new Payment
         {
             OrderId = order.Id,
@@ -167,6 +171,8 @@ public sealed class RecordOnlineGatewayCommandHandler(
     public async Task<OrderDto> Handle(RecordOnlineGatewayCommand request, CancellationToken cancellationToken)
     {
         var order = await OrderLoader.Load(db, request.OrderId, cancellationToken);
+        if (order.Status == OrderStatus.Paid)
+            return OrderMapping.ToDto(order);
         var payment = new Payment
         {
             OrderId = order.Id,

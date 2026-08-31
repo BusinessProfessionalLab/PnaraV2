@@ -50,7 +50,7 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.Property(x => x.Name).HasMaxLength(128).IsRequired();
         builder.Property(x => x.NameEn).HasMaxLength(128);
         builder.Property(x => x.IconUrl).HasMaxLength(500);
-        builder.Property(x => x.ImageUrl).HasColumnType("nvarchar(max)");
+        builder.Property(x => x.ImageUrl).HasMaxLength(500);
         builder.HasOne(x => x.Parent).WithMany(x => x.Children).HasForeignKey(x => x.ParentId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(x => x.DisplayPriority);
     }
@@ -66,7 +66,7 @@ public class MenuItemConfiguration : IEntityTypeConfiguration<MenuItem>
         builder.Property(x => x.NameEn).HasMaxLength(200);
         builder.Property(x => x.Description).HasMaxLength(2000);
         builder.Property(x => x.BasePrice).HasColumnType(MoneyConfig.Rial);
-        builder.Property(x => x.ImageUrl).HasMaxLength(500);
+        builder.Property(x => x.ImageUrl).HasColumnType("nvarchar(max)");
         builder.HasOne(x => x.Category).WithMany(c => c.MenuItems).HasForeignKey(x => x.CategoryId);
         builder.HasOne(x => x.Recipe).WithOne(r => r.MenuItem).HasForeignKey<Recipe>(r => r.MenuItemId);
         builder.HasIndex(x => new { x.CategoryId, x.DisplayPriority });

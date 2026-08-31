@@ -92,6 +92,7 @@ export function PosRegister() {
     mutationFn: syncCartToServer,
     onSuccess: (order) => {
       qc.invalidateQueries({ queryKey: ["order-drafts"] });
+      cart.clear();
       toast.success(`پیش‌نویس ${order.orderNumber} ذخیره شد`);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -298,14 +299,27 @@ export function PosRegister() {
                 {(drafts.data ?? []).map((draft) => (
                   <button
                     key={draft.id}
-                    className={`flex w-full items-center justify-between rounded-lg px-2 py-1 text-xs hover:bg-amber-100 ${
+                    className={`w-full rounded-lg px-2 py-2 text-right text-xs hover:bg-amber-100 ${
                       cart.serverOrderId === draft.id ? "bg-amber-200" : ""
                     }`}
                     onClick={() => loadDraftMut.mutate(draft.id)}
                     disabled={loadDraftMut.isPending}
                   >
-                    <span>{draft.orderNumber}</span>
-                    <span>{draft.items.length} آیتم · {formatToman(draft.grandTotal)}</span>
+                    <div className="flex items-center justify-between gap-2 font-black">
+                      <span>سفارش {draft.orderNumber}</span>
+                      <span>{formatToman(draft.grandTotal)}</span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                      {draft.customerPhone ? <span>مشتری: {draft.customerPhone}</span> : null}
+                      {draft.tableNumber ? <span>میز: {draft.tableNumber}</span> : null}
+                      <span>{draft.orderType === "DineIn" ? "حضوری" : draft.orderType === "Takeaway" ? "بیرون‌بر" : "بار"}</span>
+                      <span>{draft.items.length} آیتم</span>
+                    </div>
+                    <div className="mt-1 truncate text-[11px] text-muted-foreground">
+                      {draft.items.slice(0, 2).map((item) => `${item.title} × ${item.quantity}`).join("، ")}
+                      {draft.items.length > 2 ? "، ..." : ""}
+                      {draft.notes ? ` · ${draft.notes}` : ""}
+                    </div>
                   </button>
                 ))}
                 {!drafts.data?.length ? <p className="text-xs text-muted-foreground">پیش‌نویسی وجود ندارد</p> : null}

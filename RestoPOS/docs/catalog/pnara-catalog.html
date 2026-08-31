@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>کاتالوگ محصول — پنارا | ToastIran POS</title>
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" />
+<style>
+  :root {
+    --primary: #c2410c;
+    --primary-dark: #7c2d12;
+    --secondary: #0f766e;
+    --ink: #1c1917;
+    --muted: #78716c;
+    --paper: #fffbf7;
+    --line: #e7e5e4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { font-size: 14px; }
+  body { font-family: "Vazirmatn", "Segoe UI", Tahoma, sans-serif; color: var(--ink); background: #d6d3d1; }
+  .page {
+    width: 210mm; min-height: 297mm; margin: 8mm auto;
+    background: var(--paper); padding: 18mm 16mm;
+    position: relative; box-shadow: 0 4px 24px rgba(0,0,0,.18);
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  @media print {
+    body { background: none; }
+    .page { margin: 0; box-shadow: none; page-break-after: always; width: auto; min-height: 0; height: 297mm; }
+    @page { size: A4; margin: 0; }
+  }
+  .kicker {
+    display: inline-block; color: var(--primary); font-weight: 700; font-size: .95rem;
+    border-bottom: 3px solid var(--primary); padding-bottom: 4px; margin-bottom: 14px;
+  }
+  h1 { font-size: 2.6rem; font-weight: 800; line-height: 1.35; }
+  h2 { font-size: 1.7rem; font-weight: 800; margin-bottom: 6px; }
+  h3 { font-size: 1.1rem; font-weight: 700; }
+  p.lead { font-size: 1.06rem; line-height: 2; color: #44403c; }
+  .footer {
+    margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; color: var(--muted); font-size: .8rem;
+  }
+  .chip {
+    display: inline-block; background: #fff7ed; border: 1px solid #fed7aa; color: var(--primary-dark);
+    border-radius: 999px; padding: 4px 14px; font-size: .85rem; font-weight: 600; margin: 3px 0 3px 6px;
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  .card .icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary), #ea580c); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 1.25rem; margin-bottom: 10px;
+  }
+  .card h3 { margin-bottom: 6px; }
+  .card p { color: #57534e; line-height: 1.9; font-size: .92rem; }
+  ul.checks { list-style: none; }
+  ul.checks li { position: relative; padding-right: 26px; margin-bottom: 9px; line-height: 1.8; color: #44403c; }
+  ul.checks li::before { content: "✓"; position: absolute; right: 0; top: 0; color: var(--secondary); font-weight: 800; }
+  table.spec { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  table.spec th, table.spec td { border: 1px solid var(--line); padding: 9px 12px; text-align: right; vertical-align: top; line-height: 1.8; }
+  table.spec th { background: #fff7ed; color: var(--primary-dark); font-weight: 700; white-space: nowrap; }
+  .section-gap { margin-top: 22px; }
+  .cover {
+    background:
+      radial-gradient(1200px 500px at 110% -10%, #ffedd5 0%, transparent 60%),
+      radial-gradient(900px 480px at -15% 110%, #ccfbf1 0%, transparent 55%),
+      var(--paper);
+    justify-content: center;
+  }
+  .cover .brand { font-size: 1.05rem; font-weight: 700; color: var(--secondary); margin-bottom: 20px; }
+  .cover h1 span { color: var(--primary); }
+  .cover .tagline { font-size: 1.2rem; color: #57534e; margin: 18px 0 34px; line-height: 2.1; max-width: 150mm; }
+  .cover-footer {
+    position: absolute; bottom: 18mm; right: 16mm; left: 16mm;
+    display: flex; justify-content: space-between; color: var(--muted); font-size: .85rem;
+    border-top: 1px solid var(--line); padding-top: 12px;
+  }
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 18px; }
+  .stat { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px; text-align: center; }
+  .stat b { display: block; font-size: 1.3rem; color: var(--primary); margin-bottom: 4px; }
+  .stat span { font-size: .82rem; color: var(--muted); }
+  .flow { display: flex; align-items: stretch; gap: 8px; margin-top: 14px; }
+  .flow .step { flex: 1; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 10px; text-align: center; }
+  .flow .step b { display: block; color: var(--primary-dark); margin-bottom: 4px; font-size: .9rem; }
+  .flow .step span { font-size: .78rem; color: var(--muted); line-height: 1.7; display: block; }
+  .flow .arrow { align-self: center; color: var(--primary); font-size: 1.2rem; }
+  .backcover {
+    background: linear-gradient(160deg, var(--primary-dark) 0%, var(--primary) 60%, #ea580c 100%);
+    color: #fff; justify-content: center; text-align: center;
+  }
+  .backcover h2 { font-size: 2rem; color: #fff; }
+  .backcover p { color: #ffedd5; line-height: 2.1; max-width: 140mm; margin: 16px auto 30px; }
+  .contact-box {
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3);
+    border-radius: 16px; padding: 22px 30px; display: inline-block; text-align: right;
+    line-height: 2.4; font-size: 1rem;
+  }
+</style>
+</head>
+<body>
+
+<!-- صفحه ۱: جلد -->
+<section class="page cover">
+  <div class="brand">پنارا | Pnara</div>
+  <h1>ToastIran <span>POS</span><br />اکوسیستم هوشمند صندوق و انبار رستوران</h1>
+  <p class="tagline">
+    صندوق لمسی، نمایشگر آشپزخانه، موتور انبار و رسپی، باشگاه مشتریان و گزارش‌های مدیریتی —
+    همه در یک پلتفرم یکپارچه که برای بازار ایران ساخته شده است: تقویم جلالی، ریال/تومان،
+    کارتخوان‌های PC-POS ایرانی و فیش حرارتی فارسی.
+  </p>
+  <div class="badges">
+    <span class="chip">رستوران</span>
+    <span class="chip">کافه</span>
+    <span class="chip">فست‌فود</span>
+    <span class="chip">مجموعه‌های زنجیره‌ای</span>
+  </div>
+  <div class="cover-footer">
+    <span>کاتالوگ معرفی محصول — نسخه ۱.۰</span>
+    <span>www.pnara.ir</span>
+  </div>
+</section>
+
+<!-- صفحه ۲: چرا پنارا -->
+<section class="page">
+  <span class="kicker">چرا پنارا؟</span>
+  <h2>یک پلتفرم، تمام عملیات فروشگاه شما</h2>
+  <p class="lead">
+    پنارا حاصل ترکیب بهترین تجربه‌های جهانی صندوق رستورانی با نیازهای واقعی بازار ایران است.
+    از لحظه ثبت سفارش تا چاپ فیش، کسر خودکار انبار و تسویه با کارتخوان، همه‌چیز در یک جریان
+    یکپارچه و بلادرنگ انجام می‌شود.
+  </p>
+
+  <div class="stat-row">
+    <div class="stat"><b>۱۰۰٪</b><span>بومی‌سازی برای ایران</span></div>
+    <div class="stat"><b>Realtime</b><span>ارتباط زنده صندوق و آشپزخانه</span></div>
+    <div class="stat"><b>BOM</b><span>کسر خودکار انبار با رسپی</span></div>
+    <div class="stat"><b>PC-POS</b><span>اتصال مستقیم به کارتخوان</span></div>
+  </div>
+
+  <div class="section-gap">
+    <h3 style="margin-bottom:10px">بومی‌سازی کامل برای بازار ایران</h3>
+    <ul class="checks">
+      <li>مبالغ در <b>ریال</b> ذخیره و در رابط کاربری به <b>تومان</b> نمایش داده می‌شوند</li>
+      <li>تقویم <b>جلالی (شمسی)</b> در تمام فاکتورها، گزارش‌ها و فیش‌ها</li>
+      <li>پشتیبانی از کارتخوان‌های <b>آسان‌پرداخت، سامان کیش (SEP) و به‌پرداخت ملت</b></li>
+      <li>محاسبه خودکار <b>ارزش افزوده</b> در موتور صورتحساب</li>
+      <li>رابط کاربری کاملاً <b>فارسی و راست‌به‌چپ</b>، بهینه برای نمایشگر لمسی</li>
+      <li>فیش حرارتی فارسی با پشتیبانی رول <b>۸۰ و ۵۸ میلی‌متری</b></li>
+    </ul>
+  </div>
+
+  <div class="section-gap">
+    <h3 style="margin-bottom:10px">جریان کاری از سفارش تا تسویه</h3>
+    <div class="flow">
+      <div class="step"><b>ثبت سفارش</b><span>صندوق لمسی با افزودنی‌ها و یادداشت</span></div>
+      <div class="arrow">←</div>
+      <div class="step"><b>ارسال به آشپزخانه</b><span>بلیت زنده روی KDS با هشدار صوتی</span></div>
+      <div class="arrow">←</div>
+      <div class="step"><b>کسر انبار</b><span>خودکار بر اساس رسپی (BOM)</span></div>
+      <div class="arrow">←</div>
+      <div class="step"><b>تسویه</b><span>نقد، کارت‌به‌کارت یا کارتخوان</span></div>
+      <div class="arrow">←</div>
+      <div class="step"><b>چاپ فیش</b><span>فیش مشتری + فیش آشپزخانه/بار</span></div>
+    </div>
+  </div>
+
+  <div class="footer"><span>پنارا — ToastIran POS</span><span>صفحه ۲</span></div>
+</section>
+
+<!-- صفحه ۳: ماژول‌ها -->
+<section class="page">
+  <span class="kicker">ماژول‌ها</span>
+  <h2>ابزارهای عملیاتی روزانه</h2>
+  <p class="lead" style="margin-bottom:16px">هر بخش از فروشگاه شما یک رابط اختصاصی و بهینه دارد.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="icon">🖥️</div>
+      <h3>صندوق لمسی (POS)</h3>
+      <p>ثبت سریع سفارش با دسته‌بندی منو، افزودنی‌ها، یادداشت آیتم، انتخاب میز و ثبت موقت.
+      حالت آفلاین سبد خرید تضمین می‌کند حتی با قطعی لحظه‌ای شبکه، سفارش از دست نرود.</p>
+    </div>
+    <div class="card">
+      <div class="icon">👨‍🍳</div>
+      <h3>نمایشگر آشپزخانه و بار (KDS)</h3>
+      <p>بلیت‌های سفارش به‌صورت زنده و با هشدار صوتی روی نمایشگر آشپزخانه و باریستا ظاهر
+      می‌شوند. هر آیتم بر اساس ایستگاه خود (بار، آشپزخانه یا هر دو) مسیریابی می‌شود و
+      زمان سپری‌شده هر سفارش قابل مشاهده است.</p>
+    </div>
+    <div class="card">
+      <div class="icon">📋</div>
+      <h3>سازنده منو و رسپی (BOM)</h3>
+      <p>تعریف دسته‌بندی، آیتم، افزودنی و قیمت‌گذاری به‌همراه رسپی دقیق هر محصول.
+      با هر فروش، مواد اولیه به‌صورت خودکار از انبار کسر و با لغو سفارش برگردانده می‌شود.</p>
+    </div>
+    <div class="card">
+      <div class="icon">📦</div>
+      <h3>انبار و نقطه سفارش</h3>
+      <p>موجودی لحظه‌ای مواد اولیه، هشدار نقطه سفارش و ردیابی کامل مصرف. مدیر فروشگاه
+      همیشه می‌داند چه چیزی رو به اتمام است — قبل از اینکه مشتری بفهمد.</p>
+    </div>
+    <div class="card">
+      <div class="icon">💛</div>
+      <h3>باشگاه مشتریان</h3>
+      <p>پروفایل مشتری با شماره موبایل و سابقه خرید. با هر پرداخت موفق، اطلاعات باشگاه
+      به‌صورت خودکار به‌روز می‌شود.</p>
+    </div>
+    <div class="card">
+      <div class="icon">📊</div>
+      <h3>گزارش‌ها و داشبورد مدیریتی</h3>
+      <p>نمودارهای فروش، ساعات پیک و پرفروش‌ترین آیتم‌ها با نمودارهای تعاملی —
+      همه بر بستر تقویم جلالی و به تومان.</p>
+    </div>
+    <div class="card">
+      <div class="icon">👥</div>
+      <h3>پرسنل و سطوح دسترسی</h3>
+      <p>نقش‌ها و مجوزهای دانه‌دانه (مدیریت منو، لغو سفارش، تسویه پرداخت و ...) برای هر
+      کاربر؛ هم در رابط کاربری و هم در سرور اعمال می‌شود.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🎨</div>
+      <h3>برندینگ و شخصی‌سازی</h3>
+      <p>لوگو، رنگ سازمانی و اطلاعات فروشگاه از پنل تنظیمات قابل تغییر است و تم کل نرم‌افزار
+      و فیش چاپی بلافاصله با برند شما هماهنگ می‌شود.</p>
+    </div>
+  </div>
+
+  <div class="footer"><span>پنارا — ToastIran POS</span><span>صفحه ۳</span></div>
+</section>
+
+<!-- صفحه ۴: پرداخت و چاپ -->
+<section class="page">
+  <span class="kicker">پرداخت و چاپ</span>
+  <h2>تسویه بدون دردسر، فیش بدون تأخیر</h2>
+
+  <div class="section-gap">
+    <h3 style="margin-bottom:10px">💳 روش‌های پرداخت</h3>
+    <div class="grid3">
+      <div class="card">
+        <h3>نقدی</h3>
+        <p>محاسبه خودکار بقیه پول و ثبت دقیق در گزارش صندوق.</p>
+      </div>
+      <div class="card">
+        <h3>کارت‌به‌کارت</h3>
+        <p>ثبت شماره پیگیری تراکنش برای تطبیق حسابداری.</p>
+      </div>
+      <div class="card">
+        <h3>کارتخوان PC-POS</h3>
+        <p>ارسال مستقیم مبلغ به کارتخوان از طریق شبکه یا پورت COM و دریافت خودکار
+        شماره پیگیری تراکنش.</p>
+      </div>
+    </div>
+    <p style="margin-top:12px; color:#57534e; line-height:1.9; font-size:.95rem">
+      صندوق‌دار فقط دکمه «ارسال مبلغ به کارتخوان» را می‌زند؛ سیستم تا تأیید تراکنش منتظر
+      می‌ماند و فاکتور به‌صورت خودکار تسویه می‌شود — بدون ورود دستی مبلغ و بدون خطای انسانی.
+    </p>
+  </div>
+
+  <div class="section-gap">
+    <h3 style="margin-bottom:10px">🖨️ چاپ فیش دوتایی</h3>
+    <ul class="checks">
+      <li><b>فیش مشتری:</b> لوگو، شماره فاکتور، تاریخ شمسی، جدول اقلام، ارزش افزوده و پاورقی دلخواه</li>
+      <li><b>فیش آشپزخانه/بار:</b> فونت درشت، شماره میز، زمان سپری‌شده و لیست افزودنی‌ها برای اجرای سریع سفارش</li>
+      <li>پشتیبانی از رول حرارتی <b>۸۰ و ۵۸ میلی‌متری</b></li>
+      <li>چاپ همزمان از طریق <b>پرینتر شبکه (ESC/POS)</b> و <b>چاپ مرورگر (USB)</b></li>
+      <li>مسیریابی هوشمند فیش بر اساس ایستگاه آیتم: بار، آشپزخانه یا هر دو</li>
+    </ul>
+  </div>
+
+  <div class="section-gap">
+    <h3 style="margin-bottom:10px">🔒 امنیت و کنترل</h3>
+    <ul class="checks">
+      <li>احراز هویت امن با <b>JWT + Refresh Token</b></li>
+      <li>مجوزهای دانه‌دانه برای هر عملیات حساس (لغو سفارش، تسویه، مدیریت منو)</li>
+      <li>ثبت کامل <b>لاگ حسابرسی</b> برای تمام تغییرات</li>
+      <li>مدیریت شیفت صندوق‌داران</li>
+    </ul>
+  </div>
+
+  <div class="footer"><span>پنارا — ToastIran POS</span><span>صفحه ۴</span></div>
+</section>
+
+<!-- صفحه ۵: مشخصات فنی -->
+<section class="page">
+  <span class="kicker">مشخصات فنی</span>
+  <h2>زیرساخت مطمئن، معماری مدرن</h2>
+  <p class="lead" style="margin-bottom:16px">
+    پنارا بر پایه معماری Clean Architecture و الگوی CQRS ساخته شده تا توسعه‌پذیر،
+    قابل نگهداری و آماده رشد کسب‌وکار شما باشد.
+  </p>
+
+  <table class="spec">
+    <tr><th>بک‌اند</th><td>‎.NET 8 — Clean Architecture + CQRS (MediatR)، Entity Framework Core</td></tr>
+    <tr><th>پایگاه داده</th><td>SQL Server با دقت مالی مناسب ریال و پشتیبان‌گیری روزانه</td></tr>
+    <tr><th>فرانت‌اند</th><td>Next.js (React) — رابط لمسی سریع، تم پویا، حالت آفلاین سبد</td></tr>
+    <tr><th>ارتباط زنده</th><td>SignalR — به‌روزرسانی لحظه‌ای سفارش‌ها روی نمایشگر آشپزخانه و بار</td></tr>
+    <tr><th>احراز هویت</th><td>JWT Bearer + Refresh Token با سیاست‌های دسترسی دانه‌دانه</td></tr>
+    <tr><th>پرداخت</th><td>پل PC-POS برای آسان‌پرداخت، سامان کیش (SEP)، به‌پرداخت ملت — LAN یا COM</td></tr>
+    <tr><th>چاپ</th><td>ESC/POS شبکه (پورت ۹۱۰۰) + چاپ مرورگر برای پرینترهای USB</td></tr>
+    <tr><th>گزارش‌گیری</th><td>داشبورد تعاملی با نمودارهای فروش، ساعات پیک و عملکرد آیتم‌ها</td></tr>
+  </table>
+
+  <div class="section-gap">
+    <h3 style="margin-bottom:10px">🖥️ سخت‌افزار موردنیاز</h3>
+    <table class="spec">
+      <tr><th>صندوق</th><td>PC یا All-in-One لمسی با مرورگر مدرن (Thin Client)</td></tr>
+      <tr><th>سرور</th><td>یک سیستم ویندوزی با ‎.NET 8 و SQL Server — قابل نصب در محل یا ابری</td></tr>
+      <tr><th>پرینتر</th><td>پرینتر حرارتی ESC/POS — شبکه یا USB</td></tr>
+      <tr><th>کارتخوان</th><td>هر کارتخوان PC-POS با پروتکل LAN یا COM</td></tr>
+      <tr><th>نمایشگر KDS</th><td>هر نمایشگر با مرورگر — تبلت، مانیتور یا TV Box</td></tr>
+    </table>
+  </div>
+
+  <div class="section-gap">
+    <h3 style="margin-bottom:10px">⚡ راه‌اندازی سریع</h3>
+    <p style="color:#57534e; line-height:2; font-size:.95rem">
+      نصب و راه‌اندازی کامل سیستم شامل پیکربندی پرینتر، کارتخوان و منوی اولیه فروشگاه
+      توسط تیم استقرار پنارا انجام می‌شود. صندوق‌ها فقط یک مرورگر نیاز دارند و تمام
+      به‌روزرسانی‌ها به‌صورت متمرکز روی سرور اعمال می‌شود.
+    </p>
+  </div>
+
+  <div class="footer"><span>پنارا — ToastIran POS</span><span>صفحه ۵</span></div>
+</section>
+
+<!-- صفحه ۶: پشت جلد -->
+<section class="page backcover">
+  <h2>آماده‌اید فروشگاه‌تان را هوشمند کنید؟</h2>
+  <p>
+    برای مشاهده دموی زنده محصول، دریافت مشاوره رایگان و استعلام قیمت،
+    همین امروز با ما تماس بگیرید.
+  </p>
+  <div>
+    <div class="contact-box">
+      📞 تلفن: ۰۲۱-۰۰۰۰۰۰۰۰<br />
+      📱 موبایل / واتساپ: ۰۹۱۲-۰۰۰۰۰۰۰<br />
+      🌐 وب‌سایت: www.pnara.ir<br />
+      ✉️ ایمیل: info@pnara.ir
+    </div>
+  </div>
+  <p style="margin-top:40px; font-size:.85rem; color:#fed7aa">پنارا | Pnara — ToastIran POS © ۱۴۰۴</p>
+</section>
+
+</body>
+</html>

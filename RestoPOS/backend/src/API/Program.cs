@@ -114,6 +114,7 @@ try
     app.MapControllers();
     app.MapHub<OrderKitchenHub>("/hubs/kitchen");
     app.MapGet("/health", () => Results.Ok(new { product = "ToastIran POS", vendor = "Pnara", status = "ok" }));
+    app.MapGet("/api/health", () => Results.Ok(new { product = "ToastIran POS", vendor = "Pnara", status = "ok" }));
 
     if (!app.Environment.IsEnvironment("Testing"))
     {

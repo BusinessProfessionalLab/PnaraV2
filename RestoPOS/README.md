@@ -37,6 +37,14 @@ dotnet run --project src/API
 
 Swagger: `http://localhost:5088/swagger`
 
+اگر دیتابیس شما روی سرور/اعتبارنامه متفاوت اجرا می‌شود، قبل از `dotnet run` مقدار
+`ConnectionStrings:SqlServer` را override کنید (در PowerShell):
+
+```powershell
+$env:ConnectionStrings__SqlServer = "Server=YOUR_HOST;Database=Pnara;Trusted_Connection=True;TrustServerCertificate=True"
+dotnet run --project src/API
+```
+
 حساب اولیه: `admin` / `Admin@12345` (فقط Development — در تولید عوض شود).
 
 ## ماژول‌ها

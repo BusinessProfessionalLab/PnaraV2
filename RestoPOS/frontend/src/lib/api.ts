@@ -197,5 +197,5 @@ export const api = {
   reportStaff: (fromUtc: string, toUtc: string) =>
     apiFetch<import("./types").StaffPerformanceRow[]>(`/api/reports/staff?fromUtc=${fromUtc}&toUtc=${toUtc}`),
   stockAlerts: () => apiFetch<import("./types").StockAlertRow[]>("/api/reports/stock-alerts"),
-  health: () => apiFetch<{ product: string; status: string }>("/health"),
+  health: () => apiFetch<{ product: string; status: string }>("/api/health"),
 };

@@ -78,7 +78,7 @@ public sealed class GetCategoriesQueryHandler(IApplicationDbContext db) : IReque
             query = query.Where(c => c.IsVisible);
 
         return await query.OrderBy(c => c.DisplayPriority).ThenBy(c => c.Name)
-            .Select(c => new CategoryDto(c.Id, c.Name, c.NameEn, c.DisplayPriority, c.IsVisible, c.IconUrl, c.ImageUrl, c.ParentId, c.DiscountPercent))
+            .Select(c => new CategoryDto(c.Id, c.Name, c.NameEn, c.DisplayPriority, c.IsVisible, c.IconUrl, c.ImageUrl, c.ParentId, c.DiscountPercent, c.IsSystem))
             .ToListAsync(cancellationToken);
     }
 }

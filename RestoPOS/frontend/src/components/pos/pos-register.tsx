@@ -150,12 +150,20 @@ export function PosRegister() {
             <div className="text-[11px] opacity-70">صندوق · {session?.fullName}</div>
           </div>
         </div>
-        <Select value={cart.orderType} onValueChange={(v) => cart.setMeta({ orderType: v as typeof cart.orderType })}>
+        <Select
+          value={cart.orderType}
+          onValueChange={(v) =>
+            cart.setMeta({
+              orderType: v as typeof cart.orderType,
+              ...(v === "DineIn" ? {} : { tableNumber: "" }),
+            })
+          }
+        >
           <SelectTrigger className="h-10 w-36 bg-white/10 text-white">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="DineIn">حضوری</SelectItem>
+            <SelectItem value="DineIn">سالن</SelectItem>
             <SelectItem value="Takeaway">بیرون‌بر</SelectItem>
             <SelectItem value="Bar">بار</SelectItem>
           </SelectContent>

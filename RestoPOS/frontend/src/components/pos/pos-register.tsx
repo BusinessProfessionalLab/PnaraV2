@@ -41,6 +41,7 @@ export function PosRegister() {
   const [q, setQ] = useState("");
   const [categoryId, setCategoryId] = useState<string>("all");
   const [picked, setPicked] = useState<MenuItemDto | null>(null);
+  const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
   const [checkout, setCheckout] = useState(false);
   const qc = useQueryClient();
 
@@ -243,6 +244,7 @@ export function PosRegister() {
                   key={item.id}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
+                    setEditingLineIndex(null);
                     if (item.modifiers.some((modifier) => modifier.isActive)) setPicked(item);
                     else cart.addLine(item, 1, []);
                   }}
@@ -331,7 +333,16 @@ export function PosRegister() {
               </div>
             ) : (
               cart.lines.map((line, lineIndex) => (
-                <div key={`${line.menuItemId}-${lineIndex}`} className="rounded-2xl border bg-white p-3">
+                <div
+                  key={`${line.menuItemId}-${lineIndex}`}
+                  className="cursor-pointer rounded-2xl border bg-white p-3 transition-colors hover:border-primary"
+                  onClick={() => {
+                    const menuItem = (menu.data ?? []).find((item) => item.id === line.menuItemId);
+                    if (!menuItem) return;
+                    setEditingLineIndex(lineIndex);
+                    setPicked(menuItem);
+                  }}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="font-bold">{line.title}</div>
@@ -343,17 +354,26 @@ export function PosRegister() {
                         ))}
                       </div>
                     </div>
-                    <button onClick={() => cart.removeLine(lineIndex)}>
+                    <button onClick={(event) => {
+                      event.stopPropagation();
+                      cart.removeLine(lineIndex);
+                    }}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </button>
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Button size="icon" variant="outline" onClick={() => cart.updateQty(lineIndex, line.quantity - 1)}>
+                      <Button size="icon" variant="outline" onClick={(event) => {
+                        event.stopPropagation();
+                        cart.updateQty(lineIndex, line.quantity - 1);
+                      }}>
                         −
                       </Button>
                       <span className="w-6 text-center font-black">{line.quantity}</span>
-                      <Button size="icon" variant="outline" onClick={() => cart.updateQty(lineIndex, line.quantity + 1)}>
+                      <Button size="icon" variant="outline" onClick={(event) => {
+                        event.stopPropagation();
+                        cart.updateQty(lineIndex, line.quantity + 1);
+                      }}>
                         +
                       </Button>
                     </div>
@@ -420,11 +440,20 @@ export function PosRegister() {
       </div>
 
       <ModifierDrawer
+        key={`${picked?.id ?? "none"}-${editingLineIndex ?? "new"}`}
         item={picked}
-        onClose={() => setPicked(null)}
-        onConfirm={(item, qty, mods, notes) => {
-          cart.addLine(item, qty, mods, notes);
+        initialQuantity={editingLineIndex === null ? 1 : cart.lines[editingLineIndex]?.quantity}
+        initialNotes={editingLineIndex === null ? "" : cart.lines[editingLineIndex]?.notes}
+        initialModifiers={editingLineIndex === null ? [] : cart.lines[editingLineIndex]?.modifiers}
+        onClose={() => {
           setPicked(null);
+          setEditingLineIndex(null);
+        }}
+        onConfirm={(item, qty, mods, notes) => {
+          if (editingLineIndex === null) cart.addLine(item, qty, mods, notes);
+          else cart.updateLine(editingLineIndex, qty, mods, notes);
+          setPicked(null);
+          setEditingLineIndex(null);
         }}
       />
       <CheckoutModal open={checkout} onOpenChange={setCheckout} amount={totals.grandTotal} />

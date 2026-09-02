@@ -11,14 +11,22 @@ export function ModifierDrawer({
   item,
   onClose,
   onConfirm,
+  initialQuantity = 1,
+  initialNotes = "",
+  initialModifiers = [],
 }: {
   item: MenuItemDto | null;
   onClose: () => void;
   onConfirm: (item: MenuItemDto, qty: number, modifiers: ModifierDto[], notes: string) => void;
+  initialQuantity?: number;
+  initialNotes?: string;
+  initialModifiers?: { id: string; quantity: number }[];
 }) {
-  const [qty, setQty] = useState(1);
-  const [notes, setNotes] = useState("");
-  const [selected, setSelected] = useState<Record<string, number>>({});
+  const [qty, setQty] = useState(initialQuantity);
+  const [notes, setNotes] = useState(initialNotes);
+  const [selected, setSelected] = useState<Record<string, number>>(() =>
+    Object.fromEntries(initialModifiers.map((modifier) => [modifier.id, modifier.quantity])),
+  );
 
   const open = Boolean(item);
   const mods = item?.modifiers.filter((m) => m.isActive) ?? [];
@@ -26,8 +34,8 @@ export function ModifierDrawer({
   const extras = pickedMods.reduce((s, m) => s + m.extraPrice * (selected[m.id] ?? 0), 0) * qty;
 
   function resetAndClose() {
-    setQty(1);
-    setNotes("");
+    setQty(initialQuantity);
+    setNotes(initialNotes);
     setSelected({});
     onClose();
   }
@@ -83,8 +91,8 @@ export function ModifierDrawer({
                   size="lg"
                   onClick={() => {
                     onConfirm(item, qty, pickedMods.map((m) => ({ ...m, extraPrice: m.extraPrice, quantity: selected[m.id] ?? 1 } as ModifierDto)), notes);
-                    setQty(1);
-                    setNotes("");
+                    setQty(initialQuantity);
+                    setNotes(initialNotes);
                     setSelected({});
                   }}
                 >

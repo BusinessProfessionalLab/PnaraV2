@@ -30,6 +30,7 @@ type CartState = {
   setMeta: (patch: Partial<Pick<CartState, "orderType" | "tableNumber" | "customerPhone" | "notes" | "discountPercent" | "discountAmount" | "vatRate">>) => void;
   setVatRate: (vatRate: number) => void;
   addLine: (item: MenuItemDto, quantity: number, modifiers: ModifierDto[], notes?: string) => void;
+  updateLine: (lineIndex: number, quantity: number, modifiers: ModifierDto[], notes: string) => void;
   updateQty: (lineIndex: number, quantity: number) => void;
   removeLine: (lineIndex: number) => void;
   clear: () => void;
@@ -73,6 +74,25 @@ export const useCartStore = create<CartState>()(
         };
         set((s) => ({ lines: [...s.lines, line], dirty: true }));
       },
+      updateLine: (lineIndex, quantity, modifiers, notes) =>
+        set((s) => ({
+          lines: s.lines.map((line, index) =>
+            index === lineIndex
+              ? {
+                  ...line,
+                  quantity,
+                  notes,
+                  modifiers: modifiers.map((m) => ({
+                    id: m.id,
+                    name: m.name,
+                    extraPrice: m.extraPrice,
+                    quantity: m.quantity ?? 1,
+                  })),
+                }
+              : line,
+          ),
+          dirty: true,
+        })),
       updateQty: (lineIndex, quantity) =>
         set((s) => ({
           lines:

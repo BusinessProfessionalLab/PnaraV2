@@ -5,7 +5,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge, Card, Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { api } from "@/lib/api";
+import { ClipboardList } from "lucide-react";
 
 export function StaffHub() {
   const qc = useQueryClient();
@@ -42,7 +45,20 @@ export function StaffHub() {
         <Button onClick={() => mut.mutate()}>ثبت</Button>
       </Card>
       <Card className="p-4">
-        <h2 className="mb-3 font-black">فهرست پرسنل</h2>
+        <h2 className="mb-3 text-lg font-bold">فهرست پرسنل</h2>
+        {staff.isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-14 w-full" />
+            ))}
+          </div>
+        ) : (staff.data ?? []).length === 0 ? (
+          <EmptyState
+            icon={ClipboardList}
+            title="پرسنلی ثبت نشده"
+            description="از فرم سمت چپ پرسنل جدید اضافه کنید"
+          />
+        ) : (
         <ul className="space-y-2">
           {(staff.data ?? []).map((s) => (
             <li key={s.id} className="flex items-center justify-between rounded-xl border p-3">
@@ -58,6 +74,7 @@ export function StaffHub() {
             </li>
           ))}
         </ul>
+        )}
       </Card>
     </div>
   );

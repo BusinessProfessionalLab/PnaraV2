@@ -30,11 +30,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
   return (
-    <div className="flex min-h-screen bg-[hsl(30_20%_95%)]">
+    <div className="flex min-h-dvh bg-[hsl(30_20%_95%)]">
       <aside className="w-64 shrink-0 border-e bg-secondary p-4 text-secondary-foreground">
         <div className="mb-6 px-2">
-          <div className="text-xs opacity-70">پنل مدیریت</div>
-          <div className="text-lg font-black">{settings.data?.storeName ?? "ToastIran POS"}</div>
+          <div className="text-[10px] font-medium uppercase tracking-widest opacity-60">پنل مدیریت</div>
+          <div className="text-lg font-extrabold">{settings.data?.storeName ?? "ToastIran POS"}</div>
         </div>
         <nav className="space-y-1">
           {links.map((l) => {
@@ -64,7 +64,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           بازگشت به صندوق
         </Link>
       </aside>
-      <main className="min-w-0 flex-1 p-6">{children}</main>
+      <main className="min-w-0 flex-1 p-6 animate-fade-up">{children}</main>
     </div>
   );
 }

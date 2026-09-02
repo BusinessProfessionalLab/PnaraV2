@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { UtensilsCrossed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, Input, Label } from "@/components/ui/input";
 import { api } from "@/lib/api";
@@ -32,21 +33,39 @@ export function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-secondary p-6">
-      <Card className="w-full max-w-md p-8">
-        <div className="mb-6 text-center">
-          <div className="text-sm text-muted-foreground">Pnara</div>
-          <h1 className="text-2xl font-black">ToastIran POS</h1>
-          <p className="text-sm text-muted-foreground">ورود صندوق‌دار / مدیر</p>
+    <div className="flex min-h-dvh items-center justify-center bg-secondary p-6">
+      <Card className="w-full max-w-md animate-fade-up p-8">
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-primary/10">
+            <UtensilsCrossed className="size-6 text-primary" />
+          </div>
+          <h1 className="text-3xl font-black tracking-tight text-balance">
+            ToastIran POS
+          </h1>
+          <p className="mt-1 text-xs font-medium uppercase tracking-widest text-muted-foreground">
+            Pnara
+          </p>
+          <p className="mt-3 text-sm text-muted-foreground text-pretty">
+            ورود صندوق‌دار / مدیر
+          </p>
         </div>
-        <form className="space-y-3" onSubmit={onSubmit}>
+        <form className="space-y-4" onSubmit={onSubmit}>
           <div>
             <Label>نام کاربری</Label>
-            <Input value={userName} onChange={(e) => setUserName(e.target.value)} autoComplete="username" />
+            <Input
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              autoComplete="username"
+            />
           </div>
           <div>
             <Label>رمز عبور</Label>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
           </div>
           <Button className="w-full" size="lg" disabled={loading}>
             {loading ? "در حال ورود..." : "ورود"}

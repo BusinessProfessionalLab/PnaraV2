@@ -20,19 +20,20 @@ public static class OrderPricingService
             var baseLine = item.UnitPrice * item.Quantity;
             item.LineModifiersTotal = Round(modifiers);
             item.LineSubtotal = Round(baseLine);
-            item.LineTotal = Round(baseLine + modifiers);
+            var discountFactor = 1 - item.DiscountPercent / 100m;
+            item.LineTotal = Round((baseLine + modifiers) * discountFactor);
 
             if (item.TaxInclusive && order.TaxRate > 0)
             {
                 var taxDivisor = 1 + order.TaxRate;
                 extractedTax += item.LineTotal - (item.LineTotal / taxDivisor);
-                itemsNet += baseLine / taxDivisor;
-                modifiersNet += modifiers / taxDivisor;
+                itemsNet += baseLine * discountFactor / taxDivisor;
+                modifiersNet += modifiers * discountFactor / taxDivisor;
             }
             else
             {
-                itemsNet += baseLine;
-                modifiersNet += modifiers;
+                itemsNet += baseLine * discountFactor;
+                modifiersNet += modifiers * discountFactor;
             }
         }
 

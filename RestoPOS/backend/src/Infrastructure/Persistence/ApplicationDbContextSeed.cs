@@ -24,6 +24,9 @@ public static class ApplicationDbContextSeed
             if (!await db.Permissions.AnyAsync(p => p.Code == code))
                 db.Permissions.Add(new Permission { Code = code, DisplayNameFa = name, Module = module });
         }
+        if (!await db.Categories.AnyAsync(c => c.IsSystem && c.Name == "افزودنی"))
+            db.Categories.Add(new Category { Name = "افزودنی", NameEn = "Add-ons", DisplayPriority = 999, IsVisible = true, IsSystem = true });
+
         await db.SaveChangesAsync();
 
         var adminRole = await EnsureRole(roles, "SuperAdmin", "مالک سیستم", true);

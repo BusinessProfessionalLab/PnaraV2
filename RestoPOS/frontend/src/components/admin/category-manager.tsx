@@ -13,15 +13,17 @@ export function CategoryManager() {
   const categories = useQuery({ queryKey: ["categories", true], queryFn: () => api.categories(true) });
   const [editing, setEditing] = useState<CategoryDto | null>(null);
   const [name, setName] = useState("");
+  const [priority, setPriority] = useState("1");
 
   const save = useMutation({
     mutationFn: async () => {
-      if (editing) await api.updateCategory(editing.id, { ...editing, name });
-      else await api.createCategory({ name, nameEn: null, displayPriority: (categories.data?.length ?? 0) + 1, isVisible: true, iconUrl: null, imageUrl: null, parentId: null });
+      if (editing) await api.updateCategory(editing.id, { ...editing, name, displayPriority: Number(priority) || editing.displayPriority });
+      else await api.createCategory({ name, nameEn: null, displayPriority: Number(priority) || (categories.data?.length ?? 0) + 1, isVisible: true, iconUrl: null, imageUrl: null, parentId: null });
     },
     onSuccess: () => {
       toast.success(editing ? "دسته‌بندی ویرایش شد" : "دسته‌بندی اضافه شد");
       setName("");
+      setPriority("1");
       setEditing(null);
       qc.invalidateQueries({ queryKey: ["categories"] });
     },
@@ -36,6 +38,7 @@ export function CategoryManager() {
   function startEdit(category: CategoryDto) {
     setEditing(category);
     setName(category.name);
+    setPriority(String(category.displayPriority));
   }
 
   return (

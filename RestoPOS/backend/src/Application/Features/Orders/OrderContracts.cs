@@ -4,7 +4,7 @@ using RestoPOS.Domain.Services;
 namespace RestoPOS.Application.Features.Orders;
 
 public sealed record OrderItemModifierDto(Guid Id, Guid MenuItemModifierId, string Name, decimal ExtraPrice, int Quantity, TicketStation TicketStation);
-public sealed record OrderItemDto(Guid Id, Guid MenuItemId, string Title, int Quantity, decimal UnitPrice, decimal LineTotal, TicketStation TicketStation, string? Notes, IReadOnlyList<OrderItemModifierDto> Modifiers);
+public sealed record OrderItemDto(Guid Id, Guid MenuItemId, string Title, int Quantity, decimal UnitPrice, decimal LineTotal, decimal DiscountPercent, TicketStation TicketStation, string? Notes, IReadOnlyList<OrderItemModifierDto> Modifiers);
 public sealed record PaymentDto(Guid Id, PaymentChannel Channel, PaymentStatus Status, decimal Amount, string? TraceNumber, string? Rrn, DateTime? PaidAt);
 public sealed record OrderDto(
     Guid Id,
@@ -62,6 +62,6 @@ public static class OrderMapping
         o.BarTicketItems().Select(ToItem).ToList());
 
     private static OrderItemDto ToItem(Domain.Entities.OrderItem i) =>
-        new(i.Id, i.MenuItemId, i.Title, i.Quantity, i.UnitPrice, i.LineTotal, i.TicketStation, i.Notes,
+        new(i.Id, i.MenuItemId, i.Title, i.Quantity, i.UnitPrice, i.LineTotal, i.DiscountPercent, i.TicketStation, i.Notes,
             i.Modifiers.Select(m => new OrderItemModifierDto(m.Id, m.MenuItemModifierId, m.Name, m.ExtraPrice, m.Quantity, m.TicketStation)).ToList());
 }

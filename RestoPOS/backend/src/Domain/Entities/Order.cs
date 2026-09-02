@@ -72,6 +72,7 @@ public class Order : BaseEntity
             Title = menuItem.Title,
             Quantity = quantity,
             UnitPrice = menuItem.BasePrice,
+            DiscountPercent = menuItem.DiscountPercent > 0 ? menuItem.DiscountPercent : menuItem.Category?.DiscountPercent ?? 0,
             TaxInclusive = menuItem.TaxInclusive,
             TicketStation = menuItem.TicketStation,
             Notes = notes

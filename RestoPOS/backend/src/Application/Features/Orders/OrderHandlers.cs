@@ -58,7 +58,7 @@ public sealed class CreateDraftOrderCommandHandler(
             if (itemRequest.Quantity <= 0)
                 throw new DomainException("تعداد آیتم باید حداقل ۱ باشد.");
 
-            var menuItem = await db.MenuItems.Include(m => m.Modifiers)
+            var menuItem = await db.MenuItems.Include(m => m.Modifiers).Include(m => m.Category)
                 .FirstOrDefaultAsync(m => m.Id == itemRequest.MenuItemId, cancellationToken)
                 ?? throw new NotFoundException(nameof(MenuItem), itemRequest.MenuItemId);
 
@@ -92,7 +92,7 @@ public sealed class AddOrderItemCommandHandler(IApplicationDbContext db) : IRequ
     public async Task<OrderDto> Handle(AddOrderItemCommand request, CancellationToken cancellationToken)
     {
         var order = await OrderLoader.Load(db, request.OrderId, cancellationToken);
-        var menuItem = await db.MenuItems.Include(m => m.Modifiers)
+        var menuItem = await db.MenuItems.Include(m => m.Modifiers).Include(m => m.Category)
             .FirstOrDefaultAsync(m => m.Id == request.MenuItemId, cancellationToken)
             ?? throw new NotFoundException(nameof(MenuItem), request.MenuItemId);
 

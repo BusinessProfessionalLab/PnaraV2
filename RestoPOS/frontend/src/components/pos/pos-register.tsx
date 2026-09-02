@@ -31,6 +31,26 @@ import type { CustomerDto, MenuItemDto } from "@/lib/types";
 import { CheckoutModal } from "./checkout-modal";
 import { ModifierDrawer } from "./modifier-drawer";
 
+function fuzzyScore(query: string, text: string) {
+  const q = query.normalize("NFKC").replace(/\s+/g, " ").trim();
+  const t = text.normalize("NFKC").toLowerCase();
+  if (!q) return 1;
+  if (t.includes(q)) return 1000 + q.length;
+  let qi = 0;
+  let score = 0;
+  let streak = 0;
+  for (let i = 0; i < t.length && qi < q.length; i += 1) {
+    if (t[i] === q[qi]) {
+      qi += 1;
+      streak += 1;
+      score += 10 + streak;
+    } else {
+      streak = 0;
+    }
+  }
+  return qi === q.length ? score : 0;
+}
+
 export function PosRegister() {
   const router = useRouter();
   const session = useAuthStore((s) => s.session);
@@ -42,6 +62,7 @@ export function PosRegister() {
   const [categoryId, setCategoryId] = useState<string>("all");
   const [picked, setPicked] = useState<MenuItemDto | null>(null);
   const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
+  const [rightPanelTab, setRightPanelTab] = useState<"cart" | "drafts">("cart");
   const [checkout, setCheckout] = useState(false);
   const qc = useQueryClient();
 
@@ -64,21 +85,37 @@ export function PosRegister() {
   const shift = useQuery({ queryKey: ["shift"], queryFn: api.currentShift });
   const drafts = useQuery({ queryKey: ["order-drafts"], queryFn: api.draftOrders, refetchInterval: 10000 });
 
-  const filtered = useMemo(() => {
+  const searchMatches = useMemo(() => {
     const items = menu.data ?? [];
     const term = q.trim().toLowerCase();
-    return items.filter((item) => {
-      if (categoryId !== "all" && item.categoryId !== categoryId) return false;
-      if (!term) return true;
+    return items.map((item) => {
       const hay = `${item.title} ${item.description ?? ""} ${item.categoryName} ${item.recipe?.lines.map((l) => l.inventoryItemId).join(" ")}`.toLowerCase();
       const skuHit = (inventory.data ?? []).some(
         (inv) =>
           inv.sku.toLowerCase().includes(term) &&
           item.recipe?.lines.some((l) => l.inventoryItemId === inv.id),
       );
-      return hay.includes(term) || skuHit;
+      const score = !term ? 1 : Math.max(fuzzyScore(term, hay), skuHit ? 100 : 0);
+      return { item, score };
     });
-  }, [menu.data, categoryId, q, inventory.data]);
+  }, [menu.data, q, inventory.data]);
+
+  const filtered = useMemo(
+    () =>
+      searchMatches
+        .filter(({ item, score }) => (categoryId === "all" || item.categoryId === categoryId) && score > 0)
+        .sort((a, b) => b.score - a.score || a.item.displayPriority - b.item.displayPriority)
+        .map(({ item }) => item),
+    [searchMatches, categoryId],
+  );
+
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const { item, score } of searchMatches) {
+      if (score > 0) counts.set(item.categoryId, (counts.get(item.categoryId) ?? 0) + 1);
+    }
+    return counts;
+  }, [searchMatches]);
 
   const totals = cart.totals();
 
@@ -240,7 +277,7 @@ export function PosRegister() {
                   className={`flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold ${categoryId === c.id ? "bg-primary text-white" : "bg-card"}`}
                 >
                   {c.name}
-                  <span className="rounded-full bg-black/10 px-2 text-[11px]">{c.displayPriority}</span>
+                  <span className="rounded-full bg-black/10 px-2 text-[11px]">{categoryCounts.get(c.id) ?? 0}</span>
                 </button>
               ))}
           </div>
@@ -252,6 +289,7 @@ export function PosRegister() {
                   key={item.id}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
+                    setRightPanelTab("cart");
                     setEditingLineIndex(null);
                     cart.addLine(item, 1, []);
                   }}
@@ -284,7 +322,16 @@ export function PosRegister() {
         </section>
 
         <aside className="flex w-[380px] shrink-0 flex-col border-s bg-pos-ticket" dir="rtl">
-          <div className="border-b p-4">
+          <div className={rightPanelTab === "drafts" ? "flex min-h-0 flex-1 flex-col p-4" : "border-b p-4"}>
+            <div className="mb-3 grid grid-cols-2 gap-2">
+              <Button variant={rightPanelTab === "cart" ? "default" : "outline"} onClick={() => setRightPanelTab("cart")}>
+                سبد آیتم‌ها
+              </Button>
+              <Button variant={rightPanelTab === "drafts" ? "default" : "outline"} onClick={() => setRightPanelTab("drafts")}>
+                سفارش‌های ثبت‌شده
+                <Badge variant="warning">{drafts.data?.length ?? 0}</Badge>
+              </Button>
+            </div>
             <div className="flex items-center justify-between">
               <h2 className="font-black">صورتحساب زنده</h2>
               {cart.serverOrderNumber ? <Badge>{cart.serverOrderNumber}</Badge> : <Badge variant="outline">محلی</Badge>}
@@ -296,12 +343,12 @@ export function PosRegister() {
               onChange={(e) => cart.setMeta({ customerPhone: e.target.value.replace(/\D/g, "").slice(0, 11) })}
             />
             {null}
-            <div className="mt-3 rounded-xl border bg-amber-50 p-2">
+            <div className={rightPanelTab === "drafts" ? "mt-3 flex min-h-0 flex-1 flex-col rounded-xl border bg-amber-50 p-2" : "hidden"}>
               <div className="mb-2 flex items-center justify-between text-sm font-black">
                 <span>پیش‌نویس‌های ذخیره‌شده</span>
                 <Badge variant="warning">{drafts.data?.length ?? 0}</Badge>
               </div>
-              <div className="max-h-28 space-y-1 overflow-y-auto">
+              <div className="pos-scroll flex-1 space-y-1 overflow-y-auto">
                 {(drafts.data ?? []).map((draft) => (
                   <button
                     key={draft.id}
@@ -332,7 +379,7 @@ export function PosRegister() {
               </div>
             </div>
           </div>
-          <div className="pos-scroll flex-1 space-y-2 overflow-y-auto p-3">
+          <div className={`pos-scroll flex-1 space-y-2 overflow-y-auto p-3 ${rightPanelTab === "cart" ? "" : "hidden"}`}>
             {cart.lines.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
                 <LayoutGrid className="h-10 w-10" />
@@ -390,7 +437,7 @@ export function PosRegister() {
               ))
             )}
           </div>
-          <div className="space-y-2 border-t bg-white p-4 [&>div:nth-child(2)]:hidden">
+          <div className={`space-y-2 border-t bg-white p-4 [&>div:nth-child(2)]:hidden ${rightPanelTab === "cart" ? "" : "hidden"}`}>
             <Tot k="جمع جزء" v={formatToman(totals.subtotal)} />
             <Tot k="افزودنی" v={formatToman(totals.modifiersTotal)} />
             <div className="hidden">

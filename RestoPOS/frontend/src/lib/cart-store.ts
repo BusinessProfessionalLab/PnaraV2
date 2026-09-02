@@ -8,6 +8,7 @@ export type CartLine = {
   title: string;
   unitPrice: number;
   taxInclusive: boolean;
+  discountPercent: number;
   quantity: number;
   ticketStation: string;
   notes: string;
@@ -61,6 +62,7 @@ export const useCartStore = create<CartState>()(
           title: item.title,
           unitPrice: item.basePrice,
           taxInclusive: item.taxInclusive,
+          discountPercent: item.discountPercent > 0 ? item.discountPercent : item.categoryDiscountPercent ?? 0,
           quantity,
           ticketStation: item.ticketStation,
           notes,
@@ -73,16 +75,7 @@ export const useCartStore = create<CartState>()(
           })),
         };
         set((s) => {
-          const existingIndex = s.lines.findIndex(
-            (current) =>
-              current.menuItemId === line.menuItemId &&
-              current.notes === line.notes &&
-              current.modifiers.length === line.modifiers.length &&
-              current.modifiers.every((modifier, index) => {
-                const next = line.modifiers[index];
-                return next && modifier.id === next.id && modifier.quantity === next.quantity;
-              }),
-          );
+          const existingIndex = s.lines.findIndex((current) => current.menuItemId === line.menuItemId);
           if (existingIndex < 0) return { lines: [...s.lines, line], dirty: true };
           return {
             lines: s.lines.map((current, index) =>
@@ -147,6 +140,7 @@ export const useCartStore = create<CartState>()(
             title: item.title,
             unitPrice: item.unitPrice,
             taxInclusive: true,
+            discountPercent: item.discountPercent ?? 0,
             quantity: item.quantity,
             ticketStation: item.ticketStation,
             notes: item.notes ?? "",

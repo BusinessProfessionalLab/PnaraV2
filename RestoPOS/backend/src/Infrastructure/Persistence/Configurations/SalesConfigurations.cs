@@ -38,6 +38,7 @@ public class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
         builder.Property(x => x.Title).HasMaxLength(200).IsRequired();
         builder.Property(x => x.Notes).HasMaxLength(500);
         builder.Property(x => x.UnitPrice).HasColumnType(MoneyConfig.Rial);
+        builder.Property(x => x.DiscountPercent).HasColumnType("decimal(5,2)");
         builder.Property(x => x.LineSubtotal).HasColumnType(MoneyConfig.Rial);
         builder.Property(x => x.LineModifiersTotal).HasColumnType(MoneyConfig.Rial);
         builder.Property(x => x.LineTotal).HasColumnType(MoneyConfig.Rial);

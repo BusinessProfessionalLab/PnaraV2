@@ -11,6 +11,7 @@ public class OrderItem : BaseEntity
     public string Title { get; set; } = default!;
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
+    public decimal DiscountPercent { get; set; }
     public bool TaxInclusive { get; set; }
     public decimal LineSubtotal { get; set; }
     public decimal LineModifiersTotal { get; set; }

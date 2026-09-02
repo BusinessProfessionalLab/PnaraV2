@@ -54,6 +54,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          <Link href="/admin/discounts" className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold hover:bg-white/10">
+            <ClipboardList className="h-4 w-4" />
+            تخفیف‌ها
+          </Link>
         </nav>
         <Link href="/pos" className="mt-8 flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-sm">
           <MonitorSmartphone className="h-4 w-4" />

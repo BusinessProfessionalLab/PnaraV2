@@ -9,7 +9,11 @@ namespace RestoPOS.Application.Features.Menu;
 
 public sealed class CreateCategoryCommandValidator : AbstractValidator<CreateCategoryCommand>
 {
-    public CreateCategoryCommandValidator() => RuleFor(x => x.Name).NotEmpty().MaximumLength(128);
+    public CreateCategoryCommandValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(128);
+        RuleFor(x => x.DiscountPercent).InclusiveBetween(0, 100);
+    }
 }
 
 public sealed class CreateCategoryCommandHandler(IApplicationDbContext db) : IRequestHandler<CreateCategoryCommand, Guid>
@@ -24,6 +28,7 @@ public sealed class CreateCategoryCommandHandler(IApplicationDbContext db) : IRe
             IsVisible = request.IsVisible,
             IconUrl = request.IconUrl,
             ImageUrl = request.ImageUrl,
+            DiscountPercent = request.DiscountPercent,
             ParentId = request.ParentId
         };
         db.Categories.Add(entity);
@@ -44,6 +49,7 @@ public sealed class UpdateCategoryCommandHandler(IApplicationDbContext db) : IRe
         entity.IsVisible = request.IsVisible;
         entity.IconUrl = request.IconUrl;
         entity.ImageUrl = request.ImageUrl;
+        entity.DiscountPercent = request.DiscountPercent;
         entity.ParentId = request.ParentId;
         await db.SaveChangesAsync(cancellationToken);
     }
@@ -55,6 +61,8 @@ public sealed class DeleteCategoryCommandHandler(IApplicationDbContext db) : IRe
     {
         var entity = await db.Categories.FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken)
                      ?? throw new NotFoundException(nameof(Category), request.Id);
+        if (entity.IsSystem)
+            throw new DomainException("دسته سیستمی قابل حذف نیست.");
         entity.IsDeleted = true;
         entity.DeletedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
@@ -70,7 +78,7 @@ public sealed class GetCategoriesQueryHandler(IApplicationDbContext db) : IReque
             query = query.Where(c => c.IsVisible);
 
         return await query.OrderBy(c => c.DisplayPriority).ThenBy(c => c.Name)
-            .Select(c => new CategoryDto(c.Id, c.Name, c.NameEn, c.DisplayPriority, c.IsVisible, c.IconUrl, c.ImageUrl, c.ParentId))
+            .Select(c => new CategoryDto(c.Id, c.Name, c.NameEn, c.DisplayPriority, c.IsVisible, c.IconUrl, c.ImageUrl, c.ParentId, c.DiscountPercent))
             .ToListAsync(cancellationToken);
     }
 }
@@ -82,6 +90,7 @@ public sealed class CreateMenuItemCommandValidator : AbstractValidator<CreateMen
         RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
         RuleFor(x => x.BasePrice).GreaterThanOrEqualTo(0);
         RuleFor(x => x.CategoryId).NotEmpty();
+        RuleFor(x => x.DiscountPercent).InclusiveBetween(0, 100);
     }
 }
 
@@ -105,6 +114,7 @@ public sealed class CreateMenuItemCommandHandler(IApplicationDbContext db) : IRe
             IsActive = request.IsActive,
             TicketStation = request.TicketStation,
             PrepTimeMinutes = request.PrepTimeMinutes
+            ,DiscountPercent = request.DiscountPercent
         };
         db.MenuItems.Add(item);
         await db.SaveChangesAsync(cancellationToken);
@@ -129,6 +139,7 @@ public sealed class UpdateMenuItemCommandHandler(IApplicationDbContext db) : IRe
         item.IsActive = request.IsActive;
         item.TicketStation = request.TicketStation;
         item.PrepTimeMinutes = request.PrepTimeMinutes;
+        item.DiscountPercent = request.DiscountPercent;
         await db.SaveChangesAsync(cancellationToken);
     }
 }
@@ -277,5 +288,6 @@ internal static class MenuMapping
         m.Modifiers.Where(x => !x.IsDeleted).OrderBy(x => x.DisplayPriority)
             .Select(x => new ModifierDto(x.Id, x.MenuItemId, x.Name, x.ExtraPrice, x.IsActive, x.TicketStation, x.DisplayPriority)).ToList(),
         m.Recipe is null ? null : new RecipeDto(m.Recipe.Id, m.Recipe.MenuItemId, m.Recipe.MenuItemModifierId, m.Recipe.Name,
-            m.Recipe.Lines.Select(l => new RecipeLineDto(l.InventoryItemId, l.Quantity, l.Unit)).ToList()));
+            m.Recipe.Lines.Select(l => new RecipeLineDto(l.InventoryItemId, l.Quantity, l.Unit)).ToList()),
+        m.DiscountPercent, m.Category.DiscountPercent);
 }

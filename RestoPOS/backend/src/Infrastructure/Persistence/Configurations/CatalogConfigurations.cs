@@ -53,6 +53,19 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.Property(x => x.ImageUrl).HasMaxLength(500);
         builder.HasOne(x => x.Parent).WithMany(x => x.Children).HasForeignKey(x => x.ParentId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(x => x.DisplayPriority);
+        builder.Property(x => x.IsSystem).HasDefaultValue(false);
+        builder.Property(x => x.DiscountPercent).HasColumnType("decimal(5,2)");
+    }
+}
+
+public class MenuItemAddonConfiguration : IEntityTypeConfiguration<MenuItemAddon>
+{
+    public void Configure(EntityTypeBuilder<MenuItemAddon> builder)
+    {
+        builder.ToTable("MenuItemAddons");
+        builder.HasKey(x => new { x.MenuItemId, x.AddonMenuItemId });
+        builder.HasOne(x => x.MenuItem).WithMany(x => x.Addons).HasForeignKey(x => x.MenuItemId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.AddonMenuItem).WithMany(x => x.UsedAsAddonFor).HasForeignKey(x => x.AddonMenuItemId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -70,6 +83,7 @@ public class MenuItemConfiguration : IEntityTypeConfiguration<MenuItem>
         builder.HasOne(x => x.Category).WithMany(c => c.MenuItems).HasForeignKey(x => x.CategoryId);
         builder.HasOne(x => x.Recipe).WithOne(r => r.MenuItem).HasForeignKey<Recipe>(r => r.MenuItemId);
         builder.HasIndex(x => new { x.CategoryId, x.DisplayPriority });
+        builder.Property(x => x.DiscountPercent).HasColumnType("decimal(5,2)");
     }
 }
 

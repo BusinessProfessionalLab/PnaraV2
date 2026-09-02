@@ -40,6 +40,7 @@ export type CategoryDto = {
   name: string;
   nameEn?: string | null;
   displayPriority: number;
+  discountPercent: number;
   isVisible: boolean;
   iconUrl?: string | null;
   imageUrl?: string | null;
@@ -80,6 +81,8 @@ export type MenuItemDto = {
   taxInclusive: boolean;
   imageUrl?: string | null;
   displayPriority: number;
+  discountPercent: number;
+  categoryDiscountPercent?: number;
   categoryId: string;
   categoryName: string;
   isActive: boolean;
@@ -105,6 +108,7 @@ export type OrderItemDto = {
   quantity: number;
   unitPrice: number;
   lineTotal: number;
+  discountPercent: number;
   ticketStation: TicketStation;
   notes?: string | null;
   modifiers: OrderItemModifierDto[];

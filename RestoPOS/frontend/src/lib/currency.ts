@@ -20,6 +20,7 @@ export type PricedCartItem = {
   quantity: number;
   unitPrice: number;
   taxInclusive?: boolean;
+  discountPercent?: number;
   modifiers: CartModifier[];
 };
 
@@ -35,15 +36,17 @@ export function priceCart(
 
   for (const item of items) {
     const modifiers = item.modifiers.reduce((sum, m) => sum + m.extraPrice * m.quantity, 0) * item.quantity;
-    const baseLine = item.unitPrice * item.quantity;
+    const discountFactor = 1 - Math.min(100, Math.max(0, item.discountPercent ?? 0)) / 100;
+    const baseLine = item.unitPrice * item.quantity * discountFactor;
+    const discountedModifiers = modifiers * discountFactor;
     if (item.taxInclusive && vatRate > 0) {
       const divisor = 1 + vatRate;
-      extractedTax += baseLine + modifiers - (baseLine + modifiers) / divisor;
+      extractedTax += baseLine + discountedModifiers - (baseLine + discountedModifiers) / divisor;
       itemsNet += baseLine / divisor;
-      modifiersNet += modifiers / divisor;
+      modifiersNet += discountedModifiers / divisor;
     } else {
       itemsNet += baseLine;
-      modifiersNet += modifiers;
+      modifiersNet += discountedModifiers;
     }
   }
 

@@ -315,6 +315,14 @@ export function PosRegister() {
           <div className="pos-scroll grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-y-auto md:grid-cols-3 xl:grid-cols-4">
             {filtered.map((item) => {
               const stock = stockOf(item);
+              const discountPercent =
+                item.discountPercent > 0
+                  ? item.discountPercent
+                  : item.categoryDiscountPercent ?? 0;
+              const discountAmount = Math.round(
+                (item.basePrice * Math.min(100, Math.max(0, discountPercent))) / 100,
+              );
+              const discountedPrice = item.basePrice - discountAmount;
               return (
                 <motion.button
                   key={item.id}
@@ -358,9 +366,30 @@ export function PosRegister() {
                   </div>
                   <div className="p-3">
                     <div className="font-bold">{item.title}</div>
-                    <div className="text-sm text-primary">
-                      {formatToman(item.basePrice)}
-                    </div>
+                    {discountPercent > 0 ? (
+                      <div className="mt-1 space-y-0.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-muted-foreground line-through">
+                            {formatToman(item.basePrice)}
+                          </span>
+                          <Badge variant="danger" className="text-[10px]">
+                            {discountPercent}٪ تخفیف
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-black text-primary">
+                            {formatToman(discountedPrice)}
+                          </span>
+                          <span className="text-[11px] text-emerald-700">
+                            {formatToman(discountAmount)} صرفه‌جویی
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-primary">
+                        {formatToman(item.basePrice)}
+                      </div>
+                    )}
                   </div>
                 </motion.button>
               );
@@ -524,7 +553,10 @@ export function PosRegister() {
             )}
           </div>
           <div className={`space-y-2 border-t bg-white p-4 [&>div:nth-child(2)]:hidden ${rightPanelTab === "cart" ? "" : "hidden"}`}>
-            <Tot k="جمع جزء" v={formatToman(totals.subtotal)} />
+            <Tot
+              k={`جمع جزء (${cart.discountPercent}٪ تخفیف)`}
+              v={formatToman(totals.subtotal)}
+            />
             <Tot k="افزودنی" v={formatToman(totals.modifiersTotal)} />
             <div className="hidden">
               <Input

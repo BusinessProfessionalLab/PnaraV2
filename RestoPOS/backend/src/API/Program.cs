@@ -107,7 +107,7 @@ try
     app.UseSerilogRequestLogging();
     app.UseSwagger();
     app.UseSwaggerUI();
-    app.UseHttpsRedirection();
+    //app.UseHttpsRedirection();
     app.UseCors("spa");
     app.UseAuthentication();
     app.UseAuthorization();

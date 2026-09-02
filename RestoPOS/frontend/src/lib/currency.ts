@@ -57,5 +57,5 @@ export function priceCart(
       : Math.round(taxable * vatRate);
   const grandTotal = Math.round(taxable + (extractedTax > 0 ? 0 : taxAmount));
 
-  return { subtotal, modifiersTotal, taxAmount, grandTotal, taxable: Math.round(taxable) };
+  return { subtotal: subtotal + modifiersTotal, modifiersTotal, taxAmount, grandTotal, taxable: Math.round(taxable) };
 }

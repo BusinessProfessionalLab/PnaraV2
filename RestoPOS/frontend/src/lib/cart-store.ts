@@ -68,7 +68,7 @@ export const useCartStore = create<CartState>()(
             id: m.id,
             name: m.name,
             extraPrice: m.extraPrice,
-            quantity: 1,
+            quantity: m.quantity ?? 1,
           })),
         };
         set((s) => ({ lines: [...s.lines, line], dirty: true }));

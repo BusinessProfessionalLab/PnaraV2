@@ -68,6 +68,7 @@ export type ModifierDto = {
   isActive: boolean;
   ticketStation: TicketStation;
   displayPriority: number;
+  quantity?: number;
 };
 
 export type MenuItemDto = {

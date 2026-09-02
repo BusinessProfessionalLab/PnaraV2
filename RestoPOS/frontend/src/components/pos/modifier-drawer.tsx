@@ -1,35 +1,29 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Badge, Textarea } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/input";
 import { formatToman } from "@/lib/currency";
 import type { MenuItemDto, ModifierDto } from "@/lib/types";
 
 export function ModifierDrawer({
   item,
-  catalog,
   onClose,
   onConfirm,
 }: {
   item: MenuItemDto | null;
-  catalog: MenuItemDto[];
   onClose: () => void;
   onConfirm: (item: MenuItemDto, qty: number, modifiers: ModifierDto[], notes: string) => void;
 }) {
   const [qty, setQty] = useState(1);
   const [notes, setNotes] = useState("");
-  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [selected, setSelected] = useState<Record<string, number>>({});
 
   const open = Boolean(item);
   const mods = item?.modifiers.filter((m) => m.isActive) ?? [];
-  const pickedMods = mods.filter((m) => selected[m.id]);
-  const extras = pickedMods.reduce((s, m) => s + m.extraPrice, 0) * qty;
-  const suggested = useMemo(
-    () => (item ? catalog.filter((x) => x.categoryId === item.categoryId && x.id !== item.id).slice(0, 4) : []),
-    [catalog, item],
-  );
+  const pickedMods = mods.filter((m) => (selected[m.id] ?? 0) > 0);
+  const extras = pickedMods.reduce((s, m) => s + m.extraPrice * (selected[m.id] ?? 0), 0) * qty;
 
   function resetAndClose() {
     setQty(1);
@@ -63,10 +57,19 @@ export function ModifierDrawer({
                   return (
                     <button
                       key={m.id}
-                      onClick={() => setSelected((s) => ({ ...s, [m.id]: !s[m.id] }))}
+                      onClick={() => setSelected((s) => ({ ...s, [m.id]: on ? 0 : 1 }))}
                       className={`rounded-2xl border p-3 text-right ${on ? "border-primary bg-primary/10" : "bg-muted/40"}`}
                     >
-                      <div className="font-bold">{m.name}</div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold">{m.name}</span>
+                        {on ? (
+                          <span className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <button type="button" className="rounded border px-2" onClick={() => setSelected((s) => ({ ...s, [m.id]: Math.max(0, on - 1) }))}>−</button>
+                            <span className="min-w-5 text-center">{on}</span>
+                            <button type="button" className="rounded border px-2" onClick={() => setSelected((s) => ({ ...s, [m.id]: on + 1 }))}>+</button>
+                          </span>
+                        ) : null}
+                      </div>
                       <div className="text-xs">{formatToman(m.extraPrice)}</div>
                     </button>
                   );
@@ -79,7 +82,7 @@ export function ModifierDrawer({
                 <Button
                   size="lg"
                   onClick={() => {
-                    onConfirm(item, qty, pickedMods, notes);
+                    onConfirm(item, qty, pickedMods.map((m) => ({ ...m, extraPrice: m.extraPrice, quantity: selected[m.id] ?? 1 } as ModifierDto)), notes);
                     setQty(1);
                     setNotes("");
                     setSelected({});
@@ -87,27 +90,6 @@ export function ModifierDrawer({
                 >
                   افزودن به سبد
                 </Button>
-              </div>
-            </div>
-            <div>
-              <h3 className="mb-2 font-bold">پیشنهاد همین دسته</h3>
-              <div className="space-y-2">
-                {suggested.map((s) => (
-                  <button
-                    key={s.id}
-                    className="flex w-full items-center justify-between rounded-2xl border bg-card p-3 text-right"
-                    onClick={() => {
-                      setQty(1);
-                      setNotes("");
-                      setSelected({});
-                      onConfirm(s, 1, [], "");
-                    }}
-                  >
-                    <span className="font-semibold">{s.title}</span>
-                    <Badge>{formatToman(s.basePrice)}</Badge>
-                  </button>
-                ))}
-                {suggested.length === 0 ? <p className="text-sm text-muted-foreground">مورد دیگری در این دسته نیست.</p> : null}
               </div>
             </div>
           </div>

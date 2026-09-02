@@ -146,6 +146,8 @@ public sealed class RecordCardToCardCommandHandler(
         var order = await OrderLoader.Load(db, request.OrderId, cancellationToken);
         if (order.Status == OrderStatus.Paid)
             return OrderMapping.ToDto(order);
+        if (order.Status == OrderStatus.Draft)
+            order.Submit();
         var payment = new Payment
         {
             OrderId = order.Id,

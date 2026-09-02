@@ -63,13 +63,6 @@ export function PosRegister() {
   const shift = useQuery({ queryKey: ["shift"], queryFn: api.currentShift });
   const drafts = useQuery({ queryKey: ["order-drafts"], queryFn: api.draftOrders, refetchInterval: 10000 });
 
-  const customerQuery = useQuery({
-    queryKey: ["customer", cart.customerPhone],
-    queryFn: () => api.customerByPhone(cart.customerPhone),
-    enabled: /^09\d{9}$/.test(cart.customerPhone),
-    retry: false,
-  });
-
   const filtered = useMemo(() => {
     const items = menu.data ?? [];
     const term = q.trim().toLowerCase();
@@ -102,6 +95,7 @@ export function PosRegister() {
     mutationFn: (orderId: string) => api.getOrder(orderId),
     onSuccess: (order) => {
       cart.loadDraft(order);
+      setCheckout(true);
       toast.success(`پیش‌نویس ${order.orderNumber} باز شد`);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -248,7 +242,10 @@ export function PosRegister() {
                 <motion.button
                   key={item.id}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setPicked(item)}
+                  onClick={() => {
+                    if (item.modifiers.some((modifier) => modifier.isActive)) setPicked(item);
+                    else cart.addLine(item, 1, []);
+                  }}
                   className="overflow-hidden rounded-2xl border bg-card text-right shadow-sm"
                 >
                   <div className="relative h-28 bg-muted">
@@ -284,12 +281,12 @@ export function PosRegister() {
               {cart.serverOrderNumber ? <Badge>{cart.serverOrderNumber}</Badge> : <Badge variant="outline">محلی</Badge>}
             </div>
             <Input
-              className="mt-3"
+              className="hidden"
               placeholder="موبایل مشتری ۰۹۱۲..."
               value={cart.customerPhone}
               onChange={(e) => cart.setMeta({ customerPhone: e.target.value.replace(/\D/g, "").slice(0, 11) })}
             />
-            <CustomerBadge phone={cart.customerPhone} customer={customerQuery.data} error={customerQuery.error} />
+            {null}
             <div className="mt-3 rounded-xl border bg-amber-50 p-2">
               <div className="mb-2 flex items-center justify-between text-sm font-black">
                 <span>پیش‌نویس‌های ذخیره‌شده</span>
@@ -366,10 +363,10 @@ export function PosRegister() {
               ))
             )}
           </div>
-          <div className="space-y-2 border-t bg-white p-4">
+          <div className="space-y-2 border-t bg-white p-4 [&>div:nth-child(2)]:hidden">
             <Tot k="جمع جزء" v={formatToman(totals.subtotal)} />
             <Tot k="افزودنی" v={formatToman(totals.modifiersTotal)} />
-            <div className="flex gap-2">
+            <div className="hidden">
               <Input
                 type="number"
                 placeholder="% تخفیف"
@@ -406,6 +403,7 @@ export function PosRegister() {
                 حذف نیمه‌کاره
               </Button>
               <Button
+                className="hidden"
                 variant="secondary"
                 disabled={!cart.lines.length || sendMut.isPending || draftMut.isPending || discardMut.isPending}
                 onClick={() => sendMut.mutate()}
@@ -423,7 +421,6 @@ export function PosRegister() {
 
       <ModifierDrawer
         item={picked}
-        catalog={menu.data ?? []}
         onClose={() => setPicked(null)}
         onConfirm={(item, qty, mods, notes) => {
           cart.addLine(item, qty, mods, notes);
@@ -444,6 +441,7 @@ function Tot({ k, v, big }: { k: string; v: string; big?: boolean }) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function CustomerBadge({
   phone,
   customer,

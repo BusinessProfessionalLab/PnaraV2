@@ -72,7 +72,25 @@ export const useCartStore = create<CartState>()(
             quantity: m.quantity ?? 1,
           })),
         };
-        set((s) => ({ lines: [...s.lines, line], dirty: true }));
+        set((s) => {
+          const existingIndex = s.lines.findIndex(
+            (current) =>
+              current.menuItemId === line.menuItemId &&
+              current.notes === line.notes &&
+              current.modifiers.length === line.modifiers.length &&
+              current.modifiers.every((modifier, index) => {
+                const next = line.modifiers[index];
+                return next && modifier.id === next.id && modifier.quantity === next.quantity;
+              }),
+          );
+          if (existingIndex < 0) return { lines: [...s.lines, line], dirty: true };
+          return {
+            lines: s.lines.map((current, index) =>
+              index === existingIndex ? { ...current, quantity: current.quantity + quantity } : current,
+            ),
+            dirty: true,
+          };
+        });
       },
       updateLine: (lineIndex, quantity, modifiers, notes) =>
         set((s) => ({

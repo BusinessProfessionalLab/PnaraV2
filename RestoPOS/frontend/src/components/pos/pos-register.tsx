@@ -162,7 +162,7 @@ export function PosRegister() {
         </Select>
         <Input
           placeholder="شماره میز"
-          className="h-10 w-28 bg-white/10 text-white placeholder:text-white/60"
+          className={`h-10 w-28 bg-white/10 text-white placeholder:text-white/60 ${cart.orderType === "DineIn" ? "" : "hidden"}`}
           value={cart.tableNumber}
           onChange={(e) => cart.setMeta({ tableNumber: e.target.value })}
         />
@@ -245,8 +245,7 @@ export function PosRegister() {
                   whileTap={{ scale: 0.98 }}
                   onClick={() => {
                     setEditingLineIndex(null);
-                    if (item.modifiers.some((modifier) => modifier.isActive)) setPicked(item);
-                    else cart.addLine(item, 1, []);
+                    cart.addLine(item, 1, []);
                   }}
                   className="overflow-hidden rounded-2xl border bg-card text-right shadow-sm"
                 >

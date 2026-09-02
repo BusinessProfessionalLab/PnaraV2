@@ -20,7 +20,13 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge, Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { api, ApiError } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth-store";
 import { useCartStore } from "@/lib/cart-store";
@@ -78,12 +84,25 @@ export function PosRegister() {
   });
   useEffect(() => setOnline(health.isSuccess), [health.isSuccess]);
 
-  const categories = useQuery({ queryKey: ["categories"], queryFn: () => api.categories(false) });
-  const menu = useQuery({ queryKey: ["menu"], queryFn: () => api.menuItems(true) });
-  const inventory = useQuery({ queryKey: ["inventory"], queryFn: api.inventory });
+  const categories = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => api.categories(false),
+  });
+  const menu = useQuery({
+    queryKey: ["menu"],
+    queryFn: () => api.menuItems(true),
+  });
+  const inventory = useQuery({
+    queryKey: ["inventory"],
+    queryFn: api.inventory,
+  });
   const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
   const shift = useQuery({ queryKey: ["shift"], queryFn: api.currentShift });
-  const drafts = useQuery({ queryKey: ["order-drafts"], queryFn: api.draftOrders, refetchInterval: 10000 });
+  const drafts = useQuery({
+    queryKey: ["order-drafts"],
+    queryFn: api.draftOrders,
+    refetchInterval: 10000,
+  });
 
   const searchMatches = useMemo(() => {
     const items = menu.data ?? [];
@@ -183,8 +202,12 @@ export function PosRegister() {
         <div className="flex items-center gap-2">
           <UtensilsCrossed className="h-5 w-5 text-primary" />
           <div>
-            <div className="text-sm font-black">{settings.data?.storeName ?? "ToastIran POS"}</div>
-            <div className="text-[11px] opacity-70">صندوق · {session?.fullName}</div>
+            <div className="text-sm font-black">
+              {settings.data?.storeName ?? "ToastIran POS"}
+            </div>
+            <div className="text-[11px] opacity-70">
+              صندوق · {session?.fullName}
+            </div>
           </div>
         </div>
         <Select
@@ -200,29 +223,37 @@ export function PosRegister() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="DineIn">سالن</SelectItem>
+            <SelectItem value="DineIn">حضوری</SelectItem>
             <SelectItem value="Takeaway">بیرون‌بر</SelectItem>
-            <SelectItem value="Bar">بار</SelectItem>
+            <SelectItem value="Bar">سالن</SelectItem>
           </SelectContent>
         </Select>
         <Input
           placeholder="شماره میز"
-          className={`h-10 w-28 bg-white/10 text-white placeholder:text-white/60 ${cart.orderType === "DineIn" ? "" : "hidden"}`}
+          className={`h-10 w-28 bg-white/10 text-white placeholder:text-white/60 ${cart.orderType === "Bar" ? "" : "hidden"}`}
           value={cart.tableNumber}
           onChange={(e) => cart.setMeta({ tableNumber: e.target.value })}
         />
         <div className="ms-auto flex items-center gap-3 text-center">
           <div>
-            <div className="font-mono text-lg font-black leading-none">{toShamsiClock(clock)}</div>
+            <div className="font-mono text-lg font-black leading-none">
+              {toShamsiClock(clock)}
+            </div>
             <div className="text-[11px] opacity-70">
               {weekdayFa(clock)} {toShamsiDate(clock)}
             </div>
           </div>
           <Badge variant={online ? "success" : "danger"} className="gap-1">
-            {online ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+            {online ? (
+              <Wifi className="h-3 w-3" />
+            ) : (
+              <WifiOff className="h-3 w-3" />
+            )}
             {online ? "POS آنلاین" : "قطع ارتباط"}
           </Badge>
-          <Badge variant={shift.data ? "success" : "warning"}>{shift.data ? "شیفت باز" : "بدون شیفت"}</Badge>
+          <Badge variant={shift.data ? "success" : "warning"}>
+            {shift.data ? "شیفت باز" : "بدون شیفت"}
+          </Badge>
           <Link href="/kds">
             <Button size="sm" variant="ghost" className="text-white">
               نمایشگر بار
@@ -277,7 +308,7 @@ export function PosRegister() {
                   className={`flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold ${categoryId === c.id ? "bg-primary text-white" : "bg-card"}`}
                 >
                   {c.name}
-                  <span className="rounded-full bg-black/10 px-2 text-[11px]">{categoryCounts.get(c.id) ?? 0}</span>
+                  <span className="rounded-full bg-black/10 px-2 text-[11px]">{c.displayPriority}</span>
                 </button>
               ))}
           </div>
@@ -298,22 +329,38 @@ export function PosRegister() {
                   <div className="relative h-28 bg-muted">
                     {item.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" />
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
                       <div className="flex h-full items-center justify-center">
                         <Coffee className="h-10 w-10 text-muted-foreground" />
                       </div>
                     )}
                     <Badge
-                      variant={stock === "ok" ? "success" : stock === "low" ? "warning" : "danger"}
+                      variant={
+                        stock === "ok"
+                          ? "success"
+                          : stock === "low"
+                            ? "warning"
+                            : "danger"
+                      }
                       className="absolute left-2 top-2"
                     >
-                      {stock === "ok" ? "موجود" : stock === "low" ? "نزدیک اتمام" : "ناموجود"}
+                      {stock === "ok"
+                        ? "موجود"
+                        : stock === "low"
+                          ? "نزدیک اتمام"
+                          : "ناموجود"}
                     </Badge>
                   </div>
                   <div className="p-3">
                     <div className="font-bold">{item.title}</div>
-                    <div className="text-sm text-primary">{formatToman(item.basePrice)}</div>
+                    <div className="text-sm text-primary">
+                      {formatToman(item.basePrice)}
+                    </div>
                   </div>
                 </motion.button>
               );
@@ -322,25 +369,24 @@ export function PosRegister() {
         </section>
 
         <aside className="flex w-[380px] shrink-0 flex-col border-s bg-pos-ticket" dir="rtl">
-          <div className={rightPanelTab === "drafts" ? "flex min-h-0 flex-1 flex-col p-4" : "border-b p-4"}>
-            <div className="mb-3 grid grid-cols-2 gap-2">
-              <Button variant={rightPanelTab === "cart" ? "default" : "outline"} onClick={() => setRightPanelTab("cart")}>
-                سبد آیتم‌ها
-              </Button>
-              <Button variant={rightPanelTab === "drafts" ? "default" : "outline"} onClick={() => setRightPanelTab("drafts")}>
-                سفارش‌های ثبت‌شده
-                <Badge variant="warning">{drafts.data?.length ?? 0}</Badge>
-              </Button>
-            </div>
+          <div className="border-b p-4">
             <div className="flex items-center justify-between">
               <h2 className="font-black">صورتحساب زنده</h2>
-              {cart.serverOrderNumber ? <Badge>{cart.serverOrderNumber}</Badge> : <Badge variant="outline">محلی</Badge>}
+              {cart.serverOrderNumber ? (
+                <Badge>{cart.serverOrderNumber}</Badge>
+              ) : (
+                <Badge variant="outline">محلی</Badge>
+              )}
             </div>
             <Input
               className="hidden"
               placeholder="موبایل مشتری ۰۹۱۲..."
               value={cart.customerPhone}
-              onChange={(e) => cart.setMeta({ customerPhone: e.target.value.replace(/\D/g, "").slice(0, 11) })}
+              onChange={(e) =>
+                cart.setMeta({
+                  customerPhone: e.target.value.replace(/\D/g, "").slice(0, 11),
+                })
+              }
             />
             {null}
             <div className={rightPanelTab === "drafts" ? "mt-3 flex min-h-0 flex-1 flex-col rounded-xl border bg-amber-50 p-2" : "hidden"}>
@@ -363,19 +409,36 @@ export function PosRegister() {
                       <span>{formatToman(draft.grandTotal)}</span>
                     </div>
                     <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
-                      {draft.customerPhone ? <span>مشتری: {draft.customerPhone}</span> : null}
-                      {draft.tableNumber ? <span>میز: {draft.tableNumber}</span> : null}
-                      <span>{draft.orderType === "DineIn" ? "حضوری" : draft.orderType === "Takeaway" ? "بیرون‌بر" : "بار"}</span>
+                      {draft.customerPhone ? (
+                        <span>مشتری: {draft.customerPhone}</span>
+                      ) : null}
+                      {draft.tableNumber ? (
+                        <span>میز: {draft.tableNumber}</span>
+                      ) : null}
+                      <span>
+                        {draft.orderType === "DineIn"
+                          ? "حضوری"
+                          : draft.orderType === "Takeaway"
+                            ? "بیرون‌بر"
+                            : "بار"}
+                      </span>
                       <span>{draft.items.length} آیتم</span>
                     </div>
                     <div className="mt-1 truncate text-[11px] text-muted-foreground">
-                      {draft.items.slice(0, 2).map((item) => `${item.title} × ${item.quantity}`).join("، ")}
+                      {draft.items
+                        .slice(0, 2)
+                        .map((item) => `${item.title} × ${item.quantity}`)
+                        .join("، ")}
                       {draft.items.length > 2 ? "، ..." : ""}
                       {draft.notes ? ` · ${draft.notes}` : ""}
                     </div>
                   </button>
                 ))}
-                {!drafts.data?.length ? <p className="text-xs text-muted-foreground">پیش‌نویسی وجود ندارد</p> : null}
+                {!drafts.data?.length ? (
+                  <p className="text-xs text-muted-foreground">
+                    پیش‌نویسی وجود ندارد
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -391,7 +454,9 @@ export function PosRegister() {
                   key={`${line.menuItemId}-${lineIndex}`}
                   className="cursor-pointer rounded-2xl border bg-white p-3 transition-colors hover:border-primary"
                   onClick={() => {
-                    const menuItem = (menu.data ?? []).find((item) => item.id === line.menuItemId);
+                    const menuItem = (menu.data ?? []).find(
+                      (item) => item.id === line.menuItemId,
+                    );
                     if (!menuItem) return;
                     setEditingLineIndex(lineIndex);
                     setPicked(menuItem);
@@ -408,30 +473,51 @@ export function PosRegister() {
                         ))}
                       </div>
                     </div>
-                    <button onClick={(event) => {
-                      event.stopPropagation();
-                      cart.removeLine(lineIndex);
-                    }}>
+                    <button
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        cart.removeLine(lineIndex);
+                      }}
+                    >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </button>
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Button size="icon" variant="outline" onClick={(event) => {
-                        event.stopPropagation();
-                        cart.updateQty(lineIndex, line.quantity - 1);
-                      }}>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          cart.updateQty(lineIndex, line.quantity - 1);
+                        }}
+                      >
                         −
                       </Button>
-                      <span className="w-6 text-center font-black">{line.quantity}</span>
-                      <Button size="icon" variant="outline" onClick={(event) => {
-                        event.stopPropagation();
-                        cart.updateQty(lineIndex, line.quantity + 1);
-                      }}>
+                      <span className="w-6 text-center font-black">
+                        {line.quantity}
+                      </span>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          cart.updateQty(lineIndex, line.quantity + 1);
+                        }}
+                      >
                         +
                       </Button>
                     </div>
-                    <span className="font-bold">{formatToman(line.unitPrice * line.quantity + line.modifiers.reduce((s, m) => s + m.extraPrice * m.quantity, 0) * line.quantity)}</span>
+                    <span className="font-bold">
+                      {formatToman(
+                        line.unitPrice * line.quantity +
+                          line.modifiers.reduce(
+                            (s, m) => s + m.extraPrice * m.quantity,
+                            0,
+                          ) *
+                            line.quantity,
+                      )}
+                    </span>
                   </div>
                 </div>
               ))
@@ -445,21 +531,33 @@ export function PosRegister() {
                 type="number"
                 placeholder="% تخفیف"
                 value={cart.discountPercent || ""}
-                onChange={(e) => cart.setMeta({ discountPercent: Number(e.target.value) || 0 })}
+                onChange={(e) =>
+                  cart.setMeta({ discountPercent: Number(e.target.value) || 0 })
+                }
               />
               <Input
                 type="number"
                 placeholder="مبلغ تخفیف (ریال)"
                 value={cart.discountAmount || ""}
-                onChange={(e) => cart.setMeta({ discountAmount: Number(e.target.value) || 0 })}
+                onChange={(e) =>
+                  cart.setMeta({ discountAmount: Number(e.target.value) || 0 })
+                }
               />
             </div>
-            <Tot k={`ارزش افزوده (${Math.round(cart.vatRate * 100)}٪)`} v={formatToman(totals.taxAmount)} />
+            <Tot
+              k={`ارزش افزوده (${Math.round(cart.vatRate * 100)}٪)`}
+              v={formatToman(totals.taxAmount)}
+            />
             <Tot k="قابل پرداخت" v={formatToman(totals.grandTotal)} big />
             <div className="grid grid-cols-2 gap-2 pt-2">
               <Button
                 variant="outline"
-                disabled={!cart.lines.length || draftMut.isPending || sendMut.isPending || discardMut.isPending}
+                disabled={
+                  !cart.lines.length ||
+                  draftMut.isPending ||
+                  sendMut.isPending ||
+                  discardMut.isPending
+                }
                 onClick={() => draftMut.mutate()}
               >
                 ثبت موقت
@@ -479,12 +577,20 @@ export function PosRegister() {
               <Button
                 className="hidden"
                 variant="secondary"
-                disabled={!cart.lines.length || sendMut.isPending || draftMut.isPending || discardMut.isPending}
+                disabled={
+                  !cart.lines.length ||
+                  sendMut.isPending ||
+                  draftMut.isPending ||
+                  discardMut.isPending
+                }
                 onClick={() => sendMut.mutate()}
               >
                 ارسال به بار/آشپزخانه
               </Button>
-              <Button disabled={!cart.lines.length} onClick={() => setCheckout(true)}>
+              <Button
+                disabled={!cart.lines.length}
+                onClick={() => setCheckout(true)}
+              >
                 <CreditCard className="h-4 w-4" />
                 تسویه و پرداخت
               </Button>
@@ -496,9 +602,17 @@ export function PosRegister() {
       <ModifierDrawer
         key={`${picked?.id ?? "none"}-${editingLineIndex ?? "new"}`}
         item={picked}
-        initialQuantity={editingLineIndex === null ? 1 : cart.lines[editingLineIndex]?.quantity}
-        initialNotes={editingLineIndex === null ? "" : cart.lines[editingLineIndex]?.notes}
-        initialModifiers={editingLineIndex === null ? [] : cart.lines[editingLineIndex]?.modifiers}
+        initialQuantity={
+          editingLineIndex === null ? 1 : cart.lines[editingLineIndex]?.quantity
+        }
+        initialNotes={
+          editingLineIndex === null ? "" : cart.lines[editingLineIndex]?.notes
+        }
+        initialModifiers={
+          editingLineIndex === null
+            ? []
+            : cart.lines[editingLineIndex]?.modifiers
+        }
         onClose={() => {
           setPicked(null);
           setEditingLineIndex(null);
@@ -510,14 +624,20 @@ export function PosRegister() {
           setEditingLineIndex(null);
         }}
       />
-      <CheckoutModal open={checkout} onOpenChange={setCheckout} amount={totals.grandTotal} />
+      <CheckoutModal
+        open={checkout}
+        onOpenChange={setCheckout}
+        amount={totals.grandTotal}
+      />
     </div>
   );
 }
 
 function Tot({ k, v, big }: { k: string; v: string; big?: boolean }) {
   return (
-    <div className={`flex justify-between ${big ? "text-lg font-black text-primary" : "text-sm"}`}>
+    <div
+      className={`flex justify-between ${big ? "text-lg font-black text-primary" : "text-sm"}`}
+    >
       <span>{k}</span>
       <span>{v}</span>
     </div>
@@ -538,12 +658,18 @@ function CustomerBadge({
   if (customer) {
     return (
       <div className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-        مشتری وفادار — {customer.visitCount} سفارش قبلی · {formatToman(customer.totalSpent)} خرید · {customer.loyaltyPoints} امتیاز
+        مشتری وفادار — {customer.visitCount} سفارش قبلی ·{" "}
+        {formatToman(customer.totalSpent)} خرید · {customer.loyaltyPoints}{" "}
+        امتیاز
       </div>
     );
   }
   if (error instanceof ApiError && error.status === 404) {
-    return <div className="mt-2 text-xs text-muted-foreground">مشتری جدید — در تسویه وارد باشگاه می‌شود</div>;
+    return (
+      <div className="mt-2 text-xs text-muted-foreground">
+        مشتری جدید — در تسویه وارد باشگاه می‌شود
+      </div>
+    );
   }
   return null;
 }

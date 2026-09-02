@@ -14,10 +14,12 @@ export const metadata: Metadata = {
   description: "صندوق فروشگاهی و انبار رستوران و کافه برای بازار ایران",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fa" dir="rtl">
-      <body className={`${vazir.variable} font-sans antialiased`}>
+      <body className={`${vazir.className} font-sans antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -773,6 +773,7 @@ export function PosRegister() {
                 ارسال به بار/آشپزخانه
               </Button>
               <Button
+                className="col-span-2"
                 disabled={!cart.lines.length}
                 onClick={() => setCheckout(true)}
               >

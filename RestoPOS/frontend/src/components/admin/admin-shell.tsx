@@ -1,7 +1,7 @@
 "use client";
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { useQuery } from "@tanstack/react-query";
+
 import {
   BarChart3,
   Boxes,
@@ -20,7 +20,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { api } from "@/lib/api";
+import { useSettings } from "@/queries/settings";
 import { useAuthStore } from "@/lib/auth-store";
 import { cn } from "@/lib/cn";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -230,7 +230,7 @@ function RailNav({ storeName, onNavigate }: { storeName?: string; onNavigate?: (
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const [navOpen, setNavOpen] = useState(false);
-  const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
+  const settings = useSettings();
   const storeName = settings.data?.storeName;
 
   return (

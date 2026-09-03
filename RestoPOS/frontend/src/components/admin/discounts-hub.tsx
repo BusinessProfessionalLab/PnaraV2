@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BadgePercent, Layers3, Percent, Save, Search } from "lucide-react";
-import { api } from "@/lib/api";
+import { useCategories, useMenuItems, useUpdateCategory, useUpdateMenuItem } from "@/queries/menu";
+import { errorMessage } from "@/api/errors";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,10 +15,9 @@ import { formatToman } from "@/lib/currency";
 import type { CategoryDto, MenuItemDto } from "@/lib/types";
 
 export function DiscountsHub() {
-  const qc = useQueryClient();
   const [search, setSearch] = useState("");
-  const categories = useQuery({ queryKey: ["categories", true], queryFn: () => api.categories(true) });
-  const menu = useQuery({ queryKey: ["menu", false], queryFn: () => api.menuItems(false) });
+  const categories = useCategories(true);
+  const menu = useMenuItems(false);
   const term = search.trim().toLocaleLowerCase();
 
   const filteredCategories = useMemo(
@@ -38,24 +37,38 @@ export function DiscountsHub() {
     [menu.data, term],
   );
 
-  const saveCategory = useMutation({
-    mutationFn: ({ category, value }: { category: CategoryDto; value: number }) =>
-      api.updateCategory(category.id, { ...category, discountPercent: Math.min(100, Math.max(0, value)) }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["categories"] });
+  const saveCategory = useUpdateCategory();
+  const saveItem = useUpdateMenuItem();
+
+  async function persistCategory(category: CategoryDto, value: number) {
+    try {
+      await saveCategory.mutateAsync({
+        id: category.id,
+        payload: {
+          ...category,
+          discountPercent: Math.min(100, Math.max(0, value)),
+        },
+      });
       toast.success("تخفیف گروه ذخیره شد");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-  const saveItem = useMutation({
-    mutationFn: ({ item, value }: { item: MenuItemDto; value: number }) =>
-      api.updateMenuItem(item.id, { ...item, discountPercent: Math.min(100, Math.max(0, value)) }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["menu"] });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
+
+  async function persistItem(item: MenuItemDto, value: number) {
+    try {
+      await saveItem.mutateAsync({
+        id: item.id,
+        payload: {
+          ...item,
+          discountPercent: Math.min(100, Math.max(0, value)),
+        },
+      });
       toast.success("تخفیف آیتم ذخیره شد");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
 
   const loading = categories.isLoading || menu.isLoading;
 
@@ -113,7 +126,7 @@ export function DiscountsHub() {
                     label={c.name}
                     meta="کل آیتم‌های این گروه"
                     value={c.discountPercent}
-                    onSave={(value) => saveCategory.mutate({ category: c, value })}
+                    onSave={(value) => persistCategory(c, value)}
                     pending={saveCategory.isPending}
                   />
                 ))}
@@ -143,7 +156,7 @@ export function DiscountsHub() {
                     label={i.title}
                     meta={`${i.categoryName} · ${formatToman(i.basePrice)}`}
                     value={i.discountPercent}
-                    onSave={(value) => saveItem.mutate({ item: i, value })}
+                    onSave={(value) => persistItem(i, value)}
                     pending={saveItem.isPending}
                   />
                 ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+
 import { useMemo, useState } from "react";
 import {
   Bar,
@@ -21,7 +21,13 @@ import { Field, Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { api } from "@/lib/api";
+import {
+  useReportCategories,
+  useReportHourly,
+  useReportPerformance,
+  useReportProducts,
+  useReportStaff,
+} from "@/queries/reports";
 import { formatToman, rialToToman } from "@/lib/currency";
 import { daysAgoUtc } from "@/lib/jalali";
 import { cn } from "@/lib/cn";
@@ -67,11 +73,11 @@ function cardTitle(icon: React.ReactNode, title: string, sub?: string) {
 export function ReportsHub() {
   const [from, setFrom] = useState(daysAgoUtc(14));
   const [to, setTo] = useState(new Date().toISOString());
-  const products = useQuery({ queryKey: ["rep-p", from, to], queryFn: () => api.reportProducts(from, to) });
-  const cats = useQuery({ queryKey: ["rep-c", from, to], queryFn: () => api.reportCategories(from, to) });
-  const hourly = useQuery({ queryKey: ["rep-h", from, to], queryFn: () => api.reportHourly(from, to) });
-  const perf = useQuery({ queryKey: ["rep-perf", from, to], queryFn: () => api.reportPerformance(from, to) });
-  const staff = useQuery({ queryKey: ["rep-s", from, to], queryFn: () => api.reportStaff(from, to) });
+  const products = useReportProducts(from, to);
+  const cats = useReportCategories(from, to);
+  const hourly = useReportHourly(from, to);
+  const perf = useReportPerformance(from, to);
+  const staff = useReportStaff(from, to);
 
   const heat = useMemo(() => {
     const map = new Map((hourly.data ?? []).map((h) => [h.hour, h]));

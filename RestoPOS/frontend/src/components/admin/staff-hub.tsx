@@ -1,6 +1,5 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ClipboardList, ShieldCheck, UserPlus, Users } from "lucide-react";
@@ -18,7 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/lib/api";
+import { useStaff, useCreateStaff } from "@/queries/staff";
+import { errorMessage } from "@/api/errors";
 
 const ROLES = ["Cashier", "Manager", "Kitchen"] as const;
 const ROLE_LABEL: Record<string, string> = {
@@ -29,15 +29,16 @@ const ROLE_LABEL: Record<string, string> = {
 };
 
 export function StaffHub() {
-  const qc = useQueryClient();
-  const staff = useQuery({ queryKey: ["staff"], queryFn: api.staff });
+  const staff = useStaff();
+  const createStaff = useCreateStaff();
   const [userName, setUserName] = useState("");
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<string>("Cashier");
-  const mut = useMutation({
-    mutationFn: () =>
-      api.createStaff({
+
+  async function submit() {
+    try {
+      await createStaff.mutateAsync({
         userName,
         password,
         fullName,
@@ -45,17 +46,16 @@ export function StaffHub() {
         phoneNumber: null,
         personnelCode: null,
         roles: [role],
-      }),
-    onSuccess: () => {
+      });
       toast.success("پرسنل ایجاد شد");
       setUserName("");
       setFullName("");
       setPassword("");
       setRole("Cashier");
-      qc.invalidateQueries({ queryKey: ["staff"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -80,7 +80,7 @@ export function StaffHub() {
                 toast.error("نام، نام کاربری و رمز را کامل کنید");
                 return;
               }
-              mut.mutate();
+              submit();
             }}
           >
             <Field label="نام کامل">
@@ -109,7 +109,7 @@ export function StaffHub() {
             <Button
               type="submit"
               className="w-full"
-              loading={mut.isPending}
+              loading={createStaff.isPending}
               disabled={!userName.trim() || !fullName.trim() || !password}
             >
               ثبت پرسنل

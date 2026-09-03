@@ -1,6 +1,5 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, ArrowDownToLine, ArrowUpRight, Boxes, PackagePlus, Trash2 } from "lucide-react";
@@ -8,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonTable } from "@/components/ui/skeleton";
@@ -27,8 +27,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/lib/api";
+import {
+  useCreateInventoryItem,
+  useInventory,
+  useInventoryTransactions,
+  useReceiveStock,
+  useRecordWaste,
+  useStockAlerts,
+} from "@/queries/inventory";
 import { formatToman } from "@/lib/currency";
+import { errorMessage } from "@/api/errors";
 import { cn } from "@/lib/cn";
 import type { UnitOfMeasure } from "@/lib/types";
 
@@ -50,16 +58,9 @@ const TX_META: Record<string, { label: string; variant: "success" | "danger" | "
 };
 
 export function InventoryHub() {
-  const qc = useQueryClient();
-  const items = useQuery({ queryKey: ["inventory"], queryFn: api.inventory });
-  const alerts = useQuery({ queryKey: ["stock-alerts"], queryFn: api.stockAlerts });
-  const txs = useQuery({ queryKey: ["inventory-tx"], queryFn: () => api.inventoryTx() });
-
-  const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["inventory"] });
-    qc.invalidateQueries({ queryKey: ["inventory-tx"] });
-    qc.invalidateQueries({ queryKey: ["stock-alerts"] });
-  };
+  const items = useInventory();
+  const alerts = useStockAlerts();
+  const txs = useInventoryTransactions();
 
   return (
     <div className="space-y-5">
@@ -111,7 +112,7 @@ export function InventoryHub() {
             </div>
           </div>
           <div className="p-5">
-            <InboundForm items={items.data ?? []} onDone={invalidate} />
+            <InboundForm items={items.data ?? []} />
           </div>
         </Card>
         <Card className="overflow-hidden">
@@ -125,13 +126,7 @@ export function InventoryHub() {
             </div>
           </div>
           <div className="p-5">
-            <WasteForm
-              items={items.data ?? []}
-              onDone={() => {
-                qc.invalidateQueries({ queryKey: ["inventory"] });
-                qc.invalidateQueries({ queryKey: ["inventory-tx"] });
-              }}
-            />
+            <WasteForm items={items.data ?? []} />
           </div>
         </Card>
       </div>
@@ -165,14 +160,14 @@ export function InventoryHub() {
           <TableScroller>
             <Table>
               <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>کالا</TableHead>
-                <TableHead className="hidden md:table-cell">SKU</TableHead>
-                <TableHead>موجودی</TableHead>
-                <TableHead className="hidden md:table-cell">نقطه سفارش</TableHead>
-                <TableHead className="hidden md:table-cell">قیمت خرید</TableHead>
-                <TableHead>وضعیت</TableHead>
-              </TableRow>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>کالا</TableHead>
+                  <TableHead className="hidden md:table-cell">SKU</TableHead>
+                  <TableHead>موجودی</TableHead>
+                  <TableHead className="hidden md:table-cell">نقطه سفارش</TableHead>
+                  <TableHead className="hidden md:table-cell">قیمت خرید</TableHead>
+                  <TableHead>وضعیت</TableHead>
+                </TableRow>
               </TableHeader>
               <TableBody>
                 {(items.data ?? []).map((i) => (
@@ -279,13 +274,9 @@ function ModePill({
   );
 }
 
-function InboundForm({
-  items,
-  onDone,
-}: {
-  items: { id: string; name: string }[];
-  onDone: () => void;
-}) {
+function InboundForm({ items }: { items: { id: string; name: string }[] }) {
+  const createItem = useCreateInventoryItem();
+  const receive = useReceiveStock();
   const [mode, setMode] = useState<"new" | "buy">("buy");
   const [name, setName] = useState("");
   const [sku, setSku] = useState("");
@@ -295,10 +286,10 @@ function InboundForm({
   const [cost, setCost] = useState("");
   const [reorder, setReorder] = useState("1000");
 
-  const mut = useMutation({
-    mutationFn: async () => {
+  async function submit() {
+    try {
       if (mode === "new") {
-        return api.createInventoryItem({
+        await createItem.mutateAsync({
           name,
           sku,
           unitOfMeasure: unit,
@@ -307,27 +298,30 @@ function InboundForm({
           openingStock: Number(qty),
           costPrice: Number(cost) * 10,
         });
+      } else {
+        if (!id) {
+          toast.error("کالا را انتخاب کنید.");
+          return;
+        }
+        await receive.mutateAsync({
+          inventoryItemId: id,
+          quantity: Number(qty),
+          unitCost: Number(cost) * 10,
+          notes: "فاکتور خرید",
+          batchReference: `PO-${Date.now()}`,
+        });
       }
-      if (!id) throw new Error("کالا را انتخاب کنید.");
-      return api.receiveStock({
-        inventoryItemId: id,
-        quantity: Number(qty),
-        unitCost: Number(cost) * 10,
-        notes: "فاکتور خرید",
-        batchReference: `PO-${Date.now()}`,
-      });
-    },
-    onSuccess: () => {
       toast.success("انبار به‌روز شد");
       setQty("");
       setCost("");
-      onDone();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
 
   const valid =
     mode === "buy" ? Boolean(id && qty && cost) : Boolean(name && sku && qty && cost);
+  const pending = mode === "new" ? createItem.isPending : receive.isPending;
 
   return (
     <div className="space-y-4">
@@ -398,15 +392,15 @@ function InboundForm({
           />
         </Field>
         <Field label="قیمت خرید واحد (تومان)">
-          <Input type="number" inputMode="numeric" dir="ltr" className="text-end" value={cost} onChange={(e) => setCost(e.target.value)} />
+          <MoneyInput value={cost} onValueChange={setCost} className="text-end" />
         </Field>
       </div>
 
       <Button
         className="w-full sm:w-auto"
-        loading={mut.isPending}
+        loading={pending}
         disabled={!valid}
-        onClick={() => mut.mutate()}
+        onClick={submit}
       >
         ثبت در انبار
       </Button>
@@ -414,19 +408,23 @@ function InboundForm({
   );
 }
 
-function WasteForm({ items, onDone }: { items: { id: string; name: string }[]; onDone: () => void }) {
+function WasteForm({ items }: { items: { id: string; name: string }[] }) {
+  const waste = useRecordWaste();
   const [id, setId] = useState("");
   const [qty, setQty] = useState("");
   const [notes, setNotes] = useState("ضایعات / ریخت‌وپاش");
-  const mut = useMutation({
-    mutationFn: () => api.recordWaste({ inventoryItemId: id, quantity: Number(qty), notes }),
-    onSuccess: () => {
+
+  async function submit() {
+    if (!id || !qty) return;
+    try {
+      await waste.mutateAsync({ inventoryItemId: id, quantity: Number(qty), notes });
       toast.success("ضایعات ثبت شد");
       setQty("");
-      onDone();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
+
   return (
     <div className="space-y-4">
       <Field label="کالا">
@@ -454,9 +452,9 @@ function WasteForm({ items, onDone }: { items: { id: string; name: string }[]; o
       <Button
         variant="destructive"
         className="w-full sm:w-auto"
-        loading={mut.isPending}
+        loading={waste.isPending}
         disabled={!id || !qty}
-        onClick={() => mut.mutate()}
+        onClick={submit}
       >
         ثبت خروج ضایعات
       </Button>

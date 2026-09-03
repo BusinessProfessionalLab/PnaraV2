@@ -7,8 +7,9 @@ import { Eye, EyeOff, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Label } from "@/components/ui/input";
-import { api } from "@/lib/api";
+import { useLogin } from "@/queries/auth";
 import { useAuthStore } from "@/lib/auth-store";
+import { errorMessage } from "@/api/errors";
 import { cn } from "@/lib/cn";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
@@ -16,8 +17,9 @@ export function LoginForm() {
   const router = useRouter();
   const next = useSearchParams().get("next") || "/pos";
   const setSession = useAuthStore((s) => s.setSession);
-  const [userName, setUserName] = useState("admin");
-  const [password, setPassword] = useState("Admin@12345");
+  const login = useLogin();
+  const [userName, setUserName] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -29,12 +31,12 @@ export function LoginForm() {
     }
     setLoading(true);
     try {
-      const session = await api.login(userName, password);
+      const session = await login.mutateAsync({ userName, password });
       setSession(session);
       toast.success(`خوش آمدید ${session.fullName}`);
       router.replace(next);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "ورود ناموفق");
+      toast.error(errorMessage(err));
     } finally {
       setLoading(false);
     }

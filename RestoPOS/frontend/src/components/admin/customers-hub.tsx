@@ -1,7 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,15 +16,20 @@ import {
   TableRow,
   TableScroller,
 } from "@/components/ui/table";
-import { api } from "@/lib/api";
+import { useCustomers } from "@/queries/customers";
 import { formatToman } from "@/lib/currency";
 
 export function CustomersHub() {
   const [term, setTerm] = useState("");
-  const q = useQuery({
-    queryKey: ["customers", term],
-    queryFn: () => api.customers(term || undefined),
-  });
+  const [debouncedTerm, setDebouncedTerm] = useState("");
+
+  // UI state (raw keystrokes) is separate from server state (debounced term).
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedTerm(term.trim()), 250);
+    return () => clearTimeout(t);
+  }, [term]);
+
+  const q = useCustomers(debouncedTerm || undefined);
 
   const customers = q.data ?? [];
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -16,7 +16,8 @@ import { Card } from "@/components/ui/card";
 import { Field, Input, Label, Textarea } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { api } from "@/lib/api";
+import { useSettings, useUpdateSettings } from "@/queries/settings";
+import { errorMessage } from "@/api/errors";
 import { applyTheme, readableForegroundOn } from "@/lib/theme";
 
 const INITIAL_FORM = {
@@ -35,8 +36,8 @@ const INITIAL_FORM = {
 type FormState = typeof INITIAL_FORM;
 
 export function SettingsHub() {
-  const qc = useQueryClient();
-  const q = useQuery({ queryKey: ["settings"], queryFn: api.settings });
+  const q = useSettings();
+  const saveSettings = useUpdateSettings();
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
 
   useEffect(() => {
@@ -63,22 +64,21 @@ export function SettingsHub() {
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  const mut = useMutation({
-    mutationFn: () =>
-      api.updateSettings({
+  async function persist() {
+    try {
+      await saveSettings.mutateAsync({
         ...form,
         logoUrl: form.logoUrl || null,
         taxIdentificationNumber: form.taxIdentificationNumber || null,
         receiptHeader: form.receiptHeader || null,
         receiptFooter: form.receiptFooter || null,
         thermalPrinterHost: form.thermalPrinterHost || null,
-      }),
-    onSuccess: () => {
+      });
       toast.success("تنظیمات ذخیره شد");
-      qc.invalidateQueries({ queryKey: ["settings"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
 
   if (q.isLoading) {
     return (
@@ -98,7 +98,7 @@ export function SettingsHub() {
         title="تنظیمات فروشگاه"
         description="اطلاعات شناسنامه فیش، ظاهر برند، مالیات و چاپ حرارتی"
         actions={
-          <Button loading={mut.isPending} onClick={() => mut.mutate()}>
+          <Button loading={saveSettings.isPending} onClick={persist}>
             <Save className="size-4" aria-hidden />
             ذخیره تنظیمات
           </Button>
@@ -253,7 +253,7 @@ export function SettingsHub() {
               </div>
             </dl>
             <div className="border-t border-border/70 px-5 py-4">
-              <Button className="w-full" variant="outline" onClick={() => mut.mutate()} disabled={mut.isPending} loading={mut.isPending}>
+              <Button className="w-full" variant="outline" onClick={persist} disabled={saveSettings.isPending} loading={saveSettings.isPending}>
                 ذخیره همه تغییرات
               </Button>
             </div>

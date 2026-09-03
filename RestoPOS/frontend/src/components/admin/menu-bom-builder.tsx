@@ -1,12 +1,13 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Label, Textarea } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -17,7 +18,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { api } from "@/lib/api";
+import {
+  useAddons,
+  useAttachAddon,
+  useCategories,
+  useCreateAddon,
+  useCreateCategory,
+  useCreateMenuItem,
+  useCreateModifier,
+  useDeleteAddon,
+  useDeleteMenuItem,
+  useDeleteModifier,
+  useDetachAddon,
+  useMenuItems,
+  useUpdateAddon,
+  useUpdateCategory,
+  useUpdateMenuItem,
+  useUpdateModifier,
+  useUpsertRecipe,
+} from "@/queries/menu";
+import { useInventory } from "@/queries/inventory";
+import { errorMessage } from "@/api/errors";
 import {
   Boxes,
   CirclePlus,
@@ -66,13 +87,6 @@ async function cropImageToSquare(file: File): Promise<string> {
   return canvas.toDataURL("image/jpeg", 0.86);
 }
 
-/** Keep only digits and show thousands separator for display. */
-function formatPriceInput(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (!digits) return "";
-  return Number(digits).toLocaleString("en-US");
-}
-
 function PriceInput({
   value,
   onChange,
@@ -83,20 +97,18 @@ function PriceInput({
   placeholder?: string;
 }) {
   return (
-    <div className="relative">
-      <Input
-        dir="ltr"
-        inputMode="numeric"
-        placeholder={placeholder}
-        className="pe-20 ps-3 text-left font-medium tabular-nums"
-        value={formatPriceInput(value)}
-        onChange={(e) => onChange(e.target.value.replace(/\D/g, ""))}
-      />
-      <span className="pointer-events-none absolute end-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1 text-xs text-muted-foreground">
-        <Coins className="size-3.5" aria-hidden />
-        تومان
-      </span>
-    </div>
+    <MoneyInput
+      value={value}
+      onValueChange={onChange}
+      placeholder={placeholder}
+      className="pe-20 ps-3 text-left font-medium tabular-nums"
+      endAdornment={
+        <>
+          <Coins className="size-3.5" aria-hidden />
+          تومان
+        </>
+      }
+    />
   );
 }
 
@@ -147,35 +159,35 @@ function ImageUpload({ value, onChange }: { value: string; onChange: (url: strin
 /* ──────────────────────────────────────────────────────────────── */
 
 export function MenuBomBuilder() {
-  const qc = useQueryClient();
-  const cats = useQuery({ queryKey: ["categories", true], queryFn: () => api.categories(true) });
-  const items = useQuery({ queryKey: ["menu", false], queryFn: () => api.menuItems(false) });
-  const inv = useQuery({ queryKey: ["inventory"], queryFn: api.inventory });
+  const cats = useCategories(true);
+  const items = useMenuItems(false);
+  const inv = useInventory();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const selected = items.data?.find((i) => i.id === selectedId) ?? null;
 
-  const catMut = useMutation({
-    mutationFn: (name: string) => {
-      const displayPriority =
-        Math.max(0, ...(cats.data ?? []).filter((c) => !c.isSystem).map((c) => c.displayPriority)) + 1;
-      return api.createCategory({ name, nameEn: null, displayPriority, isVisible: true, iconUrl: null, imageUrl: null, parentId: null });
-    },
-    onSuccess: () => {
+  async function createCat(name: string) {
+    const displayPriority =
+      Math.max(0, ...(cats.data ?? []).filter((c) => !c.isSystem).map((c) => c.displayPriority)) + 1;
+    try {
+      await createCategory.mutateAsync({ name, nameEn: null, displayPriority, isVisible: true, iconUrl: null, imageUrl: null, parentId: null });
       toast.success("دسته ساخته شد");
-      qc.invalidateQueries({ queryKey: ["categories"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-  const updateCatMut = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: unknown }) => api.updateCategory(id, payload),
-    onSuccess: () => {
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
+
+  async function renameCategory(category: import("@/lib/types").CategoryDto, name: string) {
+    try {
+      await updateCategory.mutateAsync({ id: category.id, payload: { ...category, name } });
       toast.success("دسته ویرایش شد");
       setEditingCategoryId(null);
-      qc.invalidateQueries({ queryKey: ["categories"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -185,7 +197,7 @@ export function MenuBomBuilder() {
         <Card className="overflow-hidden">
           <CardHead icon={<FolderTree className="size-4" aria-hidden />} title="دسته‌ها" count={cats.data?.length} />
           <div className="space-y-3 p-4">
-            <CategoryForm onCreate={(name) => catMut.mutate(name)} />
+            <CategoryForm onCreate={createCat} />
             <div className="space-y-2">
               {cats.isLoading ? (
                 <>
@@ -201,7 +213,7 @@ export function MenuBomBuilder() {
                       <CategoryForm
                         key={c.id}
                         initialName={c.name}
-                        onCreate={(name) => updateCatMut.mutate({ id: c.id, payload: { ...c, name } })}
+                        onCreate={(name) => renameCategory(c, name)}
                         onCancel={() => setEditingCategoryId(null)}
                       />
                     ) : (
@@ -395,9 +407,11 @@ function AddonSelector({
 }
 
 function ProductForm({ categories }: { categories: Category[] }) {
-  const qc = useQueryClient();
-  const addons = useQuery({ queryKey: ["addons"], queryFn: () => api.addons(false) });
-  const items = useQuery({ queryKey: ["menu", false], queryFn: () => api.menuItems(false) });
+  const allAddons = useAddons(false);
+  const allItems = useMenuItems(false);
+  const createItem = useCreateMenuItem();
+  const attachAddon = useAttachAddon();
+  const [submitting, setSubmitting] = useState(false);
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [title, setTitle] = useState("");
   const [nameEn, setNameEn] = useState("");
@@ -406,11 +420,13 @@ function ProductForm({ categories }: { categories: Category[] }) {
   const [categoryId, setCategoryId] = useState("");
   const [station, setStation] = useState<TicketStation>("Bar");
 
-  const mut = useMutation({
-    mutationFn: async () => {
+  async function submit() {
+    if (!title.trim() || !price || !categoryId) return;
+    setSubmitting(true);
+    try {
       const displayPriority =
-        Math.max(0, ...(items.data ?? []).filter((item) => item.categoryId === categoryId).map((item) => item.displayPriority)) + 1;
-      const id = await api.createMenuItem({
+        Math.max(0, ...(allItems.data ?? []).filter((item) => item.categoryId === categoryId).map((item) => item.displayPriority)) + 1;
+      const id = await createItem.mutateAsync({
         title,
         nameEn: nameEn || null,
         description: null,
@@ -423,26 +439,30 @@ function ProductForm({ categories }: { categories: Category[] }) {
         ticketStation: station,
         prepTimeMinutes: 4,
       });
-      await Promise.all(selectedAddons.map((addonId) => api.attachAddon(id, addonId)));
-    },
-    onSuccess: () => {
+      await Promise.all(
+        selectedAddons.map((addonId) =>
+          attachAddon.mutateAsync({ menuItemId: id, addonId }),
+        ),
+      );
       toast.success("محصول ثبت شد");
-      qc.invalidateQueries({ queryKey: ["menu"] });
       setTitle("");
       setNameEn("");
       setPrice("");
       setImageUrl("");
       setSelectedAddons([]);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <form
       className="grid gap-3 rounded-xl border border-dashed border-border bg-muted/20 p-3 sm:grid-cols-2"
       onSubmit={(e) => {
         e.preventDefault();
-        mut.mutate();
+        submit();
       }}
     >
       <Field label="نام فارسی محصول">
@@ -482,12 +502,12 @@ function ProductForm({ categories }: { categories: Category[] }) {
       </Field>
       <ImageUpload value={imageUrl} onChange={setImageUrl} />
       <div className="sm:col-span-2">
-        <AddonSelector addons={addons.data ?? []} selected={selectedAddons} onChange={setSelectedAddons} />
+        <AddonSelector addons={allAddons.data ?? []} selected={selectedAddons} onChange={setSelectedAddons} />
       </div>
       <Button
         type="submit"
         className="sm:col-span-2"
-        loading={mut.isPending}
+        loading={submitting}
         disabled={!title.trim() || !price || !categoryId}
       >
         <CirclePlus className="size-4" aria-hidden />
@@ -500,57 +520,61 @@ function ProductForm({ categories }: { categories: Category[] }) {
 /* ──────────────────────────────────────────────────────────────── */
 
 function SharedAddonCreator() {
-  const qc = useQueryClient();
-  const addons = useQuery({ queryKey: ["addons"], queryFn: () => api.addons(false) });
+  const allAddons = useAddons(false);
+  const createAddon = useCreateAddon();
+  const updateAddon = useUpdateAddon();
+  const deleteAddon = useDeleteAddon();
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-  const create = useMutation({
-    mutationFn: () =>
-      api.createAddon({
+  async function create() {
+    try {
+      await createAddon.mutateAsync({
         name,
         extraPrice: Number(price) * 10,
         ticketStation: "Bar",
-        displayPriority: (addons.data?.length ?? 0) + 1,
-      }),
-    onSuccess: () => {
+        displayPriority: (allAddons.data?.length ?? 0) + 1,
+      });
       setName("");
       setPrice("");
-      qc.invalidateQueries({ queryKey: ["addons"] });
       toast.success("افزودنی مشترک ساخته شد");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-  const update = useMutation({
-    mutationFn: () =>
-      api.updateAddon(editingId!, {
-        name,
-        extraPrice: Number(price) * 10,
-        ticketStation: "Bar",
-        displayPriority: 1,
-        isActive: true,
-      }),
-    onSuccess: () => {
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
+
+  async function update() {
+    try {
+      await updateAddon.mutateAsync({
+        id: editingId!,
+        payload: {
+          name,
+          extraPrice: Number(price) * 10,
+          ticketStation: "Bar",
+          displayPriority: 1,
+          isActive: true,
+        },
+      });
       setEditingId(null);
       setName("");
       setPrice("");
-      qc.invalidateQueries({ queryKey: ["addons"] });
       toast.success("افزودنی ویرایش شد");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-  const remove = useMutation({
-    mutationFn: (id: string) => api.deleteAddon(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["addons"] });
-      qc.invalidateQueries({ queryKey: ["menu"] });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
+
+  async function remove(id: string) {
+    try {
+      await deleteAddon.mutateAsync(id);
       setDeleteTarget(null);
       toast.success("افزودنی حذف شد");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
 
   return (
     <Card className="overflow-hidden">
@@ -562,7 +586,7 @@ function SharedAddonCreator() {
           </p>
         </div>
         <Badge variant="neutral" className="tabular-nums">
-          {addons.data?.length ?? 0} افزودنی
+          {allAddons.data?.length ?? 0} افزودنی
         </Badge>
       </div>
       <div className="space-y-4 p-5">
@@ -576,9 +600,9 @@ function SharedAddonCreator() {
           {editingId ? (
             <div className="flex gap-2">
               <Button
-                loading={update.isPending}
+                loading={updateAddon.isPending}
                 disabled={!name.trim() || !price}
-                onClick={() => update.mutate()}
+                onClick={() => update()}
               >
                 ذخیره
               </Button>
@@ -595,9 +619,9 @@ function SharedAddonCreator() {
             </div>
           ) : (
             <Button
-              loading={create.isPending}
+              loading={createAddon.isPending}
               disabled={!name.trim() || !price}
-              onClick={() => create.mutate()}
+              onClick={() => create()}
             >
               <Plus className="size-4" aria-hidden />
               ساخت افزودنی
@@ -605,16 +629,16 @@ function SharedAddonCreator() {
           )}
         </div>
 
-        {addons.isLoading ? (
+        {allAddons.isLoading ? (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             <Skeleton className="h-12 w-full" />
             <Skeleton className="h-12 w-full" />
           </div>
-        ) : (addons.data ?? []).length === 0 ? (
+        ) : (allAddons.data ?? []).length === 0 ? (
           <EmptyState compact icon={Boxes} title="افزودنی مشترکی نیست" description="برای شروع، افزودنی را از فرم بالا بسازید" />
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {(addons.data ?? []).map((a) => (
+            {(allAddons.data ?? []).map((a) => (
               <div key={a.id} className="flex items-center gap-2 rounded-xl border border-border bg-card p-2.5">
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold">{a.name}</div>
@@ -656,8 +680,8 @@ function SharedAddonCreator() {
         title="حذف افزودنی مشترک"
         description="این افزودنی از همه محصولات متصل نیز حذف می‌شود."
         confirmLabel="حذف"
-        pending={remove.isPending}
-        onConfirm={() => deleteTarget && remove.mutate(deleteTarget)}
+        pending={deleteAddon.isPending}
+        onConfirm={() => deleteTarget && remove(deleteTarget)}
       />
     </Card>
   );
@@ -672,8 +696,15 @@ function ItemEditor({
   item: MenuItemDto;
   inventory: { id: string; name: string; sku: string }[];
 }) {
-  const qc = useQueryClient();
-  const addons = useQuery({ queryKey: ["addons"], queryFn: () => api.addons(false) });
+  const allAddons = useAddons(false);
+  const updateItem = useUpdateMenuItem();
+  const deleteItem = useDeleteMenuItem();
+  const createModifier = useCreateModifier();
+  const editModifier = useUpdateModifier();
+  const removeModifier = useDeleteModifier();
+  const saveRecipe = useUpsertRecipe();
+  const attachAddon = useAttachAddon();
+  const detachAddon = useDetachAddon();
   const [sharedAddonIds, setSharedAddonIds] = useState<string[]>(() => (item.addons ?? []).map((a) => a.id));
   const [title, setTitle] = useState(item.title);
   const [nameEn, setNameEn] = useState(item.nameEn ?? "");
@@ -689,50 +720,56 @@ function ItemEditor({
   const [confirmDelete, setConfirmDelete] = useState<null | { kind: "product" } | { kind: "modifier"; id: string; name: string }>(null);
   const lines = useMemo(() => item.recipe?.lines ?? [], [item]);
 
-  const update = useMutation({
-    mutationFn: () =>
-      api.updateMenuItem(item.id, {
-        title,
-        nameEn: nameEn || null,
-        description: description || null,
-        basePrice: Number(price) * 10,
-        taxInclusive: item.taxInclusive,
-        imageUrl: imageUrl || null,
-        displayPriority: item.displayPriority,
-        categoryId: item.categoryId,
-        isActive: item.isActive,
-        ticketStation: item.ticketStation,
-        prepTimeMinutes: item.prepTimeMinutes,
-      }),
-    onSuccess: () => {
+  async function update() {
+    try {
+      await updateItem.mutateAsync({
+        id: item.id,
+        payload: {
+          title,
+          nameEn: nameEn || null,
+          description: description || null,
+          basePrice: Number(price) * 10,
+          taxInclusive: item.taxInclusive,
+          imageUrl: imageUrl || null,
+          displayPriority: item.displayPriority,
+          categoryId: item.categoryId,
+          isActive: item.isActive,
+          ticketStation: item.ticketStation,
+          prepTimeMinutes: item.prepTimeMinutes,
+        },
+      });
       toast.success("اطلاعات محصول ذخیره شد");
-      qc.invalidateQueries({ queryKey: ["menu"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
 
-  const remove = useMutation({
-    mutationFn: () => api.deleteMenuItem(item.id),
-    onSuccess: () => {
+  async function remove() {
+    try {
+      await deleteItem.mutateAsync(item.id);
       toast.success("محصول حذف شد");
       setConfirmDelete(null);
-      qc.invalidateQueries({ queryKey: ["menu"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
 
-  const saveMod = useMutation({
-    mutationFn: async () => {
+  async function saveMod() {
+    try {
       if (editingMod) {
-        await api.updateModifier(editingMod, {
-          name: modName,
-          extraPrice: Number(modPrice) * 10,
-          ticketStation: item.ticketStation,
-          displayPriority: item.modifiers.find((m) => m.id === editingMod)?.displayPriority ?? 1,
-          isActive: true,
+        await editModifier.mutateAsync({
+          id: editingMod,
+          payload: {
+            name: modName,
+            extraPrice: Number(modPrice) * 10,
+            ticketStation: item.ticketStation,
+            displayPriority:
+              item.modifiers.find((m) => m.id === editingMod)?.displayPriority ?? 1,
+            isActive: true,
+          },
         });
       } else {
-        await api.createModifier({
+        await createModifier.mutateAsync({
           menuItemId: item.id,
           name: modName,
           extraPrice: Number(modPrice) * 10,
@@ -740,41 +777,40 @@ function ItemEditor({
           displayPriority: item.modifiers.length + 1,
         });
       }
-    },
-    onSuccess: () => {
       toast.success(editingMod ? "اضافه ویرایش شد" : "اضافه ثبت شد");
       setModName("");
       setModPrice("");
       setEditingMod(null);
-      qc.invalidateQueries({ queryKey: ["menu"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
 
-  const deleteMod = useMutation({
-    mutationFn: (id: string) => api.deleteModifier(id),
-    onSuccess: () => {
+  async function deleteMod(id: string) {
+    try {
+      await removeModifier.mutateAsync(id);
       toast.success("اضافه حذف شد");
-      qc.invalidateQueries({ queryKey: ["menu"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
 
-  const saveBom = useMutation({
-    mutationFn: () =>
-      api.upsertRecipe({
+  async function saveBom() {
+    try {
+      await saveRecipe.mutateAsync({
         menuItemId: item.id,
         menuItemModifierId: null,
         name: `BOM ${item.title}`,
-        lines: invId ? [...lines, { inventoryItemId: invId, quantity: Number(qty), unit }] : lines,
-      }),
-    onSuccess: () => {
+        lines: invId
+          ? [...lines, { inventoryItemId: invId, quantity: Number(qty), unit }]
+          : lines,
+      });
       toast.success("رسپی ذخیره شد");
       setInvId("");
-      qc.invalidateQueries({ queryKey: ["menu"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -827,7 +863,7 @@ function ItemEditor({
             </Field>
           </div>
         </div>
-        <Button loading={update.isPending} onClick={() => update.mutate()}>
+        <Button loading={updateItem.isPending} onClick={() => update()}>
           <Save className="size-4" aria-hidden />
           ذخیره تغییرات
         </Button>
@@ -835,17 +871,20 @@ function ItemEditor({
 
       {/* Shared addons */}
       <AddonSelector
-        addons={addons.data ?? []}
+        addons={allAddons.data ?? []}
         selected={sharedAddonIds}
         onChange={async (ids) => {
           const added = ids.filter((id) => !sharedAddonIds.includes(id));
           const removed = sharedAddonIds.filter((id) => !ids.includes(id));
           await Promise.all([
-            ...added.map((id) => api.attachAddon(item.id, id)),
-            ...removed.map((id) => api.detachAddon(item.id, id)),
+            ...added.map((id) =>
+              attachAddon.mutateAsync({ menuItemId: item.id, addonId: id }),
+            ),
+            ...removed.map((id) =>
+              detachAddon.mutateAsync({ menuItemId: item.id, addonId: id }),
+            ),
           ]);
           setSharedAddonIds(ids);
-          qc.invalidateQueries({ queryKey: ["menu"] });
         }}
       />
 
@@ -899,9 +938,9 @@ function ItemEditor({
         <Button
           variant="outline"
           className="w-full"
-          onClick={() => saveMod.mutate()}
-          disabled={!modName.trim() || !modPrice || saveMod.isPending}
-          loading={saveMod.isPending}
+          onClick={() => saveMod()}
+          disabled={!modName.trim() || !modPrice || createModifier.isPending || editModifier.isPending}
+          loading={createModifier.isPending || editModifier.isPending}
         >
           <Plus className="size-4" aria-hidden />
           {editingMod ? "ذخیره ویرایش اضافه" : "افزودن اضافه"}
@@ -959,9 +998,9 @@ function ItemEditor({
         <Button
           variant="secondary"
           className="w-full"
-          loading={saveBom.isPending}
-          disabled={!invId || !qty || saveBom.isPending}
-          onClick={() => saveBom.mutate()}
+          loading={saveRecipe.isPending}
+          disabled={!invId || !qty || saveRecipe.isPending}
+          onClick={() => saveBom()}
         >
           <Save className="size-4" aria-hidden />
           افزودن به رسپی و ذخیره
@@ -978,12 +1017,12 @@ function ItemEditor({
             : "محصول به‌همراه رسپی و ارتباط‌هایش حذف می‌شود."
         }
         confirmLabel="حذف"
-        pending={remove.isPending || deleteMod.isPending}
+        pending={deleteItem.isPending || removeModifier.isPending}
         onConfirm={() => {
           if (confirmDelete?.kind === "modifier") {
-            deleteMod.mutate(confirmDelete.id);
+            deleteMod(confirmDelete.id);
           } else if (confirmDelete?.kind === "product") {
-            remove.mutate();
+            remove();
           }
         }}
       />

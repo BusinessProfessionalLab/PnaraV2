@@ -1,10 +1,15 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { FolderPlus, Pencil, Trash2, X } from "lucide-react";
-import { api } from "@/lib/api";
+import {
+  useCategories,
+  useCreateCategory,
+  useDeleteCategory,
+  useUpdateCategory,
+} from "@/queries/menu";
+import { errorMessage } from "@/api/errors";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,43 +20,58 @@ import { cn } from "@/lib/cn";
 import type { CategoryDto } from "@/lib/types";
 
 export function CategoryManager() {
-  const qc = useQueryClient();
-  const categories = useQuery({ queryKey: ["categories", true], queryFn: () => api.categories(true) });
+  const categories = useCategories(true);
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const removeCategory = useDeleteCategory();
   const [editing, setEditing] = useState<CategoryDto | null>(null);
   const [name, setName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<CategoryDto | null>(null);
 
-  const save = useMutation({
-    mutationFn: async () => {
-      if (editing) await api.updateCategory(editing.id, { ...editing, name });
-      else {
-        const nextPriority = Math.max(
-          0,
-          ...(categories.data ?? [])
-            .filter((category) => !category.isSystem)
-            .map((category) => category.displayPriority),
-        ) + 1;
-        await api.createCategory({ name, nameEn: null, displayPriority: nextPriority, isVisible: true, iconUrl: null, imageUrl: null, parentId: null });
+  const savePending = editing ? updateCategory.isPending : createCategory.isPending;
+
+  async function persist() {
+    if (!name.trim()) return;
+    try {
+      if (editing) {
+        await updateCategory.mutateAsync({ id: editing.id, payload: { ...editing, name } });
+        toast.success("دسته‌بندی ویرایش شد");
+      } else {
+        const nextPriority =
+          Math.max(
+            0,
+            ...(categories.data ?? [])
+              .filter((category) => !category.isSystem)
+              .map((category) => category.displayPriority),
+          ) + 1;
+        await createCategory.mutateAsync({
+          name,
+          nameEn: null,
+          displayPriority: nextPriority,
+          isVisible: true,
+          iconUrl: null,
+          imageUrl: null,
+          parentId: null,
+        });
+        toast.success("دسته‌بندی اضافه شد");
       }
-    },
-    onSuccess: () => {
-      toast.success(editing ? "دسته‌بندی ویرایش شد" : "دسته‌بندی اضافه شد");
       setName("");
       setEditing(null);
-      qc.invalidateQueries({ queryKey: ["categories"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-  const remove = useMutation({
-    mutationFn: (id: string) => api.deleteCategory(id),
-    onSuccess: () => {
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    try {
+      await removeCategory.mutateAsync(deleteTarget.id);
       toast.success("دسته‌بندی حذف شد");
       setDeleteTarget(null);
-      qc.invalidateQueries({ queryKey: ["categories"] });
-      qc.invalidateQueries({ queryKey: ["menu"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
 
   function startEdit(category: CategoryDto) {
     setEditing(category);
@@ -78,7 +98,7 @@ export function CategoryManager() {
           className="flex flex-col gap-2 sm:flex-row sm:items-center"
           onSubmit={(e) => {
             e.preventDefault();
-            if (name.trim()) save.mutate();
+            persist();
           }}
         >
           <div className="relative flex-1">
@@ -95,7 +115,7 @@ export function CategoryManager() {
           </div>
           {editing ? (
             <div className="flex shrink-0 gap-2">
-              <Button type="submit" disabled={!name.trim() || save.isPending} loading={save.isPending}>
+              <Button type="submit" disabled={!name.trim() || savePending} loading={savePending}>
                 ذخیره تغییرات
               </Button>
               <Button type="button" variant="ghost" onClick={resetForm}>
@@ -104,7 +124,7 @@ export function CategoryManager() {
               </Button>
             </div>
           ) : (
-            <Button type="submit" disabled={!name.trim() || save.isPending} loading={save.isPending} className="shrink-0">
+            <Button type="submit" disabled={!name.trim() || savePending} loading={savePending} className="shrink-0">
               افزودن دسته
             </Button>
           )}
@@ -159,8 +179,8 @@ export function CategoryManager() {
         title={`حذف دسته «${deleteTarget?.name ?? ""}»`}
         description="این عملیات قابل بازگشت نیست."
         confirmLabel="حذف دسته"
-        pending={remove.isPending}
-        onConfirm={() => deleteTarget && remove.mutate(deleteTarget.id)}
+        pending={removeCategory.isPending}
+        onConfirm={confirmDelete}
       />
     </Card>
   );

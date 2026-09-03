@@ -212,14 +212,17 @@
   }
 }
 
+/* Centering is done by the element's own translate utilities (left-1/2/top-1/2
+   + -translate-x/y-1/2), so these keyframes only animate opacity + scale.
+   Animating transform here would double-shift the modal off-center. */
 @keyframes scale-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -48%) scale(0.96);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1);
   }
 }
 

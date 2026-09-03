@@ -1,4 +1,5 @@
-import { ApiError, api } from "./api";
+import { ApiError } from "@/api/errors";
+import { ordersService } from "@/services/orders.service";
 import { useCartStore } from "./cart-store";
 import type { OrderDto } from "./types";
 
@@ -17,7 +18,7 @@ async function syncCartToServerInternal(): Promise<OrderDto> {
   const cart = useCartStore.getState();
   if (!cart.lines.length) throw new Error("سبد خرید خالی است.");
   if (cart.serverOrderId && !cart.dirty) {
-    return api.getOrder(cart.serverOrderId);
+    return ordersService.getOrder(cart.serverOrderId);
   }
 
   const snapshot = {
@@ -39,12 +40,16 @@ async function syncCartToServerInternal(): Promise<OrderDto> {
   };
 
   const syncOnce = async (retryCount = 0): Promise<OrderDto> => {
-    const draft = await api.createDraft(draftPayload);
+    const draft = await ordersService.createDraft(draftPayload);
 
     try {
       let last = draft;
       if (snapshot.discountPercent || snapshot.discountAmount) {
-        last = await api.applyDiscount(last.id, snapshot.discountPercent, snapshot.discountAmount);
+        last = await ordersService.applyDiscount(
+          last.id,
+          snapshot.discountPercent,
+          snapshot.discountAmount,
+        );
       }
       useCartStore.getState().hydrateServer(last.id, last.orderNumber);
       return last;

@@ -35,7 +35,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/lib/api";
+import { errorMessage } from "@/api/errors";
+import { orderKeys } from "@/queries/keys";
+import { useActiveUnpaidOrders, useDiscardDraft, useGetOrder, useSubmitOrder } from "@/queries/orders";
+import { useCategories, useMenuItems } from "@/queries/menu";
+import { useCurrentShift } from "@/queries/shift";
+import { useHealth } from "@/queries/health";
+import { useInventory } from "@/queries/inventory";
+import { useSettings } from "@/queries/settings";
 import { cn } from "@/lib/cn";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuthStore } from "@/lib/auth-store";
@@ -71,36 +78,13 @@ export function PosRegister() {
     return () => clearInterval(t);
   }, []);
 
-  const health = useQuery({
-    queryKey: ["health"],
-    queryFn: api.health,
-    refetchInterval: 15000,
-  });
-
-  const categories = useQuery({
-    queryKey: ["categories"],
-    queryFn: () => api.categories(false),
-  });
-  const menu = useQuery({
-    queryKey: ["menu"],
-    queryFn: () => api.menuItems(true),
-  });
-  const inventory = useQuery({
-    queryKey: ["inventory"],
-    queryFn: api.inventory,
-  });
-  const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
-  const shift = useQuery({ queryKey: ["shift"], queryFn: api.currentShift });
-  const pendingOrders = useQuery({
-    queryKey: ["orders-unpaid"],
-    queryFn: async () => {
-      const orders = await api.activeOrders();
-      return orders.filter(
-        (order) => order.status !== "Paid" && order.status !== "Cancelled",
-      );
-    },
-    refetchInterval: 10000,
-  });
+  const health = useHealth();
+  const categories = useCategories(false);
+  const menu = useMenuItems(true);
+  const inventory = useInventory();
+  const settings = useSettings();
+  const shift = useCurrentShift();
+  const pendingOrders = useActiveUnpaidOrders();
 
   const searchMatches = useMemo(() => {
     const items = menu.data ?? [];
@@ -149,47 +133,53 @@ export function PosRegister() {
 
   const totals = cart.totals();
 
+  const getOrder = useGetOrder();
+  const discardDraft = useDiscardDraft();
+  const submitOrder = useSubmitOrder();
+
   const draftMut = useMutation({
     mutationFn: syncCartToServer,
     onSuccess: (order) => {
-      qc.invalidateQueries({ queryKey: ["orders-unpaid"] });
+      qc.invalidateQueries({ queryKey: orderKeys.unpaid });
       cart.clear();
       toast.success(`پیش‌نویس ${order.orderNumber} ذخیره شد`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const loadDraftMut = useMutation({
-    mutationFn: (orderId: string) => api.getOrder(orderId),
-    onSuccess: (order) => {
+  async function loadDraftOrder(orderId: string) {
+    try {
+      const order = await getOrder.mutateAsync(orderId);
       cart.loadDraft(order);
       setCheckout(true);
       toast.success(`پیش‌نویس ${order.orderNumber} باز شد`);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
 
-  const discardMut = useMutation({
-    mutationFn: async () => {
-      if (cart.serverOrderId) await api.discardDraft(cart.serverOrderId);
+  function discardCart() {
+    if (cart.serverOrderId) {
+      discardDraft.mutate(cart.serverOrderId, {
+        onSuccess: () => {
+          cart.clear();
+          toast.message("فاکتور نیمه‌کاره حذف شد");
+        },
+        onError: (error) => toast.error(errorMessage(error)),
+      });
+    } else {
       cart.clear();
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["orders-unpaid"] });
       toast.message("فاکتور نیمه‌کاره حذف شد");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+    }
+  }
 
   const sendMut = useMutation({
     mutationFn: async () => {
       const order = await syncCartToServer();
-      return api.submitOrder(order.id);
+      return submitOrder.mutateAsync(order.id);
     },
     onSuccess: (order) => {
       toast.success(`ارسال شد: ${order.orderNumber}`);
-      qc.invalidateQueries({ queryKey: ["inventory"] });
-      qc.invalidateQueries({ queryKey: ["orders-unpaid"] });
       cart.clear();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -224,7 +214,7 @@ export function PosRegister() {
 
   function openDraft(orderId: string) {
     setCartSheetOpen(false);
-    loadDraftMut.mutate(orderId);
+    loadDraftOrder(orderId);
   }
 
   const itemCount = cart.lines.reduce((sum, l) => sum + l.quantity, 0);
@@ -550,13 +540,13 @@ export function PosRegister() {
             rightPanelTab={rightPanelTab}
             onTabChange={setRightPanelTab}
             drafts={pendingOrders.data}
-            loadPending={loadDraftMut.isPending}
+            loadPending={getOrder.isPending}
             draftPending={draftMut.isPending}
             sendPending={sendMut.isPending}
-            discardPending={discardMut.isPending}
+            discardPending={discardDraft.isPending}
             onLoadDraft={openDraft}
             onSaveDraft={() => draftMut.mutate()}
-            onDiscard={() => discardMut.mutate()}
+            onDiscard={discardCart}
             onSendToKitchen={() => sendMut.mutate()}
             onCheckout={openCheckoutFromCart}
             onEditLine={openEditLine}
@@ -619,13 +609,13 @@ export function PosRegister() {
           rightPanelTab={rightPanelTab}
           onTabChange={setRightPanelTab}
           drafts={pendingOrders.data}
-          loadPending={loadDraftMut.isPending}
+          loadPending={getOrder.isPending}
           draftPending={draftMut.isPending}
           sendPending={sendMut.isPending}
-          discardPending={discardMut.isPending}
+          discardPending={discardDraft.isPending}
           onLoadDraft={openDraft}
           onSaveDraft={() => draftMut.mutate()}
-          onDiscard={() => discardMut.mutate()}
+          onDiscard={discardCart}
           onSendToKitchen={() => sendMut.mutate()}
           onCheckout={openCheckoutFromCart}
           onEditLine={openEditLine}

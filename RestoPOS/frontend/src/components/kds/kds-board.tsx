@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -19,7 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { api } from "@/lib/api";
+import { orderKeys } from "@/queries/keys";
+import { useActiveOrders, useUpdateOrderStatus } from "@/queries/orders";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuthStore } from "@/lib/auth-store";
 import { playAlert } from "@/lib/theme";
@@ -38,11 +39,7 @@ export function KdsBoard({ station }: { station: "kitchen" | "bar" }) {
   const router = useRouter();
   const logout = useAuthStore((s) => s.logout);
   const [live, setLive] = useState<"off" | "on" | "error">("off");
-  const orders = useQuery({
-    queryKey: ["active-orders"],
-    queryFn: api.activeOrders,
-    refetchInterval: 8000,
-  });
+  const orders = useActiveOrders({ refetchInterval: 8000 });
 
   useEffect(() => {
     const connection = createKitchenConnection();
@@ -55,7 +52,7 @@ export function KdsBoard({ station }: { station: "kitchen" | "bar" }) {
         const bump = (order: OrderDto) => {
           playAlert("new");
           toast.message(`سفارش جدید ${order.orderNumber}`);
-          qc.invalidateQueries({ queryKey: ["active-orders"] });
+          qc.invalidateQueries({ queryKey: orderKeys.active });
         };
         connection.on("OrderUpdated", bump);
         connection.on("KitchenTicket", bump);
@@ -76,10 +73,7 @@ export function KdsBoard({ station }: { station: "kitchen" | "bar" }) {
     return items.length > 0;
   });
 
-  const statusMut = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => api.updateOrderStatus(id, status),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["active-orders"] }),
-  });
+  const statusMut = useUpdateOrderStatus();
 
   const isBar = station === "bar";
   const title = isBar ? "نمایشگر بار" : "نمایشگر آشپزخانه";

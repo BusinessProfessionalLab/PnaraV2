@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -20,7 +20,10 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { api } from "@/lib/api";
+import { useActiveOrders } from "@/queries/orders";
+import { useStockAlerts } from "@/queries/inventory";
+import { useSettings } from "@/queries/settings";
+import { useCurrentShift } from "@/queries/shift";
 import { formatToman } from "@/lib/currency";
 
 function StatSkeleton() {
@@ -60,10 +63,10 @@ const QUICK_LINKS = [
 ];
 
 export function AdminDashboard() {
-  const alerts = useQuery({ queryKey: ["stock-alerts"], queryFn: api.stockAlerts });
-  const orders = useQuery({ queryKey: ["active-orders"], queryFn: api.activeOrders });
-  const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
-  const shift = useQuery({ queryKey: ["shift"], queryFn: api.currentShift });
+  const alerts = useStockAlerts();
+  const orders = useActiveOrders();
+  const settings = useSettings();
+  const shift = useCurrentShift();
 
   const alertCount = alerts.data?.length ?? 0;
 

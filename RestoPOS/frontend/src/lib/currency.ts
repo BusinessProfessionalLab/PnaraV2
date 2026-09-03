@@ -15,6 +15,12 @@ export function formatRial(rial: number, withUnit = true) {
   return withUnit ? `${value} ریال` : value;
 }
 
+/** Formats an already-toman value (cash tendered / change entered by the cashier). */
+export function formatTomanAmount(toman: number, withUnit = true) {
+  const value = tomanFormatter.format(Math.round(toman));
+  return withUnit ? `${value} تومان` : value;
+}
+
 export type CartModifier = { id: string; name: string; extraPrice: number; quantity: number };
 export type PricedCartItem = {
   quantity: number;

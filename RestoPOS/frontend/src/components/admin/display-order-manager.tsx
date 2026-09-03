@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
 import {
   ArrowDown,
   ArrowUp,
@@ -41,7 +41,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/lib/api";
+import {
+  useCategories,
+  useMenuItems,
+  useReorderCategories,
+  useReorderMenuItems,
+} from "@/queries/menu";
+import { errorMessage } from "@/api/errors";
 import { cn } from "@/lib/cn";
 
 type OrderMode = "categories" | "items";
@@ -55,15 +61,8 @@ type OrderEntry = {
 };
 
 export function DisplayOrderManager() {
-  const qc = useQueryClient();
-  const categoriesQuery = useQuery({
-    queryKey: ["categories", true],
-    queryFn: () => api.categories(true),
-  });
-  const itemsQuery = useQuery({
-    queryKey: ["menu", false],
-    queryFn: () => api.menuItems(false),
-  });
+  const categoriesQuery = useCategories(true);
+  const itemsQuery = useMenuItems(false);
   const categories = useMemo(
     () => (categoriesQuery.data ?? []).filter((category) => !category.isSystem),
     [categoriesQuery.data],
@@ -114,21 +113,23 @@ export function DisplayOrderManager() {
     .filter((entry): entry is OrderEntry => Boolean(entry));
   const hasChanges = orderedIds.join("|") !== savedIds.join("|");
 
-  const save = useMutation({
-    mutationFn: () =>
-      mode === "categories"
-        ? api.reorderCategories(orderedIds)
-        : api.reorderMenuItems(categoryId, orderedIds),
-    onSuccess: async () => {
+  const reorderCategories = useReorderCategories();
+  const reorderMenuItems = useReorderMenuItems();
+  const savePending = reorderCategories.isPending || reorderMenuItems.isPending;
+
+  async function save() {
+    try {
+      if (mode === "categories") {
+        await reorderCategories.mutateAsync(orderedIds);
+      } else {
+        await reorderMenuItems.mutateAsync({ categoryId, orderedIds });
+      }
       setSavedIds(orderedIds);
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ["categories"] }),
-        qc.invalidateQueries({ queryKey: ["menu"] }),
-      ]);
       toast.success("ترتیب نمایش ذخیره شد");
-    },
-    onError: (error: Error) => toast.error(error.message),
-  });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
 
   const move = (index: number, direction: -1 | 1) => {
     const nextIndex = index + direction;
@@ -246,7 +247,7 @@ export function DisplayOrderManager() {
           <Button
             type="button"
             variant="outline"
-            disabled={!hasChanges || save.isPending}
+            disabled={!hasChanges || savePending}
             onClick={() => setOrderedIds(savedIds)}
           >
             <RotateCcw className="size-4" aria-hidden />
@@ -254,9 +255,9 @@ export function DisplayOrderManager() {
           </Button>
           <Button
             type="button"
-            disabled={!hasChanges || save.isPending || orderedIds.length === 0}
-            loading={save.isPending}
-            onClick={() => save.mutate()}
+            disabled={!hasChanges || savePending || orderedIds.length === 0}
+            loading={savePending}
+            onClick={save}
           >
             <Check className="size-4" aria-hidden />
             ذخیره ترتیب

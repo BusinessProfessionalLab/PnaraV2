@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Banknote, Loader2, Printer, Smartphone, Timer } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import {
   Select,
   SelectContent,
@@ -22,11 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/lib/api";
+import { errorMessage } from "@/api/errors";
 import { useCartStore } from "@/lib/cart-store";
-import { formatToman } from "@/lib/currency";
+import { formatToman, formatTomanAmount, rialToToman } from "@/lib/currency";
 import { syncCartToServer } from "@/lib/sync-cart";
 import { cn } from "@/lib/cn";
+import { usePayCardToCard, usePayCash, usePosDevices, useSettleWithPos } from "@/queries/payments";
+import { useSettings } from "@/queries/settings";
+import type { OrderDto } from "@/lib/types";
 
 type PaymentMethod = "Cash" | "LocalPC_POS" | "CardToCard";
 
@@ -46,24 +50,24 @@ export function CheckoutModal({
   amount: number;
 }) {
   const cart = useCartStore();
-  const qc = useQueryClient();
   const [method, setMethod] = useState<PaymentMethod>("Cash");
-  const [received, setReceived] = useState(amount);
+  // Cash is tendered in toman (the field label says so); cart math is in rial.
+  // Kept as raw digits so the separator-formatted input can be emptied while typing.
+  const [received, setReceived] = useState(() => String(rialToToman(amount)));
   const [refNo, setRefNo] = useState("");
   const [deviceId, setDeviceId] = useState<string>("");
   const [waiting, setWaiting] = useState(false);
   const [width, setWidth] = useState<"80mm" | "58mm">("80mm");
 
-  const devices = useQuery({ queryKey: ["pos-devices"], queryFn: api.posDevices, enabled: open });
-  const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings, enabled: open });
+  const devices = usePosDevices({ enabled: open });
+  const settings = useSettings({ enabled: open });
+  const payCash = usePayCash();
+  const payCardToCard = usePayCardToCard();
+  const settleWithPos = useSettleWithPos();
 
-  const finish = async (orderId: string) => {
-    const order = await api.getOrder(orderId);
+  const finish = async (order: OrderDto) => {
     if (settings.data) printOrderTickets(order, settings.data, width);
     cart.clear();
-    qc.invalidateQueries({ queryKey: ["inventory"] });
-    qc.invalidateQueries({ queryKey: ["customers"] });
-    qc.invalidateQueries({ queryKey: ["orders-unpaid"] });
     onOpenChange(false);
     toast.success("تسویه انجام شد و فیش‌ها ارسال شدند");
   };
@@ -71,44 +75,39 @@ export function CheckoutModal({
   const cashMut = useMutation({
     mutationFn: async () => {
       const order = await syncCartToServer();
-      return api.payCash(order.id, amount);
+      return payCash.mutateAsync({ orderId: order.id, amount });
     },
-    onSuccess: (order) => finish(order.id),
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: (order) => finish(order),
+    onError: (error) => toast.error(errorMessage(error)),
   });
 
   const c2cMut = useMutation({
     mutationFn: async () => {
       const order = await syncCartToServer();
-      return api.payCardToCard(order.id, amount, refNo);
+      return payCardToCard.mutateAsync({
+        orderId: order.id,
+        amount,
+        referenceNumber: refNo,
+      });
     },
-    onSuccess: (order) => finish(order.id),
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: (order) => finish(order),
+    onError: (error) => toast.error(errorMessage(error)),
   });
 
   const posMut = useMutation({
     mutationFn: async () => {
-      if (!deviceId) throw new Error("کارتخوان را انتخاب کنید.");
+      if (!deviceId) throw new Error("کارت‌خوان را انتخاب کنید.");
       setWaiting(true);
       const order = await syncCartToServer();
-      const submitted = order.status === "Draft" ? await api.submitOrder(order.id) : order;
-      const payment = await api.initiatePos(submitted.id, deviceId);
-      if (payment.status === "Settled") return submitted.id;
-      const started = Date.now();
-      while (Date.now() - started < 45_000) {
-        await new Promise((r) => setTimeout(r, 1500));
-        const polled = await api.pollPos(payment.id);
-        if (polled.status === "Settled") return submitted.id;
-        if (polled.status === "Failed") throw new Error("تراکنش کارتخوان ناموفق بود.");
-      }
-      throw new Error("زمان انتظار کارتخوان به پایان رسید.");
+      return settleWithPos.mutateAsync({ order, deviceId });
     },
-    onSuccess: (orderId) => finish(orderId),
-    onError: (e: Error) => toast.error(e.message),
+    onSuccess: (order) => finish(order),
+    onError: (error) => toast.error(errorMessage(error)),
     onSettled: () => setWaiting(false),
   });
 
-  const change = Math.max(0, (received || 0) - amount);
+  const payableToman = rialToToman(amount);
+  const change = Math.max(0, (Number(received) || 0) - payableToman);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -161,13 +160,10 @@ export function CheckoutModal({
           {method === "Cash" ? (
             <div className="space-y-3 rounded-xl border border-border p-4">
               <Field label="مبلغ دریافتی (تومان)">
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  dir="ltr"
-                  className="text-end font-bold tabular-nums"
+                <MoneyInput
                   value={received}
-                  onChange={(e) => setReceived(Number(e.target.value))}
+                  onValueChange={setReceived}
+                  className="text-end font-bold tabular-nums"
                 />
               </Field>
               <div
@@ -177,7 +173,7 @@ export function CheckoutModal({
                 )}
               >
                 <span>بقیه</span>
-                <span className="font-bold tabular-nums">{formatToman(change)}</span>
+                <span className="font-bold tabular-nums">{formatTomanAmount(change)}</span>
               </div>
               <Button
                 className="w-full"

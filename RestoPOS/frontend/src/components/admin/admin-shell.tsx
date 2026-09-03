@@ -22,6 +22,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { appConfig } from "@/config/app";
+import { TourTrigger } from "@/features/product-tour";
 import { useSettings } from "@/queries/settings";
 import { useAuthStore } from "@/lib/auth-store";
 import { cn } from "@/lib/cn";
@@ -59,7 +60,13 @@ function BrandMark({ className }: { className?: string }) {
   );
 }
 
-function SidebarNav({ storeName, onNavigate }: { storeName?: string; onNavigate?: () => void }) {
+function SidebarNav({
+  storeName,
+  onNavigate,
+}: {
+  storeName?: string;
+  onNavigate?: () => void;
+}) {
   const path = usePathname();
   const router = useRouter();
   const logout = useAuthStore((s) => s.logout);
@@ -72,7 +79,9 @@ function SidebarNav({ storeName, onNavigate }: { storeName?: string; onNavigate?
           <div className="truncate text-[15px] font-bold tracking-tight text-foreground">
             {storeName || "ToastIran POS"}
           </div>
-          <div className="text-[11px] font-medium text-muted-foreground">پنل مدیریت</div>
+          <div className="text-[11px] font-medium text-muted-foreground">
+            پنل مدیریت
+          </div>
         </div>
       </div>
 
@@ -100,7 +109,12 @@ function SidebarNav({ storeName, onNavigate }: { storeName?: string; onNavigate?
                     )}
                   >
                     <Icon
-                      className={cn("size-[18px] shrink-0", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")}
+                      className={cn(
+                        "size-[18px] shrink-0",
+                        active
+                          ? "text-primary"
+                          : "text-muted-foreground group-hover:text-foreground",
+                      )}
                       strokeWidth={active ? 2.2 : 1.8}
                       aria-hidden
                     />
@@ -122,7 +136,11 @@ function SidebarNav({ storeName, onNavigate }: { storeName?: string; onNavigate?
               onClick={onNavigate}
               className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-foreground outline-none transition-colors duration-150 hover:bg-card hover:shadow-xs focus-visible:ring-2 focus-visible:ring-ring/50"
             >
-              <MonitorSmartphone className="size-[18px] text-muted-foreground" strokeWidth={1.8} aria-hidden />
+              <MonitorSmartphone
+                className="size-[18px] text-muted-foreground"
+                strokeWidth={1.8}
+                aria-hidden
+              />
               صندوق لمسی
             </Link>
             <Link
@@ -130,7 +148,11 @@ function SidebarNav({ storeName, onNavigate }: { storeName?: string; onNavigate?
               onClick={onNavigate}
               className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-foreground outline-none transition-colors duration-150 hover:bg-card hover:shadow-xs focus-visible:ring-2 focus-visible:ring-ring/50"
             >
-              <MonitorSmartphone className="size-[18px] text-muted-foreground" strokeWidth={1.8} aria-hidden />
+              <MonitorSmartphone
+                className="size-[18px] text-muted-foreground"
+                strokeWidth={1.8}
+                aria-hidden
+              />
               نمایشگر بار
             </Link>
             <Link
@@ -138,7 +160,11 @@ function SidebarNav({ storeName, onNavigate }: { storeName?: string; onNavigate?
               onClick={onNavigate}
               className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-foreground outline-none transition-colors duration-150 hover:bg-card hover:shadow-xs focus-visible:ring-2 focus-visible:ring-ring/50"
             >
-              <MonitorSmartphone className="size-[18px] text-muted-foreground" strokeWidth={1.8} aria-hidden />
+              <MonitorSmartphone
+                className="size-[18px] text-muted-foreground"
+                strokeWidth={1.8}
+                aria-hidden
+              />
               نمایشگر آشپزخانه
             </Link>
           </div>
@@ -146,8 +172,9 @@ function SidebarNav({ storeName, onNavigate }: { storeName?: string; onNavigate?
       </div>
 
       {/* Product metadata: version → change log. Quiet, but interactive. */}
-      <div className="border-t border-border">
+      <div className="border-b border-border px-2">
         <Link
+          data-tour="version"
           href="/admin/version"
           onClick={onNavigate}
           aria-label="نسخه برنامه و تاریخچه تغییرات"
@@ -186,6 +213,7 @@ function SidebarNav({ storeName, onNavigate }: { storeName?: string; onNavigate?
         </Link>
 
         <div className="flex items-center gap-1 border-t border-border/70 px-2.5 py-2.5">
+          <TourTrigger label="آموزش برنامه" className="size-9" />
           <ThemeToggle />
           <button
             type="button"
@@ -210,7 +238,13 @@ function SidebarNav({ storeName, onNavigate }: { storeName?: string; onNavigate?
  * lives on desktop (≥1024px) and inside the mobile drawer (<768px); this
  * rail keeps every destination reachable without eating content width.
  */
-function RailNav({ storeName, onNavigate }: { storeName?: string; onNavigate?: () => void }) {
+function RailNav({
+  storeName,
+  onNavigate,
+}: {
+  storeName?: string;
+  onNavigate?: () => void;
+}) {
   const path = usePathname();
   const router = useRouter();
   const logout = useAuthStore((s) => s.logout);
@@ -218,7 +252,11 @@ function RailNav({ storeName, onNavigate }: { storeName?: string; onNavigate?: (
   const registerLinks = [
     { href: "/pos", label: "صندوق لمسی", icon: MonitorSmartphone },
     { href: "/kds", label: "نمایشگر بار", icon: MonitorSmartphone },
-    { href: "/kds/kitchen", label: "نمایشگر آشپزخانه", icon: MonitorSmartphone },
+    {
+      href: "/kds/kitchen",
+      label: "نمایشگر آشپزخانه",
+      icon: MonitorSmartphone,
+    },
   ];
   const all = [...flat, ...registerLinks];
   return (
@@ -226,7 +264,10 @@ function RailNav({ storeName, onNavigate }: { storeName?: string; onNavigate?: (
       <div className="flex h-[4.5rem] shrink-0 items-center justify-center">
         <BrandMark />
       </div>
-      <nav className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-2 pb-3" aria-label="ناوبری پنل مدیریت">
+      <nav
+        className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-2 pb-3"
+        aria-label="ناوبری پنل مدیریت"
+      >
         {all.map((item) => {
           const active = path === item.href;
           const Icon = item.icon;
@@ -245,13 +286,18 @@ function RailNav({ storeName, onNavigate }: { storeName?: string; onNavigate?: (
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
-              <Icon className="size-[18px]" strokeWidth={active ? 2.2 : 1.8} aria-hidden />
+              <Icon
+                className="size-[18px]"
+                strokeWidth={active ? 2.2 : 1.8}
+                aria-hidden
+              />
             </Link>
           );
         })}
       </nav>
       <div className="flex w-full flex-col items-center gap-1 border-t border-border px-2 py-2.5">
         <Link
+          data-tour="version"
           href="/admin/version"
           onClick={onNavigate}
           title="نسخه برنامه و تغییرات"
@@ -266,6 +312,7 @@ function RailNav({ storeName, onNavigate }: { storeName?: string; onNavigate?: (
         >
           <History className="size-[18px]" strokeWidth={1.8} aria-hidden />
         </Link>
+        <TourTrigger label="آموزش برنامه" className="size-10" />
         <ThemeToggle className="size-10" />
         <button
           type="button"
@@ -294,7 +341,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh bg-background md:flex">
       {/* Desktop sidebar — appears on the inline-start (right in RTL). */}
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 border-e border-border bg-card lg:block">
+      <aside
+        data-tour="admin-nav"
+        className="sticky top-0 hidden h-dvh w-64 shrink-0 border-e border-border bg-card lg:block"
+      >
         <SidebarNav storeName={storeName} />
       </aside>
 
@@ -307,9 +357,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-card/90 px-3 backdrop-blur md:hidden sm:px-4">
         <BrandMark />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-bold">{storeName || "ToastIran POS"}</div>
+          <div className="truncate text-sm font-bold">
+            {storeName || "ToastIran POS"}
+          </div>
           <div className="text-[11px] text-muted-foreground">پنل مدیریت</div>
         </div>
+        <TourTrigger label="آموزش برنامه" className="size-10" placement="bottom" />
         <ThemeToggle />
         <DialogPrimitive.Root open={navOpen} onOpenChange={setNavOpen}>
           <DialogPrimitive.Trigger asChild>
@@ -324,8 +377,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <DialogPrimitive.Portal>
             <DialogPrimitive.Overlay className="animate-overlay fixed inset-0 z-50 bg-slate-950/40" />
             <DialogPrimitive.Content className="animate-from-end fixed inset-y-0 start-0 z-50 w-[min(86vw,20rem)] border-e border-border bg-card shadow-xl outline-none">
-          <DialogPrimitive.Title className="sr-only">منوی مدیریت</DialogPrimitive.Title>
-          <DialogPrimitive.Description className="sr-only">ناوبری پنل مدیریت</DialogPrimitive.Description>
+              <DialogPrimitive.Title className="sr-only">
+                منوی مدیریت
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Description className="sr-only">
+                ناوبری پنل مدیریت
+              </DialogPrimitive.Description>
               <button
                 type="button"
                 aria-label="بستن منو"
@@ -334,7 +391,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               >
                 <X className="size-4" aria-hidden />
               </button>
-              <SidebarNav storeName={storeName} onNavigate={() => setNavOpen(false)} />
+              <SidebarNav
+                storeName={storeName}
+                onNavigate={() => setNavOpen(false)}
+              />
             </DialogPrimitive.Content>
           </DialogPrimitive.Portal>
         </DialogPrimitive.Root>
@@ -342,7 +402,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
       {/* Main column */}
       <main className="flex-1 min-w-0">
-        <div className="mx-auto w-full max-w-[90rem] space-y-6 p-4 sm:p-6 lg:p-8">{children}</div>
+        <div className="mx-auto w-full max-w-[90rem] space-y-6 p-4 sm:p-6 lg:p-8">
+          {children}
+        </div>
       </main>
     </div>
   );

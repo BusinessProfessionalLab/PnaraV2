@@ -1,5 +1,9 @@
 import { SettingsHub } from "@/components/admin/settings-hub";
 
 export default function Page() {
-  return <SettingsHub />;
+  return (
+    <div data-tour="settings-page">
+      <SettingsHub />
+    </div>
+  );
 }

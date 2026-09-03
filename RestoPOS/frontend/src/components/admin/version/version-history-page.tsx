@@ -20,7 +20,7 @@ export function VersionHistoryPage({ releases }: { releases: ReleaseNote[] }) {
   const hasReleases = releases.length > 0;
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6">
+    <div data-tour="version-page" className="mx-auto w-full max-w-3xl space-y-6">
       <PageHeader
         title="تاریخچه نسخه‌ها"
         description="تغییرات هر نسخه برنامه را ببینید — از امکانات جدید تا بهبودها و رفع اشکال‌ها."

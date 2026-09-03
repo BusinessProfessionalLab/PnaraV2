@@ -1,0 +1,163 @@
+/* ---------------------------------------------------------------------------
+   Product-tour popover theme.
+   Loaded after driver.js default CSS so these overrides win. The popover is
+   styled as a native component of the app (same tokens as cards/dialogs).
+   ------------------------------------------------------------------------- */
+
+.ti-tour-popover.driver-popover {
+  --driver-popover-font-family: var(--font-vazir);
+
+  width: min(24rem, calc(100vw - 1.5rem));
+  min-width: min(18rem, calc(100vw - 1.5rem));
+  max-width: min(24rem, calc(100vw - 1.5rem));
+  padding: 1.25rem 1.25rem 1.125rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  background: var(--color-card);
+  color: var(--color-foreground);
+  box-shadow: var(--shadow-xl);
+  text-align: start;
+}
+
+/* Clean minimal look — hide the built-in arrow. */
+.ti-tour-popover .driver-popover-arrow {
+  display: none;
+}
+
+.ti-tour-popover .driver-popover-title {
+  margin: 0;
+  font-family: var(--font-vazir);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+  color: var(--color-foreground);
+}
+
+.ti-tour-popover .driver-popover-description {
+  margin: 0.375rem 0 0;
+  font-family: var(--font-vazir);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--color-muted-foreground);
+  text-wrap: pretty;
+}
+
+/* Close button — subtle, top inline-end (physical left in RTL, matching
+   the app's dialog close affordance). */
+.ti-tour-popover .driver-popover-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  top: 0.5rem;
+  right: auto;
+  left: 0.5rem;
+  border-radius: var(--radius-md);
+  color: var(--color-muted-foreground);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.ti-tour-popover .driver-popover-close-btn:hover,
+.ti-tour-popover .driver-popover-close-btn:focus {
+  color: var(--color-foreground);
+}
+.ti-tour-popover .driver-popover-close-btn:hover {
+  background: var(--color-muted);
+}
+.ti-tour-popover .driver-popover-close-btn:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+/* Footer: progress caption on its own line above the actions. */
+.ti-tour-popover .driver-popover-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.625rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.875rem;
+}
+
+.ti-tour-popover .driver-popover-progress-text {
+  margin: 0;
+  font-family: var(--font-vazir);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+  text-align: center;
+}
+
+.ti-tour-popover .driver-popover-navigation-btns {
+  gap: 0.5rem;
+}
+
+.ti-tour-popover .driver-popover-footer-btn {
+  font-family: var(--font-vazir);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1;
+  height: 2.25rem;
+  padding: 0 1rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid transparent;
+  box-shadow: var(--shadow-xs);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease;
+}
+.ti-tour-popover .driver-popover-footer-btn:active {
+  transform: scale(0.98);
+}
+.ti-tour-popover .driver-popover-footer-btn:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+.ti-tour-popover .driver-popover-prev-btn {
+  color: var(--color-foreground);
+  background: var(--color-card);
+  border-color: var(--color-border);
+}
+.ti-tour-popover .driver-popover-prev-btn:hover,
+.ti-tour-popover .driver-popover-prev-btn:focus {
+  background: var(--color-muted);
+  color: var(--color-foreground);
+}
+.ti-tour-popover .driver-popover-footer .driver-popover-btn-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.ti-tour-popover .driver-popover-next-btn,
+.ti-tour-popover .driver-popover-next-btn.driver-popover-done-btn {
+  color: var(--color-primary-foreground);
+  background: var(--color-primary-fill);
+}
+.ti-tour-popover .driver-popover-next-btn:hover,
+.ti-tour-popover .driver-popover-next-btn.driver-popover-done-btn:hover {
+  color: var(--color-primary-foreground);
+  background: var(--color-primary-fill-hover);
+}
+
+/* Small screens: tighter, readable popover. */
+@media (max-width: 480px) {
+  .ti-tour-popover.driver-popover {
+    width: min(calc(100vw - 1rem), 20rem);
+    min-width: calc(100vw - 1rem);
+    max-width: calc(100vw - 1rem);
+    padding: 1rem 1rem 0.875rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ti-tour-popover .driver-popover-close-btn,
+  .ti-tour-popover .driver-popover-footer-btn {
+    transition: none;
+  }
+}

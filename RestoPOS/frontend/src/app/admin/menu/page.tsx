@@ -8,7 +8,7 @@ import { DisplayOrderManager } from "@/components/admin/display-order-manager";
 
 export default function Page() {
   return (
-    <>
+    <div data-tour="menu-page" className="space-y-6">
       <PageHeader
         title="منو و رسپی"
         description="ترتیب نمایش، دسته‌بندی‌ها، محصولات، افزودنی‌ها و اتصال مواد به انبار"
@@ -24,6 +24,6 @@ export default function Page() {
       <DisplayOrderManager />
       <CategoryManager />
       <MenuBomBuilder />
-    </>
+    </div>
   );
 }

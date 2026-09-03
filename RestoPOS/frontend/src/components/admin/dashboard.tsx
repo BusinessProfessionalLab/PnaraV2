@@ -71,7 +71,7 @@ export function AdminDashboard() {
   const alertCount = alerts.data?.length ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div data-tour="dashboard" className="space-y-6">
       <PageHeader
         title={`داشبورد${settings.data?.storeName ? ` · ${settings.data.storeName}` : ""}`}
         description="نمای کلی وضعیت فروشگاه، موجودی و شیفت جاری"

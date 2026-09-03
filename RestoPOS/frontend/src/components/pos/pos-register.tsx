@@ -59,6 +59,7 @@ import type { MenuItemDto, OrderDto } from "@/lib/types";
 import { fuzzyScore } from "@/lib/fuzzy-search";
 import { CheckoutModal } from "./checkout-modal";
 import { ModifierDrawer } from "./modifier-drawer";
+import { TourTrigger } from "@/features/product-tour";
 
 type RightPanelTab = "cart" | "drafts";
 
@@ -318,6 +319,12 @@ export function PosRegister() {
           >
             {shift.data ? "شیفت باز" : "بدون شیفت"}
           </Badge>
+          <TourTrigger
+            tourId="register"
+            label="آموزش صندوق"
+            className="size-9"
+            placement="bottom"
+          />
           <ThemeToggle className="size-9" />
           <Link href="/kds" className="hidden lg:block">
             <Button size="sm" variant="ghost" className="text-muted-foreground">
@@ -357,7 +364,7 @@ export function PosRegister() {
           className="flex min-w-0 flex-1 flex-col gap-3 p-3 sm:p-4"
           dir="rtl"
         >
-          <div className="relative">
+          <div data-tour="pos-search" className="relative">
             <Search
               className="absolute start-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden
@@ -383,7 +390,10 @@ export function PosRegister() {
           </div>
 
           {/* Category rail */}
-          <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5">
+          <div
+            data-tour="pos-categories"
+            className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5"
+          >
             <button
               type="button"
               onClick={() => setCategoryId("all")}
@@ -437,7 +447,10 @@ export function PosRegister() {
           </div>
 
           {/* Product grid */}
-          <div className="pos-scroll grid min-h-0 flex-1 auto-rows-min grid-cols-2 content-start gap-2 overflow-y-auto pb-1 sm:grid-cols-3 sm:gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+          <div
+            data-tour="pos-products"
+            className="pos-scroll grid min-h-0 flex-1 auto-rows-min grid-cols-2 content-start gap-2 overflow-y-auto pb-1 sm:grid-cols-3 sm:gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+          >
             {menu.isLoading &&
               Array.from({ length: 10 }).map((_, i) => (
                 <div
@@ -549,6 +562,7 @@ export function PosRegister() {
 
         {/* Cart column — visible from md (tablets + desktops) */}
         <aside
+          data-tour="pos-cart-pane"
           className="hidden h-full w-[20rem] shrink-0 flex-col overflow-hidden border-s border-border bg-card md:flex xl:w-[21.5rem]"
           dir="rtl"
         >
@@ -572,7 +586,10 @@ export function PosRegister() {
 
       {/* Mobile cart summary bar — phones get a persistent mini-bar instead
           of a squeezed side column. Opens the full cart sheet below. */}
-      <div className="flex shrink-0 items-center gap-2 border-t border-border bg-card px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] md:hidden">
+      <div
+        data-tour="pos-cart-bar"
+        className="flex shrink-0 items-center gap-2 border-t border-border bg-card px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] md:hidden"
+      >
         <button
           type="button"
           onClick={() => setCartSheetOpen(true)}
@@ -609,6 +626,7 @@ export function PosRegister() {
           سبد
         </Button>
         <Button
+          data-tour="pos-checkout-mobile"
           size="sm"
           className="h-11 shrink-0 px-4"
           disabled={!cart.lines.length}
@@ -1011,6 +1029,7 @@ function CartPane({
               حذف نیمه‌کاره
             </Button>
             <Button
+              data-tour="pos-checkout-desktop"
               className="col-span-2 h-12"
               size="lg"
               disabled={!cart.lines.length}

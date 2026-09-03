@@ -24,6 +24,5 @@ public class MenuItem : BaseEntity, ISoftDeletable
     public Category Category { get; set; } = default!;
     public ICollection<MenuItemModifier> Modifiers { get; set; } = [];
     public ICollection<MenuItemAddon> Addons { get; set; } = [];
-    public ICollection<MenuItemAddon> UsedAsAddonFor { get; set; } = [];
     public Recipe? Recipe { get; set; }
 }

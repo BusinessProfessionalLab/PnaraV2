@@ -174,6 +174,20 @@ export const api = {
     apiFetch<void>(`http://192.168.100.249:5000/api/menu/modifiers/${id}`, {
       method: "DELETE",
     }),
+  addons: (activeOnly = true) =>
+    apiFetch<import("./types").MenuItemDto["addons"]>(
+      `http://192.168.100.249:5000/api/menu/addons?activeOnly=${activeOnly}`,
+    ),
+  createAddon: (payload: unknown) =>
+    apiFetch<string>("http://192.168.100.249:5000/api/menu/addons", { method: "POST", body: JSON.stringify(payload) }),
+  updateAddon: (id: string, payload: unknown) =>
+    apiFetch<void>(`http://192.168.100.249:5000/api/menu/addons/${id}`, { method: "PUT", body: JSON.stringify({ ...(payload as object), id }) }),
+  deleteAddon: (id: string) =>
+    apiFetch<void>(`http://192.168.100.249:5000/api/menu/addons/${id}`, { method: "DELETE" }),
+  attachAddon: (menuItemId: string, addonId: string) =>
+    apiFetch<void>(`http://192.168.100.249:5000/api/menu/items/${menuItemId}/addons/${addonId}`, { method: "POST" }),
+  detachAddon: (menuItemId: string, addonId: string) =>
+    apiFetch<void>(`http://192.168.100.249:5000/api/menu/items/${menuItemId}/addons/${addonId}`, { method: "DELETE" }),
   upsertRecipe: (payload: unknown) =>
     apiFetch<string>("http://192.168.100.249:5000/api/menu/recipes", {
       method: "PUT",

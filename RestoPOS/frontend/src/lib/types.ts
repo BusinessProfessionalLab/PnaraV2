@@ -70,6 +70,7 @@ export type ModifierDto = {
   ticketStation: TicketStation;
   displayPriority: number;
   quantity?: number;
+  addonId?: string;
 };
 
 export type MenuItemDto = {
@@ -90,11 +91,13 @@ export type MenuItemDto = {
   prepTimeMinutes: number;
   modifiers: ModifierDto[];
   recipe?: RecipeDto | null;
+  addons?: { id: string; title: string; basePrice: number; imageUrl?: string | null; isSharedAddon?: boolean }[];
 };
 
 export type OrderItemModifierDto = {
   id: string;
-  menuItemModifierId: string;
+  menuItemModifierId?: string | null;
+  addonId?: string | null;
   name: string;
   extraPrice: number;
   quantity: number;

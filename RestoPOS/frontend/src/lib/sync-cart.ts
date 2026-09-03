@@ -34,7 +34,7 @@ async function syncCartToServerInternal(): Promise<OrderDto> {
       menuItemId: line.menuItemId,
       quantity: line.quantity,
       notes: line.notes || null,
-      modifiers: line.modifiers.map((m) => ({ menuItemModifierId: m.id, quantity: m.quantity })),
+      modifiers: line.modifiers.map((m) => ({ menuItemModifierId: m.addonId ? null : m.id, addonId: m.addonId ?? null, quantity: m.quantity })),
     })),
   };
 

@@ -10,6 +10,7 @@ public class Recipe : BaseEntity, ISoftDeletable
 {
     public Guid? MenuItemId { get; set; }
     public Guid? MenuItemModifierId { get; set; }
+    public Guid? AddonId { get; set; }
     public string Name { get; set; } = default!;
     public bool IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
@@ -17,11 +18,12 @@ public class Recipe : BaseEntity, ISoftDeletable
 
     public MenuItem? MenuItem { get; set; }
     public MenuItemModifier? MenuItemModifier { get; set; }
+    public Addon? Addon { get; set; }
     public ICollection<RecipeLine> Lines { get; set; } = [];
 
     public void ReplaceLines(IEnumerable<RecipeLine> lines)
     {
-        if (MenuItemId is null && MenuItemModifierId is null)
+        if (MenuItemId is null && MenuItemModifierId is null && AddonId is null)
             throw new DomainException("رسپی باید به آیتم منو یا افزودنی متصل باشد.");
 
         Lines.Clear();

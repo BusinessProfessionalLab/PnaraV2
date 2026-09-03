@@ -20,6 +20,7 @@ public class ApplicationDbContext(
     public DbSet<MenuItem> MenuItems => Set<MenuItem>();
     public DbSet<MenuItemModifier> MenuItemModifiers => Set<MenuItemModifier>();
     public DbSet<MenuItemAddon> MenuItemAddons => Set<MenuItemAddon>();
+    public DbSet<Addon> Addons => Set<Addon>();
     public DbSet<Recipe> Recipes => Set<Recipe>();
     public DbSet<RecipeLine> RecipeLines => Set<RecipeLine>();
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();

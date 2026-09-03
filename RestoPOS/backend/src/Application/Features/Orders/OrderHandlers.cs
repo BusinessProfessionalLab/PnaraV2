@@ -65,9 +65,17 @@ public sealed class CreateDraftOrderCommandHandler(
             var line = order.AddItem(menuItem, itemRequest.Quantity, itemRequest.Notes);
             foreach (var modifierRequest in itemRequest.Modifiers ?? [])
             {
-                var modifier = menuItem.Modifiers.FirstOrDefault(m => m.Id == modifierRequest.MenuItemModifierId)
-                    ?? throw new NotFoundException(nameof(MenuItemModifier), modifierRequest.MenuItemModifierId);
-                line.AddModifier(modifier, modifierRequest.Quantity);
+                if (modifierRequest.AddonId is { } addonId)
+                {
+                    var addon = await db.Addons.FirstOrDefaultAsync(a => a.Id == addonId, cancellationToken) ?? throw new NotFoundException(nameof(Addon), addonId);
+                    line.AddAddon(addon, modifierRequest.Quantity);
+                }
+                else
+                {
+                    var modifier = menuItem.Modifiers.FirstOrDefault(m => m.Id == modifierRequest.MenuItemModifierId)
+                        ?? throw new NotFoundException(nameof(MenuItemModifier), modifierRequest.MenuItemModifierId);
+                    line.AddModifier(modifier, modifierRequest.Quantity);
+                }
             }
         }
         order.Recalculate();
@@ -99,9 +107,19 @@ public sealed class AddOrderItemCommandHandler(IApplicationDbContext db) : IRequ
         var line = order.AddItem(menuItem, request.Quantity, request.Notes);
         foreach (var modifierReq in request.Modifiers ?? [])
         {
-            var modifier = menuItem.Modifiers.FirstOrDefault(m => m.Id == modifierReq.MenuItemModifierId)
-                           ?? throw new NotFoundException(nameof(MenuItemModifier), modifierReq.MenuItemModifierId);
-            line.AddModifier(modifier, modifierReq.Quantity);
+            if (modifierReq.AddonId is { } addonId)
+            {
+                var addon = await db.Addons.FirstOrDefaultAsync(a => a.Id == addonId, cancellationToken) ?? throw new NotFoundException(nameof(Addon), addonId);
+                if (!await db.MenuItemAddons.AnyAsync(x => x.MenuItemId == menuItem.Id && x.AddonId == addonId, cancellationToken))
+                    throw new DomainException("این افزودنی به محصول متصل نیست.");
+                line.AddAddon(addon, modifierReq.Quantity);
+            }
+            else
+            {
+                var modifier = menuItem.Modifiers.FirstOrDefault(m => m.Id == modifierReq.MenuItemModifierId)
+                               ?? throw new NotFoundException(nameof(MenuItemModifier), modifierReq.MenuItemModifierId);
+                line.AddModifier(modifier, modifierReq.Quantity);
+            }
         }
 
         order.Recalculate();

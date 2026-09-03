@@ -133,6 +133,7 @@ export function MenuBomBuilder() {
   });
 
   return <div className="grid gap-4 lg:grid-cols-[280px_1fr_380px]">
+    <SharedAddonManager selectedItemId={selectedId} />
     <Card className="p-4"><h2 className="mb-3 font-black">دسته‌ها</h2><CategoryForm onCreate={(name) => catMut.mutate(name)} /><div className="mt-3 space-y-2">{(cats.data ?? []).slice().sort((a, b) => a.displayPriority - b.displayPriority).map((c) => <div key={c.id} className="rounded-xl border p-2">{editingCategoryId === c.id ? <CategoryForm initialName={c.name} onCreate={(name) => updateCatMut.mutate({ id: c.id, payload: { ...c, name } })} onCancel={() => setEditingCategoryId(null)} /> : <div className="flex items-center gap-2"><div className="min-w-0 flex-1"><div className="font-bold">{c.name}</div>{c.nameEn && <div className="text-xs text-muted-foreground">{c.nameEn}</div>}</div><Button type="button" size="sm" variant="outline" onClick={() => setEditingCategoryId(c.id)}>ویرایش</Button><Button type="button" size="sm" variant="destructive" onClick={() => window.confirm("این دسته حذف شود؟") && deleteCatMut.mutate(c.id)}>حذف</Button></div>}</div>)}</div></Card>
     <Card className="p-4"><h2 className="mb-3 font-black">محصولات</h2><ProductForm categories={cats.data ?? []} /><div className="mt-4 space-y-2">{(items.data ?? []).map((item) => <button key={item.id} onClick={() => setSelectedId(item.id)} className={`flex w-full items-center gap-3 rounded-xl border p-3 text-right ${selectedId === item.id ? "border-primary bg-primary/5" : ""}`}>{item.imageUrl ? <img src={item.imageUrl} alt={item.title} className="h-12 w-12 rounded-lg object-cover outline outline-1 outline-black/10" /> : <div className="h-12 w-12 rounded-lg bg-muted" />}<div className="min-w-0 flex-1"><div className="font-bold">{item.title}</div>{item.nameEn && <div className="text-xs text-muted-foreground">{item.nameEn}</div>}<div className="text-xs text-muted-foreground">{item.categoryName}</div></div><div className="text-sm font-bold">{formatToman(item.basePrice)}</div></button>)}</div></Card>
     <Card className="p-4">{selected ? <ItemEditor item={selected} inventory={inv.data ?? []} /> : <p className="text-sm text-muted-foreground">یک محصول را برای ویرایش و مدیریت اضافات انتخاب کنید.</p>}</Card>
@@ -142,6 +143,24 @@ export function MenuBomBuilder() {
 function CategoryForm({ onCreate, initialName = "", onCancel }: { onCreate: (name: string) => void; initialName?: string; onCancel?: () => void }) {
   const [name, setName] = useState(initialName);
   return <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (name.trim()) { onCreate(name.trim()); if (!onCancel) setName(""); } }}><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="نام دسته" /><Button type="submit">{onCancel ? "ذخیره" : "+"}</Button>{onCancel && <Button type="button" variant="ghost" onClick={onCancel}>انصراف</Button>}</form>;
+}
+
+function SharedAddonManager({ selectedItemId }: { selectedItemId: string | null }) {
+  const qc = useQueryClient();
+  const addons = useQuery({ queryKey: ["addons"], queryFn: () => api.addons(false) });
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const create = useMutation({
+    mutationFn: () => api.createAddon({ name, extraPrice: Number(price) * 10, ticketStation: "Bar", displayPriority: (addons.data?.length ?? 0) + 1 }),
+    onSuccess: () => { setName(""); setPrice(""); qc.invalidateQueries({ queryKey: ["addons"] }); toast.success("افزودنی مشترک ساخته شد"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const attach = useMutation({
+    mutationFn: (addonId: string) => api.attachAddon(selectedItemId!, addonId),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["menu"] }); toast.success("افزودنی به محصول وصل شد"); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return <Card className="p-4 lg:col-start-1"><h2 className="mb-2 font-black">افزودنی‌های مشترک</h2><p className="mb-3 text-xs text-muted-foreground">یک قیمت برای چند محصول؛ تغییر قیمت فقط یک‌بار.</p><div className="grid gap-2"><Input placeholder="نام افزودنی" value={name} onChange={(e) => setName(e.target.value)} /><PriceInput value={price} onChange={setPrice} placeholder="قیمت" /><Button onClick={() => create.mutate()} disabled={!name || !price || create.isPending}>ساخت افزودنی</Button></div><div className="mt-3 space-y-1">{(addons.data ?? []).map((a) => <div key={a?.id} className="flex items-center gap-2 rounded-lg border p-2 text-sm"><span className="flex-1">{a?.title} · {formatToman(a?.basePrice ?? 0)}</span><Button size="sm" variant="outline" disabled={!selectedItemId} onClick={() => a && attach.mutate(a.id)}>اتصال</Button></div>)}</div></Card>;
 }
 
 function ProductForm({ categories }: { categories: Category[] }) {

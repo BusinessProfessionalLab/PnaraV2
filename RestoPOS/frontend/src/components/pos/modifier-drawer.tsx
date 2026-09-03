@@ -29,7 +29,11 @@ export function ModifierDrawer({
   );
 
   const open = Boolean(item);
-  const mods = item?.modifiers.filter((m) => m.isActive) ?? [];
+  const shared = (item?.addons ?? []).map((a) => ({
+    id: a.id, menuItemId: item!.id, name: a.title, extraPrice: a.basePrice,
+    isActive: true, ticketStation: item!.ticketStation, displayPriority: 0, addonId: a.id,
+  }));
+  const mods = [...(item?.modifiers.filter((m) => m.isActive) ?? []), ...shared];
   const pickedMods = mods.filter((m) => (selected[m.id] ?? 0) > 0);
   const extras = pickedMods.reduce((s, m) => s + m.extraPrice * (selected[m.id] ?? 0), 0) * qty;
 

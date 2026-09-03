@@ -42,4 +42,19 @@ public class OrderItem : BaseEntity
         Modifiers.Add(line);
         return line;
     }
+
+    public OrderItemModifier AddAddon(Addon addon, int quantity)
+    {
+        if (!addon.IsActive || addon.IsDeleted)
+            throw new DomainException("افزودنی غیرفعال است.");
+        if (quantity <= 0)
+            throw new DomainException("تعداد افزودنی باید حداقل ۱ باشد.");
+        var line = new OrderItemModifier
+        {
+            OrderItemId = Id, AddonId = addon.Id, Name = addon.Name,
+            ExtraPrice = addon.ExtraPrice, Quantity = quantity, TicketStation = addon.TicketStation
+        };
+        Modifiers.Add(line);
+        return line;
+    }
 }

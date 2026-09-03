@@ -13,7 +13,7 @@ export type CartLine = {
   ticketStation: string;
   notes: string;
   categoryId: string;
-  modifiers: { id: string; name: string; extraPrice: number; quantity: number }[];
+  modifiers: { id: string; name: string; extraPrice: number; quantity: number; addonId?: string }[];
 };
 
 type CartState = {
@@ -72,6 +72,7 @@ export const useCartStore = create<CartState>()(
             name: m.name,
             extraPrice: m.extraPrice,
             quantity: m.quantity ?? 1,
+            addonId: m.addonId,
           })),
         };
         set((s) => {
@@ -98,6 +99,7 @@ export const useCartStore = create<CartState>()(
                     name: m.name,
                     extraPrice: m.extraPrice,
                     quantity: m.quantity ?? 1,
+                    addonId: m.addonId,
                   })),
                 }
               : line,
@@ -146,10 +148,11 @@ export const useCartStore = create<CartState>()(
             notes: item.notes ?? "",
             categoryId: "",
             modifiers: item.modifiers.map((modifier) => ({
-              id: modifier.menuItemModifierId,
+              id: modifier.addonId ?? modifier.menuItemModifierId ?? "",
               name: modifier.name,
               extraPrice: modifier.extraPrice,
               quantity: modifier.quantity,
+              addonId: modifier.addonId ?? undefined,
             })),
           })),
           serverOrderId: order.id,

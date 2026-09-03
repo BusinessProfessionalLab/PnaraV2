@@ -12,6 +12,7 @@ public interface IApplicationDbContext
     DbSet<MenuItem> MenuItems { get; }
     DbSet<MenuItemModifier> MenuItemModifiers { get; }
     DbSet<MenuItemAddon> MenuItemAddons { get; }
+    DbSet<Addon> Addons { get; }
     DbSet<Recipe> Recipes { get; }
     DbSet<RecipeLine> RecipeLines { get; }
     DbSet<InventoryItem> InventoryItems { get; }

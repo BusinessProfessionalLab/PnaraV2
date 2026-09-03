@@ -63,9 +63,23 @@ public class MenuItemAddonConfiguration : IEntityTypeConfiguration<MenuItemAddon
     public void Configure(EntityTypeBuilder<MenuItemAddon> builder)
     {
         builder.ToTable("MenuItemAddons");
-        builder.HasKey(x => new { x.MenuItemId, x.AddonMenuItemId });
+        builder.HasKey(x => new { x.MenuItemId, x.AddonId });
         builder.HasOne(x => x.MenuItem).WithMany(x => x.Addons).HasForeignKey(x => x.MenuItemId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne(x => x.AddonMenuItem).WithMany(x => x.UsedAsAddonFor).HasForeignKey(x => x.AddonMenuItemId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.Addon).WithMany(x => x.MenuItems).HasForeignKey(x => x.AddonId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(x => x.AddonId);
+    }
+}
+
+public class AddonConfiguration : IEntityTypeConfiguration<Addon>
+{
+    public void Configure(EntityTypeBuilder<Addon> builder)
+    {
+        builder.ToTable("Addons");
+        builder.ConfigureSoftDelete();
+        builder.Property(x => x.Name).HasMaxLength(128).IsRequired();
+        builder.Property(x => x.ExtraPrice).HasColumnType(MoneyConfig.Rial);
+        builder.HasOne(x => x.Recipe).WithOne(r => r.Addon).HasForeignKey<Recipe>(r => r.AddonId);
+        builder.HasIndex(x => x.DisplayPriority);
     }
 }
 

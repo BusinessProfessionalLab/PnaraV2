@@ -69,7 +69,7 @@ export function ModifierDrawer({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && resetAndClose()}>
-      <DialogContent className="w-[min(94vw,42rem)] p-0">
+      <DialogContent className="sm:w-[min(94vw,42rem)] p-0">
         {item ? (
           <>
             <DialogHeader>

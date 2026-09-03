@@ -18,6 +18,7 @@ import {
   UtensilsCrossed,
   Wifi,
   WifiOff,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -35,16 +36,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/cn";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuthStore } from "@/lib/auth-store";
 import { useCartStore } from "@/lib/cart-store";
 import { formatToman } from "@/lib/currency";
 import { toShamsiClock, toShamsiDate, weekdayFa } from "@/lib/jalali";
 import { syncCartToServer } from "@/lib/sync-cart";
-import type { MenuItemDto } from "@/lib/types";
+import type { MenuItemDto, OrderDto } from "@/lib/types";
 import { fuzzyScore } from "@/lib/fuzzy-search";
 import { CheckoutModal } from "./checkout-modal";
 import { ModifierDrawer } from "./modifier-drawer";
+
+type RightPanelTab = "cart" | "drafts";
 
 export function PosRegister() {
   const router = useRouter();
@@ -57,8 +61,9 @@ export function PosRegister() {
   const [categoryId, setCategoryId] = useState<string>("all");
   const [picked, setPicked] = useState<MenuItemDto | null>(null);
   const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
-  const [rightPanelTab, setRightPanelTab] = useState<"cart" | "drafts">("cart");
+  const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("cart");
   const [checkout, setCheckout] = useState(false);
+  const [cartSheetOpen, setCartSheetOpen] = useState(false);
   const qc = useQueryClient();
 
   useEffect(() => {
@@ -202,11 +207,33 @@ export function PosRegister() {
     return worst;
   }
 
+  /** Reopen an existing cart line inside the modifier sheet. */
+  function openEditLine(lineIndex: number) {
+    const menuItem = (menu.data ?? []).find(
+      (item) => item.id === cart.lines[lineIndex]?.menuItemId,
+    );
+    if (!menuItem) return;
+    setEditingLineIndex(lineIndex);
+    setPicked(menuItem);
+  }
+
+  function openCheckoutFromCart() {
+    setCartSheetOpen(false);
+    setCheckout(true);
+  }
+
+  function openDraft(orderId: string) {
+    setCartSheetOpen(false);
+    loadDraftMut.mutate(orderId);
+  }
+
+  const itemCount = cart.lines.reduce((sum, l) => sum + l.quantity, 0);
+
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background">
       {/* ── Top bar ─────────────────────────────────────────────── */}
-      <header className="z-20 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-card px-3 sm:px-4">
-        <div className="flex min-w-0 items-center gap-3">
+      <header className="z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card px-3 sm:h-16 sm:gap-3 sm:px-4">
+        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
             <UtensilsCrossed className="size-[18px]" strokeWidth={2} aria-hidden />
           </div>
@@ -220,7 +247,7 @@ export function PosRegister() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <Select
             value={cart.orderType}
             onValueChange={(v) =>
@@ -230,7 +257,10 @@ export function PosRegister() {
               })
             }
           >
-            <SelectTrigger aria-label="نوع سفارش" className="h-9 w-auto min-w-[6.5rem]">
+            <SelectTrigger
+              aria-label="نوع سفارش"
+              className="h-9 min-w-[5.5rem] w-auto sm:min-w-[6.5rem]"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -244,14 +274,14 @@ export function PosRegister() {
               aria-label="شماره میز"
               placeholder="میز"
               inputMode="numeric"
-              className="h-9 w-20 text-center"
+              className="h-9 w-16 text-center sm:w-20"
               value={cart.tableNumber}
               onChange={(e) => cart.setMeta({ tableNumber: e.target.value })}
             />
           ) : null}
         </div>
 
-        <div className="ms-auto flex items-center gap-1.5 sm:gap-2">
+        <div className="ms-auto flex items-center gap-1 sm:gap-2">
           {/* Live date & time — designed like the rest of the header controls */}
           <div className="hidden items-center md:flex" role="timer" aria-label="تاریخ و ساعت جاری">
             <div className="flex items-center gap-2.5 rounded-xl border border-input bg-card px-2.5 py-1 shadow-xs">
@@ -334,7 +364,7 @@ export function PosRegister() {
                 type="button"
                 aria-label="پاک کردن جستجو"
                 onClick={() => setQ("")}
-                className="absolute end-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground"
+                className="absolute end-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground"
               >
                 <span aria-hidden className="text-lg leading-none">×</span>
               </button>
@@ -394,14 +424,14 @@ export function PosRegister() {
           </div>
 
           {/* Product grid */}
-          <div className="pos-scroll grid min-h-0 flex-1 auto-rows-min grid-cols-2 content-start gap-3 overflow-y-auto pb-1 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+          <div className="pos-scroll grid min-h-0 flex-1 auto-rows-min grid-cols-2 content-start gap-2 overflow-y-auto pb-1 sm:grid-cols-3 sm:gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {menu.isLoading &&
               Array.from({ length: 10 }).map((_, i) => (
                 <div
                   key={i}
                   className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card"
                 >
-                  <Skeleton className="h-28 w-full flex-shrink-0 rounded-none border-b-0" />
+                  <Skeleton className="h-24 w-full flex-shrink-0 rounded-none border-b-0 sm:h-28" />
                   <div className="flex flex-1 flex-col justify-between gap-2 p-3">
                     <Skeleton className="h-4 w-2/3" />
                     <Skeleton className="h-3 w-1/3" />
@@ -444,7 +474,7 @@ export function PosRegister() {
                   }}
                   className="group flex h-full min-h-[13rem] cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-card text-start shadow-xs transition-[border-color,box-shadow] duration-150 hover:border-border-strong hover:shadow-card-hover"
                 >
-                  <div className="relative h-28 flex-shrink-0 bg-muted/70">
+                  <div className="relative h-24 flex-shrink-0 bg-muted/70 sm:h-28">
                     {item.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -455,7 +485,7 @@ export function PosRegister() {
                     ) : (
                       <div className="flex h-full items-center justify-center">
                         <Coffee
-                          className="size-9 text-muted-foreground/60"
+                          className="size-8 text-muted-foreground/60 sm:size-9"
                           strokeWidth={1.4}
                           aria-hidden
                         />
@@ -511,330 +541,97 @@ export function PosRegister() {
           </div>
         </section>
 
-        {/* Cart column */}
+        {/* Cart column — visible from md (tablets + desktops) */}
         <aside
-          className="flex w-[21.5rem] shrink-0 flex-col border-s border-border bg-card max-md:w-[19rem]"
+          className="hidden h-full w-[20rem] shrink-0 flex-col overflow-hidden border-s border-border bg-card md:flex xl:w-[21.5rem]"
           dir="rtl"
         >
-          <div className="shrink-0 space-y-3 border-b border-border p-3">
-            <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
-              <button
-                type="button"
-                className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[13px] font-semibold transition-all duration-150 ${
-                  rightPanelTab === "cart"
-                    ? "bg-card text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                onClick={() => setRightPanelTab("cart")}
-              >
-                <ShoppingBasket className="size-4" aria-hidden />
-                صورت حساب
-              </button>
-              <button
-                type="button"
-                className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[13px] font-semibold transition-all duration-150 ${
-                  rightPanelTab === "drafts"
-                    ? "bg-card text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                onClick={() => setRightPanelTab("drafts")}
-              >
-                در انتظار پرداخت
-                <span
-                  className={`rounded-full px-1.5 text-[10px] font-bold ${
-                    rightPanelTab === "drafts"
-                      ? "bg-primary-soft text-primary"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {pendingOrders.data?.length ?? 0}
-                </span>
-              </button>
-            </div>
-            {rightPanelTab === "cart" ? (
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold">صورت حساب زنده</h2>
-                {cart.serverOrderNumber ? (
-                  <Badge variant="neutral">{cart.serverOrderNumber}</Badge>
-                ) : (
-                  <Badge variant="outline">فاکتور محلی</Badge>
-                )}
-              </div>
-            ) : null}
-          </div>
-
-          {/* Pending-payment drafts */}
-          {rightPanelTab === "drafts" ? (
-            <div className="pos-scroll flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
-              {(pendingOrders.data ?? []).map((draft, i) => {
-                const isActive = cart.serverOrderId === draft.id;
-                const orderTypeLabel =
-                  draft.orderType === "DineIn"
-                    ? "حضوری"
-                    : draft.orderType === "Takeaway"
-                      ? "بیرون‌بر"
-                      : "سالن";
-                return (
-                  <button
-                    key={draft.id}
-                    type="button"
-                    style={{ transitionDelay: `${i * 25}ms` }}
-                    className={`animate-fade-in group w-full cursor-pointer rounded-xl border p-3 text-start transition-[border-color,background-color,transform] duration-150 active:scale-[0.99] ${
-                      isActive
-                        ? "border-primary/40 bg-primary-soft/60"
-                        : "border-border bg-card hover:border-border-strong"
-                    }`}
-                    onClick={() => loadDraftMut.mutate(draft.id)}
-                    disabled={loadDraftMut.isPending}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`flex size-6 items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${
-                            isActive
-                              ? "bg-primary-fill text-primary-foreground"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {i + 1}
-                        </span>
-                        <span className="text-[13px] font-bold">سفارش {draft.orderNumber}</span>
-                      </div>
-                      <span className="rounded-lg bg-foreground px-2 py-1 text-xs font-bold text-background tabular-nums">
-                        {formatToman(draft.grandTotal)}
-                      </span>
-                    </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                      <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                        {orderTypeLabel}
-                      </span>
-                      {draft.tableNumber ? (
-                        <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                          میز {draft.tableNumber}
-                        </span>
-                      ) : null}
-                      <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                        {draft.items.length} آیتم
-                      </span>
-                      {draft.customerPhone ? (
-                        <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                          {draft.customerPhone}
-                        </span>
-                      ) : null}
-                    </div>
-                    {(draft.items.length > 0 || draft.notes) && (
-                      <p className="mt-2 truncate border-t border-border/70 pt-2 text-[11px] leading-5 text-muted-foreground">
-                        {draft.items
-                          .slice(0, 2)
-                          .map((item) => `${item.title} × ${item.quantity}`)
-                          .join(" · ")}
-                        {draft.items.length > 2 ? " · …" : ""}
-                        {draft.notes ? ` · ${draft.notes}` : ""}
-                      </p>
-                    )}
-                  </button>
-                );
-              })}
-              {!pendingOrders.data?.length ? (
-                <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-center">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground/60">
-                    <LayoutGrid className="size-4" aria-hidden />
-                  </div>
-                  <p className="text-[13px] font-medium text-muted-foreground">
-                    سفارشی در انتظار پرداخت نیست
-                  </p>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          {/* Cart lines */}
-          {rightPanelTab === "cart" ? (
-            <div className="pos-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
-              {cart.lines.length === 0 ? (
-                <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-center">
-                  <div className="flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground/60">
-                    <ShoppingBasket className="size-5" strokeWidth={1.75} aria-hidden />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold">سبد خالی است</p>
-                    <p className="mt-1 max-w-[16rem] text-[13px] leading-5 text-muted-foreground text-pretty">
-                      برای شروع، یک آیتم از فهرست سمت راست انتخاب کنید
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                cart.lines.map((line, lineIndex) => (
-                  <div
-                    key={`${line.menuItemId}-${lineIndex}`}
-                    className="cursor-pointer rounded-xl border border-border bg-card p-3 transition-colors duration-150 hover:border-border-strong"
-                    onClick={() => {
-                      const menuItem = (menu.data ?? []).find(
-                        (item) => item.id === line.menuItemId,
-                      );
-                      if (!menuItem) return;
-                      setEditingLineIndex(lineIndex);
-                      setPicked(menuItem);
-                    }}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-bold leading-5">{line.title}</div>
-                        {line.modifiers.length > 0 ? (
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {line.modifiers.map((m) => (
-                              <Badge key={m.id} variant="neutral">
-                                {m.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                      <button
-                        type="button"
-                        className="rounded-lg p-1.5 text-muted-foreground outline-none transition-colors duration-150 hover:bg-danger/10 hover:text-danger"
-                        aria-label={`حذف ${line.title}`}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          cart.removeLine(lineIndex);
-                        }}
-                      >
-                        <Trash2 className="size-4" aria-hidden />
-                      </button>
-                    </div>
-                    <div className="mt-2.5 flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          aria-label="کاهش تعداد"
-                          className="flex size-8 items-center justify-center rounded-full border border-border text-muted-foreground outline-none transition-colors duration-150 hover:border-border-strong hover:bg-muted hover:text-foreground"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            cart.updateQty(lineIndex, line.quantity - 1);
-                          }}
-                        >
-                          <Minus className="size-3.5" aria-hidden />
-                        </button>
-                        <span className="w-8 text-center text-base font-bold tabular-nums">
-                          {line.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          aria-label="افزایش تعداد"
-                          className="flex size-8 items-center justify-center rounded-full border border-border text-muted-foreground outline-none transition-colors duration-150 hover:border-border-strong hover:bg-muted hover:text-foreground"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            cart.updateQty(lineIndex, line.quantity + 1);
-                          }}
-                        >
-                          <Plus className="size-3.5" aria-hidden />
-                        </button>
-                      </div>
-                      <span className="text-sm font-bold tabular-nums">
-                        {formatToman(
-                          line.unitPrice * line.quantity +
-                            line.modifiers.reduce(
-                              (s, m) => s + m.extraPrice * m.quantity,
-                              0,
-                            ) *
-                              line.quantity,
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          ) : null}
-
-          {/* Totals + actions */}
-          {rightPanelTab === "cart" ? (
-            <div className="shrink-0 space-y-1.5 border-t border-border bg-card p-3">
-              <input type="hidden" value={cart.customerPhone} readOnly />
-              <input
-                type="hidden"
-                value={cart.discountPercent || ""}
-                onChange={(e) =>
-                  cart.setMeta({ discountPercent: Number(e.target.value) || 0 })
-                }
-              />
-              <input
-                type="hidden"
-                value={cart.discountAmount || ""}
-                onChange={(e) =>
-                  cart.setMeta({ discountAmount: Number(e.target.value) || 0 })
-                }
-              />
-              <TotRow
-                k={`جمع جزء${cart.discountPercent ? ` (${cart.discountPercent}٪ تخفیف)` : ""}`}
-                v={formatToman(totals.subtotal)}
-              />
-              <TotRow
-                k={`ارزش افزوده (${Math.round(cart.vatRate * 100)}٪)`}
-                v={formatToman(totals.taxAmount)}
-              />
-              <div className="flex items-center justify-between border-t border-border/70 pt-2">
-                <span className="text-base font-bold">قابل پرداخت</span>
-                <span className="text-lg font-black text-primary tabular-nums">
-                  {formatToman(totals.grandTotal)}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-11"
-                  disabled={
-                    !cart.lines.length ||
-                    draftMut.isPending ||
-                    sendMut.isPending ||
-                    discardMut.isPending
-                  }
-                  onClick={() => draftMut.mutate()}
-                >
-                  ثبت موقت
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-11 text-danger hover:bg-danger/10 hover:text-danger"
-                  disabled={
-                    (!cart.lines.length && !cart.serverOrderId) ||
-                    draftMut.isPending ||
-                    sendMut.isPending ||
-                    discardMut.isPending
-                  }
-                  onClick={() => discardMut.mutate()}
-                >
-                  حذف نیمه‌کاره
-                </Button>
-                <Button
-                  className="col-span-2 h-12"
-                  size="lg"
-                  disabled={!cart.lines.length}
-                  onClick={() => setCheckout(true)}
-                >
-                  <CreditCard className="size-5" aria-hidden />
-                  تسویه و پرداخت
-                </Button>
-              </div>
-              <Button
-                className="hidden"
-                variant="secondary"
-                disabled={
-                  !cart.lines.length ||
-                  sendMut.isPending ||
-                  draftMut.isPending ||
-                  discardMut.isPending
-                }
-                onClick={() => sendMut.mutate()}
-              >
-                ارسال به بار/آشپزخانه
-              </Button>
-            </div>
-          ) : null}
+          <CartPane
+            rightPanelTab={rightPanelTab}
+            onTabChange={setRightPanelTab}
+            drafts={pendingOrders.data}
+            loadPending={loadDraftMut.isPending}
+            draftPending={draftMut.isPending}
+            sendPending={sendMut.isPending}
+            discardPending={discardMut.isPending}
+            onLoadDraft={openDraft}
+            onSaveDraft={() => draftMut.mutate()}
+            onDiscard={() => discardMut.mutate()}
+            onSendToKitchen={() => sendMut.mutate()}
+            onCheckout={openCheckoutFromCart}
+            onEditLine={openEditLine}
+          />
         </aside>
       </div>
+
+      {/* Mobile cart summary bar — phones get a persistent mini-bar instead
+          of a squeezed side column. Opens the full cart sheet below. */}
+      <div className="flex shrink-0 items-center gap-2 border-t border-border bg-card px-3 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] md:hidden">
+        <button
+          type="button"
+          onClick={() => setCartSheetOpen(true)}
+          disabled={!cart.lines.length}
+          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl text-start outline-none transition-opacity disabled:opacity-60"
+          aria-label="نمایش سبد سفارش"
+        >
+          <span className="relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+            <ShoppingBasket className="size-5" aria-hidden />
+            {itemCount > 0 ? (
+              <span className="absolute -end-1.5 -top-1.5 flex min-w-5 items-center justify-center rounded-full bg-primary-fill px-1 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">
+                {itemCount}
+              </span>
+            ) : null}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] font-semibold leading-4">
+              {itemCount > 0
+                ? `${itemCount} آیتم · ${cart.lines.length} ردیف`
+                : "سبد سفارش خالی است"}
+            </span>
+            <span className="mt-0.5 block truncate text-[15px] font-black text-primary tabular-nums">
+              {formatToman(totals.grandTotal)}
+            </span>
+          </span>
+        </button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-11 shrink-0"
+          disabled={!cart.lines.length}
+          onClick={() => setCartSheetOpen(true)}
+        >
+          سبد
+        </Button>
+        <Button
+          size="sm"
+          className="h-11 shrink-0 px-4"
+          disabled={!cart.lines.length}
+          onClick={openCheckoutFromCart}
+        >
+          <CreditCard className="size-4" aria-hidden />
+          تسویه
+        </Button>
+      </div>
+
+      {/* Mobile cart sheet */}
+      <MobileCartSheet open={cartSheetOpen} onClose={() => setCartSheetOpen(false)}>
+        <CartPane
+          rightPanelTab={rightPanelTab}
+          onTabChange={setRightPanelTab}
+          drafts={pendingOrders.data}
+          loadPending={loadDraftMut.isPending}
+          draftPending={draftMut.isPending}
+          sendPending={sendMut.isPending}
+          discardPending={discardMut.isPending}
+          onLoadDraft={openDraft}
+          onSaveDraft={() => draftMut.mutate()}
+          onDiscard={() => discardMut.mutate()}
+          onSendToKitchen={() => sendMut.mutate()}
+          onCheckout={openCheckoutFromCart}
+          onEditLine={openEditLine}
+          className="h-full min-h-0"
+        />
+      </MobileCartSheet>
 
       <ModifierDrawer
         key={`${picked?.id ?? "none"}-${editingLineIndex ?? "new"}`}
@@ -866,6 +663,417 @@ export function PosRegister() {
         onOpenChange={setCheckout}
         amount={totals.grandTotal}
       />
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────── */
+
+/** Shared cart surface used by the desktop side column and the mobile sheet. */
+function CartPane({
+  className,
+  rightPanelTab,
+  onTabChange,
+  drafts,
+  loadPending,
+  draftPending,
+  sendPending,
+  discardPending,
+  onLoadDraft,
+  onSaveDraft,
+  onDiscard,
+  onSendToKitchen,
+  onCheckout,
+  onEditLine,
+}: {
+  className?: string;
+  rightPanelTab: RightPanelTab;
+  onTabChange: (tab: RightPanelTab) => void;
+  drafts?: OrderDto[];
+  loadPending: boolean;
+  draftPending: boolean;
+  sendPending: boolean;
+  discardPending: boolean;
+  onLoadDraft: (orderId: string) => void;
+  onSaveDraft: () => void;
+  onDiscard: () => void;
+  onSendToKitchen: () => void;
+  onCheckout: () => void;
+  onEditLine: (lineIndex: number) => void;
+}) {
+  const cart = useCartStore();
+  const totals = cart.totals();
+
+  return (
+    <div className={cn("flex h-full min-h-0 flex-col", className)}>
+      <div className="shrink-0 space-y-3 border-b border-border p-3">
+        <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
+          <button
+            type="button"
+            aria-pressed={rightPanelTab === "cart"}
+            className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[13px] font-semibold transition-all duration-150 ${
+              rightPanelTab === "cart"
+                ? "bg-card text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            onClick={() => onTabChange("cart")}
+          >
+            <ShoppingBasket className="size-4" aria-hidden />
+            صورت حساب
+          </button>
+          <button
+            type="button"
+            aria-pressed={rightPanelTab === "drafts"}
+            className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[13px] font-semibold transition-all duration-150 ${
+              rightPanelTab === "drafts"
+                ? "bg-card text-foreground shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            onClick={() => onTabChange("drafts")}
+          >
+            در انتظار پرداخت
+            <span
+              className={`rounded-full px-1.5 text-[10px] font-bold ${
+                rightPanelTab === "drafts"
+                  ? "bg-primary-soft text-primary"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {drafts?.length ?? 0}
+            </span>
+          </button>
+        </div>
+        {rightPanelTab === "cart" ? (
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold">صورت حساب زنده</h2>
+            {cart.serverOrderNumber ? (
+              <Badge variant="neutral">{cart.serverOrderNumber}</Badge>
+            ) : (
+              <Badge variant="outline">فاکتور محلی</Badge>
+            )}
+          </div>
+        ) : null}
+      </div>
+
+      {/* Pending-payment drafts */}
+      {rightPanelTab === "drafts" ? (
+        <div className="pos-scroll flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
+          {(drafts ?? []).map((draft, i) => {
+            const isActive = cart.serverOrderId === draft.id;
+            const orderTypeLabel =
+              draft.orderType === "DineIn"
+                ? "حضوری"
+                : draft.orderType === "Takeaway"
+                  ? "بیرون‌بر"
+                  : "سالن";
+            return (
+              <button
+                key={draft.id}
+                type="button"
+                style={{ transitionDelay: `${i * 25}ms` }}
+                className={`animate-fade-in group w-full cursor-pointer rounded-xl border p-3 text-start transition-[border-color,background-color,transform] duration-150 active:scale-[0.99] ${
+                  isActive
+                    ? "border-primary/40 bg-primary-soft/60"
+                    : "border-border bg-card hover:border-border-strong"
+                }`}
+                onClick={() => onLoadDraft(draft.id)}
+                disabled={loadPending}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`flex size-6 items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${
+                        isActive
+                          ? "bg-primary-fill text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {i + 1}
+                    </span>
+                    <span className="text-[13px] font-bold">سفارش {draft.orderNumber}</span>
+                  </div>
+                  <span className="rounded-lg bg-foreground px-2 py-1 text-xs font-bold text-background tabular-nums">
+                    {formatToman(draft.grandTotal)}
+                  </span>
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    {orderTypeLabel}
+                  </span>
+                  {draft.tableNumber ? (
+                    <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      میز {draft.tableNumber}
+                    </span>
+                  ) : null}
+                  <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    {draft.items.length} آیتم
+                  </span>
+                  {draft.customerPhone ? (
+                    <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      {draft.customerPhone}
+                    </span>
+                  ) : null}
+                </div>
+                {(draft.items.length > 0 || draft.notes) && (
+                  <p className="mt-2 truncate border-t border-border/70 pt-2 text-[11px] leading-5 text-muted-foreground">
+                    {draft.items
+                      .slice(0, 2)
+                      .map((item) => `${item.title} × ${item.quantity}`)
+                      .join(" · ")}
+                    {draft.items.length > 2 ? " · …" : ""}
+                    {draft.notes ? ` · ${draft.notes}` : ""}
+                  </p>
+                )}
+              </button>
+            );
+          })}
+          {!drafts?.length ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-center">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground/60">
+                <LayoutGrid className="size-4" aria-hidden />
+              </div>
+              <p className="text-[13px] font-medium text-muted-foreground">
+                سفارشی در انتظار پرداخت نیست
+              </p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Cart lines */}
+      {rightPanelTab === "cart" ? (
+        <div className="pos-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+          {cart.lines.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-center">
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground/60">
+                <ShoppingBasket className="size-5" strokeWidth={1.75} aria-hidden />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">سبد خالی است</p>
+                <p className="mt-1 max-w-[16rem] text-[13px] leading-5 text-muted-foreground text-pretty">
+                  برای شروع، یک آیتم از فهرست منو انتخاب کنید
+                </p>
+              </div>
+            </div>
+          ) : (
+            cart.lines.map((line, lineIndex) => (
+              <div
+                key={`${line.menuItemId}-${lineIndex}`}
+                className="cursor-pointer rounded-xl border border-border bg-card p-3 transition-colors duration-150 hover:border-border-strong"
+                onClick={() => onEditLine(lineIndex)}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-bold leading-5">{line.title}</div>
+                    {line.modifiers.length > 0 ? (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {line.modifiers.map((m) => (
+                          <Badge key={m.id} variant="neutral">
+                            {m.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    className="rounded-lg p-1.5 text-muted-foreground outline-none transition-colors duration-150 hover:bg-danger/10 hover:text-danger"
+                    aria-label={`حذف ${line.title}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      cart.removeLine(lineIndex);
+                    }}
+                  >
+                    <Trash2 className="size-4" aria-hidden />
+                  </button>
+                </div>
+                <div className="mt-2.5 flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label="کاهش تعداد"
+                      className="flex size-8 items-center justify-center rounded-full border border-border text-muted-foreground outline-none transition-colors duration-150 hover:border-border-strong hover:bg-muted hover:text-foreground"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        cart.updateQty(lineIndex, line.quantity - 1);
+                      }}
+                    >
+                      <Minus className="size-3.5" aria-hidden />
+                    </button>
+                    <span className="w-8 text-center text-base font-bold tabular-nums">
+                      {line.quantity}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label="افزایش تعداد"
+                      className="flex size-8 items-center justify-center rounded-full border border-border text-muted-foreground outline-none transition-colors duration-150 hover:border-border-strong hover:bg-muted hover:text-foreground"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        cart.updateQty(lineIndex, line.quantity + 1);
+                      }}
+                    >
+                      <Plus className="size-3.5" aria-hidden />
+                    </button>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums">
+                    {formatToman(
+                      line.unitPrice * line.quantity +
+                        line.modifiers.reduce(
+                          (s, m) => s + m.extraPrice * m.quantity,
+                          0,
+                        ) *
+                          line.quantity,
+                    )}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      ) : null}
+
+      {/* Totals + actions */}
+      {rightPanelTab === "cart" ? (
+        <div className="shrink-0 space-y-1.5 border-t border-border bg-card p-3">
+          <input type="hidden" value={cart.customerPhone} readOnly />
+          <input
+            type="hidden"
+            value={cart.discountPercent || ""}
+            onChange={(e) =>
+              cart.setMeta({ discountPercent: Number(e.target.value) || 0 })
+            }
+          />
+          <input
+            type="hidden"
+            value={cart.discountAmount || ""}
+            onChange={(e) =>
+              cart.setMeta({ discountAmount: Number(e.target.value) || 0 })
+            }
+          />
+          <TotRow
+            k={`جمع جزء${cart.discountPercent ? ` (${cart.discountPercent}٪ تخفیف)` : ""}`}
+            v={formatToman(totals.subtotal)}
+          />
+          <TotRow
+            k={`ارزش افزوده (${Math.round(cart.vatRate * 100)}٪)`}
+            v={formatToman(totals.taxAmount)}
+          />
+          <div className="flex items-center justify-between border-t border-border/70 pt-2">
+            <span className="text-base font-bold">قابل پرداخت</span>
+            <span className="text-lg font-black text-primary tabular-nums">
+              {formatToman(totals.grandTotal)}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-11"
+              disabled={
+                !cart.lines.length ||
+                draftPending ||
+                sendPending ||
+                discardPending
+              }
+              onClick={onSaveDraft}
+            >
+              ثبت موقت
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-11 text-danger hover:bg-danger/10 hover:text-danger"
+              disabled={
+                (!cart.lines.length && !cart.serverOrderId) ||
+                draftPending ||
+                sendPending ||
+                discardPending
+              }
+              onClick={onDiscard}
+            >
+              حذف نیمه‌کاره
+            </Button>
+            <Button
+              className="col-span-2 h-12"
+              size="lg"
+              disabled={!cart.lines.length}
+              onClick={onCheckout}
+            >
+              <CreditCard className="size-5" aria-hidden />
+              تسویه و پرداخت
+            </Button>
+          </div>
+          <Button
+            className="hidden"
+            variant="secondary"
+            disabled={
+              !cart.lines.length ||
+              sendPending ||
+              draftPending ||
+              discardPending
+            }
+            onClick={onSendToKitchen}
+          >
+            ارسال به بار/آشپزخانه
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Bottom sheet wrapper for the mobile cart. */
+function MobileCartSheet({
+  open,
+  onClose,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-40 flex flex-col justify-end md:hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="سبد سفارش"
+    >
+      <div
+        className="animate-fade-in absolute inset-0 bg-slate-950/40"
+        onClick={onClose}
+        aria-hidden
+      />
+      <div className="animate-sheet relative flex max-h-[88dvh] min-h-0 flex-col overflow-hidden rounded-t-2xl border border-border bg-card shadow-xl pb-[env(safe-area-inset-bottom)]">
+        <div className="relative flex h-11 shrink-0 items-center justify-center border-b border-border/60">
+          <span className="h-1.5 w-10 rounded-full bg-border" aria-hidden />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="بستن سبد سفارش"
+            className="absolute end-3 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            <X className="size-4" aria-hidden />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+      </div>
     </div>
   );
 }

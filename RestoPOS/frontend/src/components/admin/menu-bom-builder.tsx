@@ -180,7 +180,7 @@ export function MenuBomBuilder() {
   return (
     <div className="space-y-4">
       <SharedAddonCreator />
-      <div className="grid items-start gap-4 xl:grid-cols-[18rem_1fr_24rem]">
+      <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-[18rem_1fr_24rem]">
         {/* Categories */}
         <Card className="overflow-hidden">
           <CardHead icon={<FolderTree className="size-4" aria-hidden />} title="دسته‌ها" count={cats.data?.length} />
@@ -273,8 +273,8 @@ export function MenuBomBuilder() {
           </div>
         </Card>
 
-        {/* Editor */}
-        <Card className="overflow-hidden">
+        {/* Editor — full width below xl so the recipe editor has room */}
+        <Card className="overflow-hidden md:col-span-2 xl:col-span-1">
           <CardHead icon={<Pencil className="size-4" aria-hidden />} title="ویرایش محصول و رسپی" />
           <div className="p-4">
             {selected ? (

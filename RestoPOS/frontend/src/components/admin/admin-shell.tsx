@@ -162,20 +162,91 @@ function SidebarNav({ storeName, onNavigate }: { storeName?: string; onNavigate?
   );
 }
 
+/*
+ * Compact icon-only sidebar for tablets (768–1023px). The full navigation
+ * lives on desktop (≥1024px) and inside the mobile drawer (<768px); this
+ * rail keeps every destination reachable without eating content width.
+ */
+function RailNav({ storeName, onNavigate }: { storeName?: string; onNavigate?: () => void }) {
+  const path = usePathname();
+  const router = useRouter();
+  const logout = useAuthStore((s) => s.logout);
+  const flat = NAV.flatMap((s) => s.items);
+  const registerLinks = [
+    { href: "/pos", label: "صندوق لمسی", icon: MonitorSmartphone },
+    { href: "/kds", label: "نمایشگر بار", icon: MonitorSmartphone },
+    { href: "/kds/kitchen", label: "نمایشگر آشپزخانه", icon: MonitorSmartphone },
+  ];
+  const all = [...flat, ...registerLinks];
+  return (
+    <div className="flex h-full flex-col items-center">
+      <div className="flex h-[4.5rem] shrink-0 items-center justify-center">
+        <BrandMark />
+      </div>
+      <nav className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-2 pb-3" aria-label="ناوبری پنل مدیریت">
+        {all.map((item) => {
+          const active = path === item.href;
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onNavigate}
+              title={item.label}
+              aria-label={item.label}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex size-10 shrink-0 items-center justify-center rounded-xl outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50",
+                active
+                  ? "bg-primary-soft text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              <Icon className="size-[18px]" strokeWidth={active ? 2.2 : 1.8} aria-hidden />
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="flex w-full flex-col items-center gap-1 border-t border-border px-2 py-2.5">
+        <ThemeToggle className="size-10" />
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate?.();
+            logout();
+            router.push("/login");
+          }}
+          title="خروج از حساب"
+          aria-label="خروج از حساب"
+          className="flex size-10 items-center justify-center rounded-xl text-muted-foreground outline-none transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+        >
+          <LogOut className="size-[18px]" strokeWidth={1.8} aria-hidden />
+        </button>
+      </div>
+      <span className="sr-only">{storeName || "ToastIran POS"}</span>
+    </div>
+  );
+}
+
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const [navOpen, setNavOpen] = useState(false);
   const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
   const storeName = settings.data?.storeName;
 
   return (
-    <div className="min-h-dvh bg-background lg:flex">
+    <div className="min-h-dvh bg-background md:flex">
       {/* Desktop sidebar — appears on the inline-start (right in RTL). */}
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 border-e border-border bg-card lg:block">
         <SidebarNav storeName={storeName} />
       </aside>
 
+      {/* Tablet icon rail (768–1023px) */}
+      <aside className="sticky top-0 hidden h-dvh w-[4.5rem] shrink-0 border-e border-border bg-card md:flex lg:hidden">
+        <RailNav storeName={storeName} />
+      </aside>
+
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-card/90 px-4 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-border bg-card/90 px-3 backdrop-blur md:hidden sm:px-4">
         <BrandMark />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold">{storeName || "ToastIran POS"}</div>

@@ -36,11 +36,11 @@ export function CustomersHub() {
         description="مشتریان پس از اولین سفارش و تسویه به‌صورت خودکار ثبت می‌شوند و امتیاز وفاداری می‌گیرند"
       />
       <Card className="overflow-hidden">
-        <div className="flex items-center justify-between gap-3 border-b border-border/70 px-5 py-3.5">
-          <span className="text-[13px] font-medium text-muted-foreground">
+        <div className="flex flex-col gap-3 border-b border-border/70 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <span className="shrink-0 text-[13px] font-medium text-muted-foreground">
             {q.isLoading ? null : `${customers.length} مشتری`}
           </span>
-          <div className="relative w-full max-w-xs">
+          <div className="relative w-full sm:max-w-xs">
           <Search
             className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden
@@ -77,10 +77,10 @@ export function CustomersHub() {
               <TableRow className="hover:bg-transparent">
                 <TableHead>موبایل</TableHead>
                 <TableHead>نام</TableHead>
-                <TableHead>مراجعه</TableHead>
+                <TableHead className="hidden md:table-cell">مراجعه</TableHead>
                 <TableHead>خرید عمری</TableHead>
-                <TableHead>امتیاز باشگاه</TableHead>
-                <TableHead>آخرین بازدید</TableHead>
+                <TableHead className="hidden md:table-cell">امتیاز باشگاه</TableHead>
+                <TableHead className="hidden md:table-cell">آخرین بازدید</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -89,15 +89,15 @@ export function CustomersHub() {
                   <TableCell className="font-mono text-[13px] font-medium tabular-nums" dir="ltr">
                     {c.phoneNumber}
                   </TableCell>
-                  <TableCell>{c.fullName || "—"}</TableCell>
-                  <TableCell className="tabular-nums">{c.visitCount}</TableCell>
+                  <TableCell className="font-medium">{c.fullName || "—"}</TableCell>
+                  <TableCell className="hidden tabular-nums md:table-cell">{c.visitCount}</TableCell>
                   <TableCell className="font-medium tabular-nums">{formatToman(c.totalSpent)}</TableCell>
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <span className="inline-flex items-center gap-1 tabular-nums">
                       {c.loyaltyPoints}
                     </span>
                   </TableCell>
-                  <TableCell className="text-muted-foreground tabular-nums">
+                  <TableCell className="hidden text-muted-foreground tabular-nums md:table-cell">
                     {c.lastVisitShamsi}
                   </TableCell>
                 </TableRow>

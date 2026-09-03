@@ -165,28 +165,28 @@ export function InventoryHub() {
           <TableScroller>
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead>کالا</TableHead>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>موجودی</TableHead>
-                  <TableHead>نقطه سفارش</TableHead>
-                  <TableHead>قیمت خرید</TableHead>
-                  <TableHead>وضعیت</TableHead>
-                </TableRow>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>کالا</TableHead>
+                <TableHead className="hidden md:table-cell">SKU</TableHead>
+                <TableHead>موجودی</TableHead>
+                <TableHead className="hidden md:table-cell">نقطه سفارش</TableHead>
+                <TableHead className="hidden md:table-cell">قیمت خرید</TableHead>
+                <TableHead>وضعیت</TableHead>
+              </TableRow>
               </TableHeader>
               <TableBody>
                 {(items.data ?? []).map((i) => (
                   <TableRow key={i.id}>
                     <TableCell className="font-semibold">{i.name}</TableCell>
-                    <TableCell className="font-mono text-[13px] text-muted-foreground tabular-nums" dir="ltr">
+                    <TableCell className="hidden font-mono text-[13px] text-muted-foreground tabular-nums md:table-cell" dir="ltr">
                       {i.sku}
                     </TableCell>
                     <TableCell className="tabular-nums">
                       {i.currentStock}{" "}
                       <span className="text-xs text-muted-foreground">{UNIT_LABEL[i.unitOfMeasure] ?? i.unitOfMeasure}</span>
                     </TableCell>
-                    <TableCell className="tabular-nums text-muted-foreground">{i.reorderPoint}</TableCell>
-                    <TableCell className="tabular-nums">{formatToman(i.costPrice)}</TableCell>
+                    <TableCell className="hidden tabular-nums text-muted-foreground md:table-cell">{i.reorderPoint}</TableCell>
+                    <TableCell className="hidden tabular-nums md:table-cell">{formatToman(i.costPrice)}</TableCell>
                     <TableCell>
                       {i.isLowStock ? (
                         <Badge variant="danger">رو به اتمام</Badge>

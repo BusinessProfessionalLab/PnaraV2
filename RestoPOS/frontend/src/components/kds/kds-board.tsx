@@ -132,8 +132,8 @@ export function KdsBoard({ station }: { station: "kitchen" | "bar" }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[110rem] p-4 sm:p-6">
-        <div className="grid auto-rows-min grid-cols-1 content-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <main className="mx-auto max-w-[110rem] p-3 sm:p-6">
+        <div className="grid auto-rows-min grid-cols-1 content-start gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {orders.isLoading &&
             Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="space-y-3 rounded-2xl border border-border bg-card p-5">

@@ -31,15 +31,18 @@ export function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Content
         className={cn(
-          "animate-content fixed left-1/2 top-1/2 z-50 flex max-h-[92dvh] w-[min(94vw,28rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-xl",
-          wide && "w-[min(94vw,64rem)]",
+          // Phones (<640px): bottom sheet that slides up and hugs the viewport.
+          // Larger screens: centered modal with the same rounded language.
+          "animate-sheet fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-card shadow-xl outline-none sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:right-auto sm:w-[min(94vw,28rem)] sm:max-h-[92dvh] sm:rounded-2xl sm:-translate-x-1/2 sm:-translate-y-1/2",
+          wide && "sm:w-[min(94vw,64rem)]",
+          "pb-safe sm:pb-0",
           className,
         )}
         {...props}
       >
         {children}
         <DialogPrimitive.Close
-          className="absolute end-4 top-4 rounded-full p-1.5 text-muted-foreground outline-none transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="absolute end-3 top-3 rounded-full p-1.5 text-muted-foreground outline-none transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 sm:end-4 sm:top-4"
           aria-label="بستن"
         >
           <X className="size-4" />
@@ -53,7 +56,7 @@ export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLD
   return (
     <div
       className={cn(
-        "flex shrink-0 flex-col gap-1 border-b border-border/70 px-6 pb-4 pt-5",
+        "flex shrink-0 flex-col gap-1 border-b border-border/70 px-5 pb-4 pt-4 sm:px-6 sm:pt-5",
         className,
       )}
       {...props}
@@ -65,7 +68,7 @@ export function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLD
   return (
     <div
       className={cn(
-        "mt-auto flex shrink-0 flex-col-reverse gap-2 border-t border-border/70 px-6 py-4 sm:flex-row sm:justify-end",
+        "mt-auto flex shrink-0 flex-col-reverse gap-2 border-t border-border/70 px-5 py-3.5 sm:flex-row sm:justify-end sm:px-6 sm:py-4",
         className,
       )}
       {...props}
@@ -93,5 +96,5 @@ export function DialogDescription({ className, ...props }: DialogPrimitive.Dialo
 
 /** Scrollable body region between header and footer. */
 export function DialogBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("min-h-0 overflow-y-auto px-6 py-4", className)} {...props} />;
+  return <div className={cn("min-h-0 overflow-y-auto px-5 py-4 sm:px-6", className)} {...props} />;
 }

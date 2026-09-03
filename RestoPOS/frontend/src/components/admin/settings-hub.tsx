@@ -17,7 +17,7 @@ import { Field, Input, Label, Textarea } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
-import { applyTheme } from "@/lib/theme";
+import { applyTheme, readableForegroundOn } from "@/lib/theme";
 
 const INITIAL_FORM = {
   storeName: "",
@@ -168,8 +168,8 @@ export function SettingsHub() {
                 <div className="flex items-center gap-3 bg-muted/50 px-4 py-3">
                   <span className="text-xs text-muted-foreground">دکمه اصلی صندوق:</span>
                   <span
-                    className="rounded-lg px-3.5 py-1.5 text-xs font-bold text-white"
-                    style={{ backgroundColor: form.primaryColor }}
+                    className="rounded-lg px-3.5 py-1.5 text-xs font-bold"
+                    style={{ backgroundColor: form.primaryColor, color: readableForegroundOn(form.primaryColor) }}
                   >
                     ثبت سفارش
                   </span>

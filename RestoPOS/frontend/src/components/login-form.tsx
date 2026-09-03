@@ -10,6 +10,7 @@ import { Field, Input, Label } from "@/components/ui/input";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth-store";
 import { cn } from "@/lib/cn";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export function LoginForm() {
   const router = useRouter();
@@ -50,6 +51,9 @@ export function LoginForm() {
             "radial-gradient(closest-side, color-mix(in oklab, var(--color-primary) 9%, transparent), transparent)",
         }}
       />
+      <div className="absolute end-4 top-4">
+        <ThemeToggle />
+      </div>
       <Card className="relative w-full max-w-sm animate-fade-up rounded-2xl p-7 shadow-md sm:p-8">
         <div className="mb-7 text-center">
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-primary-soft text-primary">

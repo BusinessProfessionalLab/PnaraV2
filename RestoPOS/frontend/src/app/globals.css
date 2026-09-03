@@ -31,27 +31,47 @@
   --color-secondary: #eef1f4;
   --color-secondary-foreground: #1a1d24;
 
-  /* ---- Brand accent (runtime-configurable via --ph/--ps/--pl) ---- */
+  /* ---- Brand accent (runtime-configurable via --ph/--ps/--pl) ----
+     Two roles for the same settings color:
+     · --color-primary  → “ink”: text, links, indicators, soft tints.
+     · --color-primary-fill → “fill”: solid button/chip surfaces.
+     Dark mode derives each from the light color instead of replacing it. */
   --color-primary: hsl(var(--ph) var(--ps) var(--pl));
-  --color-primary-foreground: #ffffff;
-  --color-primary-hover: hsl(var(--ph) var(--ps) calc(var(--pl) - 5%));
-  --color-primary-active: hsl(var(--ph) var(--ps) calc(var(--pl) - 9%));
-  --color-primary-soft: hsl(var(--ph) calc(var(--ps) + 4%) 95%);
-  --color-ring: hsl(var(--ph) var(--ps) var(--pl));
+  --color-primary-fill: hsl(var(--ph) var(--ps) var(--pl));
+  --color-primary-foreground: var(--pfg, #ffffff);
+  --color-primary-hover: color-mix(in oklab, var(--color-primary) 87%, black);
+  --color-primary-active: color-mix(in oklab, var(--color-primary) 80%, black);
+  --color-primary-fill-hover: color-mix(in oklab, var(--color-primary-fill) 89%, black);
+  --color-primary-fill-active: color-mix(in oklab, var(--color-primary-fill) 83%, black);
+  --color-primary-soft: color-mix(in oklab, var(--color-primary) 8%, white);
+  --color-ring: var(--color-primary);
 
-  /* ---- Semantic ---- */
+  /* ---- Semantic ----
+     Ink tokens (text/badges/tints) plus fill tokens for solid controls,
+     so dark mode can keep labels readable and buttons contrasty at once. */
   --color-success: #15803d;
   --color-success-hover: #116530;
   --color-success-foreground: #ffffff;
+  --color-success-fill: #15803d;
+  --color-success-fill-hover: #0f7035;
+
   --color-warning: #a16207;
   --color-warning-hover: #854d06;
   --color-warning-foreground: #ffffff;
+  --color-warning-fill: #a16207;
+  --color-warning-fill-hover: #8a5306;
+
   --color-danger: #c02f2f;
   --color-danger-hover: #9e2626;
   --color-danger-foreground: #ffffff;
+  --color-danger-fill: #c02f2f;
+  --color-danger-fill-hover: #a52626;
+
   --color-destructive: #c02f2f;
   --color-destructive-hover: #9e2626;
   --color-destructive-foreground: #ffffff;
+  --color-destructive-fill: #c02f2f;
+  --color-destructive-fill-hover: #a52626;
 
   /* ---- Lines ---- */
   --color-border: #e2e5ea;
@@ -99,6 +119,15 @@
   --ph: 351;
   --ps: 74%;
   --pl: 44%;
+
+  /* Foreground for the solid accent — recomputed by the theme engine from
+     the brand color chosen in Settings (dark text on light brands). */
+  --pfg: #ffffff;
+
+  color-scheme: light;
+
+  /* Shine streak for skeleton shimmer (theme-aware) */
+  --sk-shine: color-mix(in oklab, white 75%, var(--color-muted));
 }
 
 @layer base {
@@ -129,6 +158,16 @@
   select,
   button {
     font-family: inherit;
+  }
+
+  /* Every interactive control gets a pointer cursor (Tailwind v4 preflight
+     leaves buttons at `cursor: default`). Disabled controls keep the
+     default cursor so their state stays obvious. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  label[for]:not(:disabled),
+  summary {
+    cursor: pointer;
   }
 
   ::selection {
@@ -214,12 +253,7 @@
   .skeleton::after {
     content: "";
     @apply absolute inset-0 -translate-x-full;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      color-mix(in oklab, white 72%, var(--color-muted)),
-      transparent
-    );
+    background: linear-gradient(90deg, transparent, var(--sk-shine), transparent);
     animation: skeleton-shimmer 1.6s ease-in-out infinite;
   }
 
@@ -284,6 +318,11 @@
   animation: scale-in-side 0.12s ease-in reverse both;
 }
 
+/* Recharts text follows the current theme's muted foreground */
+.recharts-text {
+  fill: var(--color-muted-foreground);
+}
+
 /* Animate presence from an edge (RTL-aware: start = right) */
 .animate-from-end {
   --slide-from: 28px;
@@ -308,6 +347,110 @@ html[dir="rtl"] .animate-from-end {
   .no-print {
     display: none !important;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Dark theme — the same neutral system, flipped at the token layer.
+   Toggle adds .dark to <html>; every utility resolves the CSS variable it
+   references, so no component-level overrides are needed.
+   --------------------------------------------------------------------------- */
+.dark {
+  color-scheme: dark;
+
+  /* Surfaces & text */
+  --color-background: #0e1117;
+  --color-canvas: #0a0d12;
+  --color-foreground: #e8ebf1;
+
+  --color-card: #151923;
+  --color-card-foreground: #e8ebf1;
+
+  --color-popover: #1a1f2a;
+  --color-popover-foreground: #e8ebf1;
+
+  --color-muted: #20252f;
+  --color-muted-foreground: #9aa4b5;
+
+  --color-accent: #232a36;
+  --color-accent-foreground: #e8ebf1;
+
+  --color-secondary: #242a35;
+  --color-secondary-foreground: #e8ebf1;
+
+  /* Brand accent — the light/settings color stays the source of truth.
+     Ink & tints brighten to stay readable on dark; fills keep the exact
+     brand color so buttons look the same in both themes. */
+  --color-primary: color-mix(in oklab, hsl(var(--ph) var(--ps) var(--pl)) 42%, white);
+  --color-primary-hover: color-mix(in oklab, hsl(var(--ph) var(--ps) var(--pl)) 50%, white);
+  --color-primary-active: color-mix(in oklab, hsl(var(--ph) var(--ps) var(--pl)) 60%, white);
+  --color-primary-fill: hsl(var(--ph) var(--ps) var(--pl));
+  --color-primary-fill-hover: color-mix(in oklab, hsl(var(--ph) var(--ps) var(--pl)) 84%, white);
+  --color-primary-fill-active: color-mix(in oklab, hsl(var(--ph) var(--ps) var(--pl)) 86%, black);
+  --color-primary-soft: color-mix(in oklab, hsl(var(--ph) var(--ps) var(--pl)) 18%, var(--color-card));
+
+  /* Semantic ink — bright enough for text/badges on dark surfaces */
+  --color-success: #2ebd79;
+  --color-success-hover: #37cf88;
+  --color-success-foreground: #ffffff;
+
+  --color-warning: #e2a53c;
+  --color-warning-hover: #f0b84e;
+  --color-warning-foreground: #ffffff;
+
+  --color-danger: #f06a70;
+  --color-danger-hover: #ff7b80;
+  --color-danger-foreground: #ffffff;
+
+  --color-destructive: #f06a70;
+  --color-destructive-hover: #ff7b80;
+  --color-destructive-foreground: #ffffff;
+
+  /* Semantic fills — deep, calm tones that keep white text contrast */
+  --color-success-fill: #147a46;
+  --color-success-fill-hover: #178c51;
+
+  --color-warning-fill: #9a5f0c;
+  --color-warning-fill-hover: #b06f0f;
+
+  --color-danger-fill: #b4323a;
+  --color-danger-fill-hover: #c93d45;
+
+  --color-destructive-fill: #b4323a;
+  --color-destructive-fill-hover: #c93d45;
+
+  /* Lines */
+  --color-border: #272d39;
+  --color-border-strong: #3b4353;
+  --color-input: #343c4a;
+
+  /* Charts — luminous variants for dark canvas */
+  --color-chart-1: #e8656d;
+  --color-chart-2: #6d8fc0;
+  --color-chart-3: #dda33f;
+  --color-chart-4: #44bd8a;
+  --color-chart-5: #a78ed6;
+  --color-chart-6: #93a4b8;
+
+  --sk-shine: color-mix(in oklab, white 10%, var(--color-muted));
+}
+
+/* Keep the print receipts (sonner / toasts) aligned with the dark theme */
+.dark [data-sonner-toaster][data-theme="light"] {
+  --normal-bg: var(--color-popover);
+  --normal-text: var(--color-foreground);
+  --normal-border: var(--color-border);
+  --success-bg: var(--color-popover);
+  --success-text: var(--color-foreground);
+  --success-border: color-mix(in oklab, var(--color-success) 40%, var(--color-border));
+  --error-bg: var(--color-popover);
+  --error-text: var(--color-foreground);
+  --error-border: color-mix(in oklab, var(--color-danger) 40%, var(--color-border));
+  --warning-bg: var(--color-popover);
+  --warning-text: var(--color-foreground);
+  --warning-border: color-mix(in oklab, var(--color-warning) 40%, var(--color-border));
+  --info-bg: var(--color-popover);
+  --info-text: var(--color-foreground);
+  --info-border: var(--color-border);
 }
 
 /* ---- Toast (sonner) follows the same visual language ---- */

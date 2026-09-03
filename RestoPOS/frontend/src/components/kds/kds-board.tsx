@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuthStore } from "@/lib/auth-store";
 import { playAlert } from "@/lib/theme";
 import { createKitchenConnection, joinKitchen } from "@/lib/signalr";
@@ -109,6 +110,7 @@ export function KdsBoard({ station }: { station: "kitchen" | "bar" }) {
               )}
               {live === "on" ? "متصل" : live === "error" ? "قطع" : "در حال اتصال"}
             </Badge>
+            <ThemeToggle />
             <Link href="/pos" className="hidden sm:block">
               <Button size="sm" variant="ghost" className="text-muted-foreground">
                 صندوق

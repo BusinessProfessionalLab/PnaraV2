@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
+  Clock3,
   Coffee,
   CreditCard,
   LayoutGrid,
@@ -34,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/lib/api";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuthStore } from "@/lib/auth-store";
 import { useCartStore } from "@/lib/cart-store";
 import { formatToman } from "@/lib/currency";
@@ -250,12 +252,20 @@ export function PosRegister() {
         </div>
 
         <div className="ms-auto flex items-center gap-1.5 sm:gap-2">
-          <div className="hidden text-center md:block">
-            <div className="font-mono text-base font-bold leading-5 tabular-nums">
-              {toShamsiClock(clock)}
-            </div>
-            <div className="text-[10px] text-muted-foreground">
-              {weekdayFa(clock)} {toShamsiDate(clock)}
+          {/* Live date & time — designed like the rest of the header controls */}
+          <div className="hidden items-center md:flex" role="timer" aria-label="تاریخ و ساعت جاری">
+            <div className="flex items-center gap-2.5 rounded-xl border border-input bg-card px-2.5 py-1 shadow-xs">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
+                <Clock3 className="size-4" strokeWidth={1.9} aria-hidden />
+              </span>
+              <span className="flex flex-col items-start py-0.5 leading-none">
+                <span className="font-mono text-sm font-bold tracking-tight tabular-nums">
+                  {toShamsiClock(clock)}
+                </span>
+                <span className="mt-1 text-[10px] font-medium text-muted-foreground">
+                  {weekdayFa(clock)} · {toShamsiDate(clock)}
+                </span>
+              </span>
             </div>
           </div>
           <Badge
@@ -269,9 +279,10 @@ export function PosRegister() {
             )}
             {health.isSuccess ? "آنلاین" : "قطع ارتباط"}
           </Badge>
-          <Badge variant={shift.data ? "neutral" : "warning"} className="hidden md:inline-flex">
+          <Badge variant={shift.data ? "neutral" : "warning"} className="hidden xl:inline-flex">
             {shift.data ? "شیفت باز" : "بدون شیفت"}
           </Badge>
+          <ThemeToggle className="size-9" />
           <Link href="/kds" className="hidden lg:block">
             <Button size="sm" variant="ghost" className="text-muted-foreground">
               <MonitorSmartphone className="size-4" aria-hidden />
@@ -337,7 +348,7 @@ export function PosRegister() {
               onClick={() => setCategoryId("all")}
               className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors duration-150 ${
                 categoryId === "all"
-                  ? "border-transparent bg-primary text-primary-foreground shadow-xs"
+                  ? "border-transparent bg-primary-fill text-primary-foreground shadow-xs"
                   : "border-border bg-card text-muted-foreground hover:border-border-strong hover:text-foreground"
               }`}
             >
@@ -345,7 +356,7 @@ export function PosRegister() {
               <span
                 className={`rounded-full px-1.5 py-px text-[10px] font-bold ${
                   categoryId === "all"
-                    ? "bg-white/20 text-white"
+                    ? "bg-primary-foreground/15 text-primary-foreground"
                     : "bg-muted text-muted-foreground"
                 }`}
               >
@@ -365,14 +376,14 @@ export function PosRegister() {
                     onClick={() => setCategoryId(c.id)}
                     className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors duration-150 ${
                       active
-                        ? "border-transparent bg-primary text-primary-foreground shadow-xs"
+                        ? "border-transparent bg-primary-fill text-primary-foreground shadow-xs"
                         : "border-border bg-card text-muted-foreground hover:border-border-strong hover:text-foreground"
                     }`}
                   >
                     {c.name}
                     <span
                       className={`rounded-full px-1.5 py-px text-[10px] font-bold ${
-                        active ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                        active ? "bg-primary-foreground/15 text-primary-foreground" : "bg-muted text-muted-foreground"
                       }`}
                     >
                       {categoryCounts.get(c.id) ?? 0}
@@ -581,7 +592,7 @@ export function PosRegister() {
                         <span
                           className={`flex size-6 items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${
                             isActive
-                              ? "bg-primary text-white"
+                              ? "bg-primary-fill text-primary-foreground"
                               : "bg-muted text-muted-foreground"
                           }`}
                         >

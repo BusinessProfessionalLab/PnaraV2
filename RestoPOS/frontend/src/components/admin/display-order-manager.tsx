@@ -286,7 +286,7 @@ function ModeButton({
       className={cn(
         "flex items-center justify-center gap-1.5 rounded-lg px-4 py-1.5 text-[13px] font-semibold outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50",
         active
-          ? "bg-primary text-primary-foreground shadow-xs"
+          ? "bg-primary-fill text-primary-foreground shadow-xs"
           : "text-muted-foreground hover:text-foreground",
       )}
     >

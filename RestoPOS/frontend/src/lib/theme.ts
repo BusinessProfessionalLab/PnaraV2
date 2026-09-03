@@ -30,17 +30,43 @@ export function hexToHslChannels(hex: string) {
   return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 
+/** sRGB relative luminance of a hex color (0..1). */
+export function luminanceOf(hex: string) {
+  const raw = hex.replace("#", "");
+  const bigint = parseInt(
+    raw.length === 3 ? raw.split("").map((c) => c + c).join("") : raw,
+    16,
+  );
+  const channel = (shift: number) => {
+    const v = ((bigint >> shift) & 255) / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0);
+}
+
+/** Foreground that keeps readable contrast on a given brand color. */
+export function readableForegroundOn(hex: string) {
+  // WCAG-ish heuristic: prefer white unless the brand is clearly light.
+  return luminanceOf(hex || "#C41E3A") > 0.45 ? "#15171d" : "#ffffff";
+}
+
 /**
- * Applies the store brand color. The neutral system is static; only the
- * accent channels are written so `--color-primary*` tokens resolve at runtime.
+ * Applies the store brand color chosen in Settings.
+ *
+ * The accent is written as HSL channels (--ph/--ps/--pl) plus --pfg
+ * (the foreground that stays readable on the solid accent, auto-chosen
+ * from the brand's luminance). Dark mode derives its ink/tint shades from
+ * these same channels, so the theme always inherits the light settings color.
  */
 export function applyTheme(primary: string) {
   if (typeof document === "undefined") return;
-  const { h, s, l } = hexToHslChannels(primary || "#C41E3A");
+  const color = primary || "#C41E3A";
+  const { h, s, l } = hexToHslChannels(color);
   const root = document.documentElement;
   root.style.setProperty("--ph", String(h));
   root.style.setProperty("--ps", `${s}%`);
   root.style.setProperty("--pl", `${l}%`);
+  root.style.setProperty("--pfg", readableForegroundOn(color));
   // Clean up legacy variables so nothing stale overrides the new layer.
   root.style.removeProperty("--primary");
   root.style.removeProperty("--secondary");

@@ -26,11 +26,23 @@ import { formatToman, rialToToman } from "@/lib/currency";
 import { daysAgoUtc } from "@/lib/jalali";
 import { cn } from "@/lib/cn";
 
-const COLORS = ["#c4383f", "#3f5d87", "#b06b1f", "#2e7d5b", "#7a5ea8", "#8c9bab"];
+const COLORS = ["var(--color-chart-1)", "var(--color-chart-2)", "var(--color-chart-3)", "var(--color-chart-4)", "var(--color-chart-5)", "var(--color-chart-6)"];
 const BAND_COLOR: Record<string, string> = {
-  Star: "#2e7d5b",
-  Underperforming: "#c4383f",
+  Star: "var(--color-chart-4)",
+  Underperforming: "var(--color-chart-1)",
+  default: "var(--color-chart-3)",
 };
+
+const tooltipStyle: React.CSSProperties = {
+  background: "var(--color-popover)",
+  border: "1px solid var(--color-border)",
+  borderRadius: 12,
+  boxShadow: "var(--shadow-lg)",
+  color: "var(--color-foreground)",
+  fontSize: 12,
+  padding: "8px 12px",
+};
+const tickStyle = { fontSize: 11, fill: "var(--color-muted-foreground)" };
 
 const PRESETS = [
   { label: "۷ روز", days: 7 },
@@ -169,8 +181,8 @@ export function ReportsHub() {
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(v) => formatToman(Number(v))} />
-                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v) => formatToman(Number(v))} />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: "var(--color-muted-foreground)" }} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -185,13 +197,13 @@ export function ReportsHub() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={perf.data ?? []} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e9edf2" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                   <XAxis dataKey="title" hide />
-                  <YAxis tickLine={false} axisLine={false} width={44} tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v) => formatToman(Number(v))} cursor={{ fill: "#f0f2f5" }} />
+                  <YAxis tickLine={false} axisLine={false} width={44} tick={tickStyle} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v) => formatToman(Number(v))} cursor={{ fill: "var(--color-muted)" }} />
                   <Bar dataKey="netSales" radius={[6, 6, 0, 0]}>
                     {(perf.data ?? []).map((p, i) => (
-                      <Cell key={i} fill={BAND_COLOR[p.band] ?? COLORS[i % COLORS.length]} />
+                      <Cell key={i} fill={BAND_COLOR[p.band] ?? BAND_COLOR.default} />
                     ))}
                   </Bar>
                 </BarChart>

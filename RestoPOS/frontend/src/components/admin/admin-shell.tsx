@@ -23,6 +23,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth-store";
 import { cn } from "@/lib/cn";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 type NavItem = { href: string; label: string; icon: typeof Store };
 type NavSection = { title: string; items: NavItem[] };
@@ -142,7 +143,8 @@ function SidebarNav({ storeName, onNavigate }: { storeName?: string; onNavigate?
         </div>
       </div>
 
-      <div className="border-t border-border px-3 py-3">
+      <div className="flex items-center gap-1 border-t border-border px-2.5 py-2.5">
+        <ThemeToggle />
         <button
           type="button"
           onClick={() => {
@@ -150,7 +152,7 @@ function SidebarNav({ storeName, onNavigate }: { storeName?: string; onNavigate?
             logout();
             router.push("/login");
           }}
-          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="flex h-9 flex-1 items-center gap-2 rounded-xl px-2.5 text-sm font-medium text-muted-foreground outline-none transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
         >
           <LogOut className="size-[18px]" strokeWidth={1.8} aria-hidden />
           خروج از حساب
@@ -179,6 +181,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="truncate text-sm font-bold">{storeName || "ToastIran POS"}</div>
           <div className="text-[11px] text-muted-foreground">پنل مدیریت</div>
         </div>
+        <ThemeToggle />
         <DialogPrimitive.Root open={navOpen} onOpenChange={setNavOpen}>
           <DialogPrimitive.Trigger asChild>
             <button

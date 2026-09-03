@@ -165,7 +165,7 @@ export function ModifierDrawer({
                               <button
                                 type="button"
                                 aria-label={`افزایش ${m.name}`}
-                                className="flex size-6 items-center justify-center rounded-full bg-primary text-white shadow-xs outline-none transition-colors hover:bg-primary-hover"
+                                className="flex size-6 items-center justify-center rounded-full bg-primary-fill text-white shadow-xs outline-none transition-colors hover:bg-primary-fill-hover"
                                 onClick={() => bump(m.id, 1)}
                               >
                                 <Plus className="size-3" aria-hidden />

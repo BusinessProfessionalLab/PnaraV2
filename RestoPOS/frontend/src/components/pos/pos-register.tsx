@@ -469,14 +469,13 @@ export function PosRegister() {
             />
             {null}
           </div>
-          <div className={rightPanelTab === "drafts" ? "mt-3 flex min-h-0 flex-1 flex-col rounded-xl border bg-amber-50 p-2" : "hidden"}>
-            <div
-              className={
-                rightPanelTab === "drafts"
-                  ? "mt-3 flex min-h-0 flex-1 flex-col rounded-xl border bg-amber-50 p-2"
-                  : "hidden"
-              }
-            >
+          <div
+            className={
+              rightPanelTab === "drafts"
+                ? "mt-3 flex min-h-0 flex-1 flex-col rounded-xl border bg-amber-50 p-2"
+                : "hidden"
+            }
+          >
               <div className="mb-2 flex items-center justify-between text-sm font-black">
                 <span>سفارش‌های در انتظار پرداخت</span>
                 <Badge variant="warning">{pendingOrders.data?.length ?? 0}</Badge>
@@ -527,9 +526,6 @@ export function PosRegister() {
                   </p>
                 ) : null}
               </div>
-          </div>
-          <div className={`pos-scroll flex-1 space-y-2 overflow-y-auto p-3 ${rightPanelTab === "cart" ? "" : "hidden"}`}>
-            </div>
           </div>
           <div
             className={`pos-scroll flex-1 space-y-2 overflow-y-auto p-3 ${rightPanelTab === "cart" ? "" : "hidden"}`}

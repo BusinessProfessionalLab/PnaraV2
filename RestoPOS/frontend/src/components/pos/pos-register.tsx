@@ -83,7 +83,9 @@ export function PosRegister() {
     queryKey: ["orders-unpaid"],
     queryFn: async () => {
       const orders = await api.activeOrders();
-      return orders.filter((order) => order.status !== "Paid" && order.status !== "Cancelled");
+      return orders.filter(
+        (order) => order.status !== "Paid" && order.status !== "Cancelled",
+      );
     },
     refetchInterval: 10000,
   });
@@ -94,12 +96,13 @@ export function PosRegister() {
     const skus = inventory.data ?? [];
     return items.map((item) => {
       // Build a rich haystack: title, description, category, recipe SKUs
-      const skuText = item.recipe?.lines
-        .map((l) => {
-          const inv = skus.find((s) => s.id === l.inventoryItemId);
-          return inv ? `${inv.sku} ${inv.name}` : "";
-        })
-        .join(" ") ?? "";
+      const skuText =
+        item.recipe?.lines
+          .map((l) => {
+            const inv = skus.find((s) => s.id === l.inventoryItemId);
+            return inv ? `${inv.sku} ${inv.name}` : "";
+          })
+          .join(" ") ?? "";
       const hay = `${item.title} ${item.description ?? ""} ${item.categoryName} ${skuText}`;
       const score = !term ? 1 : fuzzyScore(term, hay);
       return { item, score };
@@ -362,7 +365,7 @@ export function PosRegister() {
                     setEditingLineIndex(null);
                     cart.addLine(item, 1, []);
                   }}
-                  className="flex h-[220px] flex-col overflow-hidden rounded-2xl border bg-card text-right shadow-sm"
+                  className="flex h-[220px] hover:cursor-pointer flex-col overflow-hidden rounded-2xl border bg-card text-right shadow-sm"
                 >
                   <div className="relative h-28 flex-shrink-0 bg-muted">
                     {item.imageUrl ? (
@@ -435,8 +438,10 @@ export function PosRegister() {
             <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
               <button
                 type="button"
-                className={`rounded-lg px-2 py-2 text-sm font-black transition-colors ${
-                  rightPanelTab === "cart" ? "bg-white text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+                className={`rounded-lg hover:cursor-pointer px-2 py-2 text-sm font-black transition-colors ${
+                  rightPanelTab === "cart"
+                    ? "bg-white text-primary shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
                 onClick={() => setRightPanelTab("cart")}
               >
@@ -444,18 +449,32 @@ export function PosRegister() {
               </button>
               <button
                 type="button"
-                className={`flex items-center justify-center gap-2 rounded-lg px-2 py-2 text-sm font-black transition-colors ${
-                  rightPanelTab === "drafts" ? "bg-white text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+                className={`flex hover:cursor-pointer items-center justify-center gap-2 rounded-lg px-2 py-2 text-sm font-black transition-colors ${
+                  rightPanelTab === "drafts"
+                    ? "bg-white text-primary shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
                 onClick={() => setRightPanelTab("drafts")}
               >
                 <span>در انتظار پرداخت</span>
-                <Badge variant="warning">{pendingOrders.data?.length ?? 0}</Badge>
+                <Badge variant="warning">
+                  {pendingOrders.data?.length ?? 0}
+                </Badge>
               </button>
             </div>
-            <div className={rightPanelTab === "cart" ? "mt-3 flex items-center justify-between" : "hidden"}>
+            <div
+              className={
+                rightPanelTab === "cart"
+                  ? "mt-3 flex items-center justify-between"
+                  : "hidden"
+              }
+            >
               <h2 className="font-black">صورت حساب زنده</h2>
-              {cart.serverOrderNumber ? <Badge>{cart.serverOrderNumber}</Badge> : <Badge variant="outline">محلی</Badge>}
+              {cart.serverOrderNumber ? (
+                <Badge>{cart.serverOrderNumber}</Badge>
+              ) : (
+                <Badge variant="outline">محلی</Badge>
+              )}
             </div>
             <Input
               className="hidden"
@@ -476,68 +495,120 @@ export function PosRegister() {
                 : "hidden"
             }
           >
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-bold tracking-tight">سفارش‌های در انتظار پرداخت</h3>
-                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-slate-100 px-1.5 text-[11px] font-bold text-slate-600">
-                  {pendingOrders.data?.length ?? 0}
-                </span>
-              </div>
-              <div className="pos-scroll flex-1 space-y-2 overflow-y-auto">
-                {(pendingOrders.data ?? []).map((draft) => (
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-bold tracking-tight">
+                سفارش‌های در انتظار پرداخت
+              </h3>
+              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-slate-100 px-1.5 text-[11px] font-bold text-slate-600">
+                {pendingOrders.data?.length ?? 0}
+              </span>
+            </div>
+            <div className="pos-scroll flex-1 space-y-2 overflow-y-auto px-1 py-1">
+              {(pendingOrders.data ?? []).map((draft, i) => {
+                const isActive = cart.serverOrderId === draft.id;
+                const orderTypeLabel =
+                  draft.orderType === "DineIn"
+                    ? "حضوری"
+                    : draft.orderType === "Takeaway"
+                      ? "بیرون‌بر"
+                      : "بار";
+                return (
                   <button
                     key={draft.id}
-                    className={`w-full rounded-xl bg-slate-50/80 px-3 py-2.5 text-right transition-all duration-150
-                      ring-1 ring-black/[0.04] hover:bg-white hover:ring-slate-200 hover:shadow-sm
-                      ${cart.serverOrderId === draft.id ? "bg-primary/[0.04] ring-primary/20 shadow-sm" : ""}`}
+                    style={{ transitionDelay: `${i * 30}ms` }}
+                    className={[
+                      "hover:cursor-pointer",
+                      "group w-full rounded-2xl bg-white px-3.5 py-3 text-right",
+                      "shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)]",
+                      "transition-[box-shadow,background-color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)]",
+                      "hover:shadow-[0_2px_8px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.04)]",
+                      "active:scale-[0.97] active:shadow-[0_0_0_rgba(0,0,0,0)]",
+                      isActive
+                        ? "ring-2 ring-primary bg-primary/10 shadow-[0_1px_3px_rgba(196,30,58,0.12),0_0_0_1px_rgba(196,30,58,0.08)]"
+                        : "ring-1 ring-black/[0.06] hover:ring-black/[0.10]",
+                    ].join(" ")}
                     onClick={() => loadDraftMut.mutate(draft.id)}
                     disabled={loadDraftMut.isPending}
                   >
+                    {/* Row 1: order number + price badge */}
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-bold">سفارش {draft.orderNumber}</span>
-                      <span className="rounded-md bg-slate-900 px-2 py-0.5 text-[11px] font-bold text-white">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex size-6 items-center justify-center rounded-lg bg-slate-100 text-[10px] font-bold text-slate-500 transition-colors duration-150 group-hover:bg-primary/10 group-hover:text-primary">
+                          {i + 1}
+                        </span>
+                        <span className="text-[13px] font-bold text-slate-800">
+                          سفارش {draft.orderNumber}
+                        </span>
+                      </div>
+                      <span className="rounded-lg bg-slate-900 px-2.5 py-1 text-xs font-bold text-white tabular-nums">
                         {formatToman(draft.grandTotal)}
                       </span>
                     </div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
-                      {draft.customerPhone ? (
-                        <span className="inline-flex items-center gap-1">
-                          <span className="h-1 w-1 rounded-full bg-slate-300" /> مشتری: {draft.customerPhone}
-                        </span>
-                      ) : null}
+
+                    {/* Row 2: meta tags */}
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                        {orderTypeLabel}
+                      </span>
                       {draft.tableNumber ? (
-                        <span className="inline-flex items-center gap-1">
-                          <span className="h-1 w-1 rounded-full bg-slate-300" /> میز: {draft.tableNumber}
+                        <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                          میز {draft.tableNumber}
                         </span>
                       ) : null}
-                      <span className="inline-flex items-center gap-1">
-                        <span className="h-1 w-1 rounded-full bg-slate-300" />
-                        {draft.orderType === "DineIn"
-                          ? "حضوری"
-                          : draft.orderType === "Takeaway"
-                            ? "بیرون‌بر"
-                            : "بار"}
+                      <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                        {draft.items.length} آیتم
                       </span>
-                      <span className="inline-flex items-center gap-1">
-                        <span className="h-1 w-1 rounded-full bg-slate-300" /> {draft.items.length} آیتم
-                      </span>
+                      {draft.customerPhone ? (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                          {draft.customerPhone}
+                        </span>
+                      ) : null}
                     </div>
-                    <div className="mt-1.5 truncate text-[11px] leading-relaxed text-muted-foreground/80">
-                      {draft.items
-                        .slice(0, 2)
-                        .map((item) => `${item.title} × ${item.quantity}`)
-                        .join("، ")}
-                      {draft.items.length > 2 ? "، ..." : ""}
-                      {draft.notes ? ` · ${draft.notes}` : ""}
-                    </div>
+
+                    {/* Row 3: items preview */}
+                    {(draft.items.length > 0 || draft.notes) && (
+                      <div className="mt-2 border-t border-slate-100 pt-2">
+                        <p className="truncate text-[11px] leading-relaxed text-slate-400">
+                          {draft.items
+                            .slice(0, 2)
+                            .map((item) => `${item.title} × ${item.quantity}`)
+                            .join(" · ")}
+                          {draft.items.length > 2 ? " · …" : ""}
+                          {draft.notes ? (
+                            <span className="text-slate-300">
+                              {" "}
+                              · {draft.notes}
+                            </span>
+                          ) : null}
+                        </p>
+                      </div>
+                    )}
                   </button>
-                ))}
-                {!pendingOrders.data?.length ? (
-                  <div className="flex flex-col items-center justify-center gap-1.5 py-6 text-muted-foreground/50">
-                    <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    <p className="text-[11px] font-medium">سفارشی در انتظار پرداخت وجود ندارد</p>
+                );
+              })}
+              {!pendingOrders.data?.length ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-8">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-slate-100">
+                    <svg
+                      className="size-5 text-slate-300"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 6v6l4 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
                   </div>
-                ) : null}
-              </div>
+                  <p className="text-[11px] font-medium text-slate-400">
+                    سفارشی در انتظار پرداخت وجود ندارد
+                  </p>
+                </div>
+              ) : null}
+            </div>
           </div>
           <div
             className={`pos-scroll flex-1 space-y-2 overflow-y-auto p-3 ${rightPanelTab === "cart" ? "" : "hidden"}`}
@@ -578,12 +649,13 @@ export function PosRegister() {
                       </div>
                     </div>
                     <button
+                      className="hover:bg-gray-200/50 rounded-2xl p-2"
                       onClick={(event) => {
                         event.stopPropagation();
                         cart.removeLine(lineIndex);
                       }}
                     >
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <Trash2 className="h-4 w-4 hover:cursor-pointer  text-destructive" />
                     </button>
                   </div>
                   <div className="mt-2 flex items-center justify-between">

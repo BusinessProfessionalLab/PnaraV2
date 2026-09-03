@@ -41,6 +41,7 @@ export function CheckoutModal({
     cart.clear();
     qc.invalidateQueries({ queryKey: ["inventory"] });
     qc.invalidateQueries({ queryKey: ["customers"] });
+    qc.invalidateQueries({ queryKey: ["orders-unpaid"] });
     onOpenChange(false);
     toast.success("تسویه انجام شد و فیش‌ها ارسال شدند");
   };

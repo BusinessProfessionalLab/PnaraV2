@@ -65,7 +65,7 @@ export function SettingsHub() {
 
   return (
     <Card className="max-w-3xl p-6">
-      <h2 className="mb-4 font-black">برندینگ و موتور تم پویا</h2>
+      <h2 className="mb-4 font-black text-balance">برندینگ و موتور تم پویا</h2>
       <div className="grid gap-3 md:grid-cols-2">
         <Field label="نام فروشگاه" value={form.storeName} onChange={(v) => setForm({ ...form, storeName: v })} />
         <Field label="لوگو URL" value={form.logoUrl} onChange={(v) => setForm({ ...form, logoUrl: v })} />

@@ -20,7 +20,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }, [ready, session, router]);
 
   if (!ready || !session) {
-    return <div className="flex min-h-screen items-center justify-center text-muted-foreground">در حال آماده‌سازی صندوق...</div>;
+    return <div className="flex min-h-dvh items-center justify-center text-muted-foreground">در حال آماده‌سازی صندوق...</div>;
   }
   return <>{children}</>;
 }

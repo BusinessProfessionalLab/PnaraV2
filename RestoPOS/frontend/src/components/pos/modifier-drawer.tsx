@@ -50,11 +50,11 @@ export function ModifierDrawer({
               <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
               <p className="mt-2 font-black text-primary">{formatToman(item.basePrice)}</p>
               <div className="mt-4 flex items-center gap-3">
-                <Button variant="outline" size="lg" onClick={() => setQty((q) => Math.max(1, q - 1))}>
+                <Button variant="outline" size="lg" aria-label="کاهش تعداد" onClick={() => setQty((q) => Math.max(1, q - 1))}>
                   −
                 </Button>
                 <span className="min-w-10 text-center text-2xl font-black">{qty}</span>
-                <Button variant="outline" size="lg" onClick={() => setQty((q) => q + 1)}>
+                <Button variant="outline" size="lg" aria-label="افزایش تعداد" onClick={() => setQty((q) => q + 1)}>
                   +
                 </Button>
               </div>
@@ -72,9 +72,9 @@ export function ModifierDrawer({
                         <span className="font-bold">{m.name}</span>
                         {on ? (
                           <span className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                            <button type="button" className="rounded border px-2" onClick={() => setSelected((s) => ({ ...s, [m.id]: Math.max(0, on - 1) }))}>−</button>
+                            <button type="button" className="rounded border px-2" aria-label="کاهش" onClick={() => setSelected((s) => ({ ...s, [m.id]: Math.max(0, on - 1) }))}>−</button>
                             <span className="min-w-5 text-center">{on}</span>
-                            <button type="button" className="rounded border px-2" onClick={() => setSelected((s) => ({ ...s, [m.id]: on + 1 }))}>+</button>
+                            <button type="button" className="rounded border px-2" aria-label="افزایش" onClick={() => setSelected((s) => ({ ...s, [m.id]: on + 1 }))}>+</button>
                           </span>
                         ) : null}
                       </div>

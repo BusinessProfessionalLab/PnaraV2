@@ -49,5 +49,5 @@ export function Badge({
 }
 
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("rounded-2xl border bg-card text-card-foreground shadow-sm", className)} {...props} />;
+  return <div className={cn("rounded-2xl border bg-card text-card-foreground shadow-card transition-shadow duration-200 hover:shadow-card-hover", className)} {...props} />;
 }

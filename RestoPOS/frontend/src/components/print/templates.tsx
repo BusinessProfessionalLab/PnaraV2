@@ -9,7 +9,7 @@ export function CustomerReceipt({ order, settings }: { order: OrderDto; settings
     <article className="mx-auto w-[80mm] bg-white p-3 text-black" dir="rtl">
       {settings.logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={settings.logoUrl} alt="" className="mx-auto mb-2 h-12 object-contain" />
+        <img src={settings.logoUrl} alt="" className="mx-auto mb-2 h-12 object-contain outline outline-1 outline-black/10" />
       ) : null}
       <h2 className="text-center text-base font-black">{settings.storeName}</h2>
       {settings.receiptHeader ? <p className="text-center text-xs">{settings.receiptHeader}</p> : null}

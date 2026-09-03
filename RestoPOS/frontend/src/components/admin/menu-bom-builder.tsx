@@ -132,11 +132,13 @@ export function MenuBomBuilder() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  return <div className="grid gap-4 lg:grid-cols-[280px_1fr_380px]">
+  return <div className="space-y-4">
     <SharedAddonManager selectedItemId={selectedId} />
+    <div className="grid gap-4 lg:grid-cols-[280px_1fr_380px]">
     <Card className="p-4"><h2 className="mb-3 font-black">دسته‌ها</h2><CategoryForm onCreate={(name) => catMut.mutate(name)} /><div className="mt-3 space-y-2">{(cats.data ?? []).slice().sort((a, b) => a.displayPriority - b.displayPriority).map((c) => <div key={c.id} className="rounded-xl border p-2">{editingCategoryId === c.id ? <CategoryForm initialName={c.name} onCreate={(name) => updateCatMut.mutate({ id: c.id, payload: { ...c, name } })} onCancel={() => setEditingCategoryId(null)} /> : <div className="flex items-center gap-2"><div className="min-w-0 flex-1"><div className="font-bold">{c.name}</div>{c.nameEn && <div className="text-xs text-muted-foreground">{c.nameEn}</div>}</div><Button type="button" size="sm" variant="outline" onClick={() => setEditingCategoryId(c.id)}>ویرایش</Button><Button type="button" size="sm" variant="destructive" onClick={() => window.confirm("این دسته حذف شود؟") && deleteCatMut.mutate(c.id)}>حذف</Button></div>}</div>)}</div></Card>
     <Card className="p-4"><h2 className="mb-3 font-black">محصولات</h2><ProductForm categories={cats.data ?? []} /><div className="mt-4 space-y-2">{(items.data ?? []).map((item) => <button key={item.id} onClick={() => setSelectedId(item.id)} className={`flex w-full items-center gap-3 rounded-xl border p-3 text-right ${selectedId === item.id ? "border-primary bg-primary/5" : ""}`}>{item.imageUrl ? <img src={item.imageUrl} alt={item.title} className="h-12 w-12 rounded-lg object-cover outline outline-1 outline-black/10" /> : <div className="h-12 w-12 rounded-lg bg-muted" />}<div className="min-w-0 flex-1"><div className="font-bold">{item.title}</div>{item.nameEn && <div className="text-xs text-muted-foreground">{item.nameEn}</div>}<div className="text-xs text-muted-foreground">{item.categoryName}</div></div><div className="text-sm font-bold">{formatToman(item.basePrice)}</div></button>)}</div></Card>
     <Card className="p-4">{selected ? <ItemEditor item={selected} inventory={inv.data ?? []} /> : <p className="text-sm text-muted-foreground">یک محصول را برای ویرایش و مدیریت اضافات انتخاب کنید.</p>}</Card>
+    </div>
   </div>;
 }
 

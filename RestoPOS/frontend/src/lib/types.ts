@@ -73,6 +73,17 @@ export type ModifierDto = {
   addonId?: string;
 };
 
+export type AddonDto = {
+  id: string;
+  name: string;
+  title?: string;
+  extraPrice: number;
+  basePrice?: number;
+  isActive: boolean;
+  ticketStation: TicketStation;
+  displayPriority: number;
+};
+
 export type MenuItemDto = {
   id: string;
   title: string;

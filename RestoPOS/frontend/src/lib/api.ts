@@ -175,7 +175,7 @@ export const api = {
       method: "DELETE",
     }),
   addons: (activeOnly = true) =>
-    apiFetch<import("./types").MenuItemDto["addons"]>(
+    apiFetch<import("./types").AddonDto[]>(
       `http://192.168.100.249:5000/api/menu/addons?activeOnly=${activeOnly}`,
     ),
   createAddon: (payload: unknown) =>

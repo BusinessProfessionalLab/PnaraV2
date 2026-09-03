@@ -472,45 +472,56 @@ export function PosRegister() {
           <div
             className={
               rightPanelTab === "drafts"
-                ? "mt-3 flex min-h-0 flex-1 flex-col rounded-xl border bg-amber-50 p-2"
+                ? "mt-3 flex min-h-0 flex-1 flex-col rounded-2xl bg-white/80 ring-1 ring-black/[0.04] backdrop-blur-sm p-3"
                 : "hidden"
             }
           >
-              <div className="mb-2 flex items-center justify-between text-sm font-black">
-                <span>سفارش‌های در انتظار پرداخت</span>
-                <Badge variant="warning">{pendingOrders.data?.length ?? 0}</Badge>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-bold tracking-tight">سفارش‌های در انتظار پرداخت</h3>
+                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-slate-100 px-1.5 text-[11px] font-bold text-slate-600">
+                  {pendingOrders.data?.length ?? 0}
+                </span>
               </div>
-              <div className="pos-scroll flex-1 space-y-1 overflow-y-auto">
+              <div className="pos-scroll flex-1 space-y-2 overflow-y-auto">
                 {(pendingOrders.data ?? []).map((draft) => (
                   <button
                     key={draft.id}
-                    className={`w-full rounded-lg px-2 py-2 text-right text-xs hover:bg-amber-100 ${
-                      cart.serverOrderId === draft.id ? "bg-amber-200" : ""
-                    }`}
+                    className={`w-full rounded-xl bg-slate-50/80 px-3 py-2.5 text-right transition-all duration-150
+                      ring-1 ring-black/[0.04] hover:bg-white hover:ring-slate-200 hover:shadow-sm
+                      ${cart.serverOrderId === draft.id ? "bg-primary/[0.04] ring-primary/20 shadow-sm" : ""}`}
                     onClick={() => loadDraftMut.mutate(draft.id)}
                     disabled={loadDraftMut.isPending}
                   >
-                    <div className="flex items-center justify-between gap-2 font-black">
-                      <span>سفارش {draft.orderNumber}</span>
-                      <span>{formatToman(draft.grandTotal)}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold">سفارش {draft.orderNumber}</span>
+                      <span className="rounded-md bg-slate-900 px-2 py-0.5 text-[11px] font-bold text-white">
+                        {formatToman(draft.grandTotal)}
+                      </span>
                     </div>
-                    <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
                       {draft.customerPhone ? (
-                        <span>مشتری: {draft.customerPhone}</span>
+                        <span className="inline-flex items-center gap-1">
+                          <span className="h-1 w-1 rounded-full bg-slate-300" /> مشتری: {draft.customerPhone}
+                        </span>
                       ) : null}
                       {draft.tableNumber ? (
-                        <span>میز: {draft.tableNumber}</span>
+                        <span className="inline-flex items-center gap-1">
+                          <span className="h-1 w-1 rounded-full bg-slate-300" /> میز: {draft.tableNumber}
+                        </span>
                       ) : null}
-                      <span>
+                      <span className="inline-flex items-center gap-1">
+                        <span className="h-1 w-1 rounded-full bg-slate-300" />
                         {draft.orderType === "DineIn"
                           ? "حضوری"
                           : draft.orderType === "Takeaway"
                             ? "بیرون‌بر"
                             : "بار"}
                       </span>
-                      <span>{draft.items.length} آیتم</span>
+                      <span className="inline-flex items-center gap-1">
+                        <span className="h-1 w-1 rounded-full bg-slate-300" /> {draft.items.length} آیتم
+                      </span>
                     </div>
-                    <div className="mt-1 truncate text-[11px] text-muted-foreground">
+                    <div className="mt-1.5 truncate text-[11px] leading-relaxed text-muted-foreground/80">
                       {draft.items
                         .slice(0, 2)
                         .map((item) => `${item.title} × ${item.quantity}`)
@@ -521,9 +532,10 @@ export function PosRegister() {
                   </button>
                 ))}
                 {!pendingOrders.data?.length ? (
-                  <p className="text-xs text-muted-foreground">
-                    سفارشی در انتظار پرداخت وجود ندارد
-                  </p>
+                  <div className="flex flex-col items-center justify-center gap-1.5 py-6 text-muted-foreground/50">
+                    <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <p className="text-[11px] font-medium">سفارشی در انتظار پرداخت وجود ندارد</p>
+                  </div>
                 ) : null}
               </div>
           </div>
@@ -579,6 +591,7 @@ export function PosRegister() {
                       <Button
                         size="icon"
                         variant="outline"
+                        className="size-12 rounded-full border-2 text-lg"
                         aria-label="کاهش تعداد"
                         onClick={(event) => {
                           event.stopPropagation();
@@ -587,12 +600,13 @@ export function PosRegister() {
                       >
                         −
                       </Button>
-                      <span className="w-6 text-center font-black">
+                      <span className="w-10 text-center text-2xl font-black tabular-nums">
                         {line.quantity}
                       </span>
                       <Button
                         size="icon"
                         variant="outline"
+                        className="size-12 rounded-full border-2 text-lg"
                         aria-label="افزایش تعداد"
                         onClick={(event) => {
                           event.stopPropagation();
@@ -602,7 +616,7 @@ export function PosRegister() {
                         +
                       </Button>
                     </div>
-                    <span className="font-bold">
+                    <span className="text-lg font-black tabular-nums">
                       {formatToman(
                         line.unitPrice * line.quantity +
                           line.modifiers.reduce(

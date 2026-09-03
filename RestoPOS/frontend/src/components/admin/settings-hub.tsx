@@ -64,9 +64,9 @@ export function SettingsHub() {
   });
 
   return (
-    <Card className="max-w-3xl p-6">
+    <Card className="w-full p-6">
       <h2 className="mb-4 font-black text-balance">برندینگ و موتور تم پویا</h2>
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Field label="نام فروشگاه" value={form.storeName} onChange={(v) => setForm({ ...form, storeName: v })} />
         <Field label="لوگو URL" value={form.logoUrl} onChange={(v) => setForm({ ...form, logoUrl: v })} />
         <Field label="شناسه مالیاتی" value={form.taxIdentificationNumber} onChange={(v) => setForm({ ...form, taxIdentificationNumber: v })} />
@@ -85,11 +85,11 @@ export function SettingsHub() {
           value={String(form.loyaltyPointsPerMillionRial)}
           onChange={(v) => setForm({ ...form, loyaltyPointsPerMillionRial: Number(v) })}
         />
-        <div className="md:col-span-2">
+        <div className="sm:col-span-2 lg:col-span-3">
           <Label>سربرگ فیش</Label>
           <Textarea value={form.receiptHeader} onChange={(e) => setForm({ ...form, receiptHeader: e.target.value })} />
         </div>
-        <div className="md:col-span-2">
+        <div className="sm:col-span-2 lg:col-span-3">
           <Label>پاورقی فیش</Label>
           <Textarea value={form.receiptFooter} onChange={(e) => setForm({ ...form, receiptFooter: e.target.value })} />
         </div>

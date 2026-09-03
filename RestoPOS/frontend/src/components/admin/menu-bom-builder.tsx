@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge, Card, Input, Label, Textarea } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/api";
+import { Coins, ImagePlus } from "lucide-react";
 import { formatToman } from "@/lib/currency";
 import type { MenuItemDto, TicketStation, UnitOfMeasure } from "@/lib/types";
 
@@ -30,6 +31,80 @@ async function cropImageToSquare(file: File): Promise<string> {
   canvas.height = 800;
   canvas.getContext("2d")?.drawImage(source, (source.naturalWidth - side) / 2, (source.naturalHeight - side) / 2, side, side, 0, 0, 800, 800);
   return canvas.toDataURL("image/jpeg", 0.86);
+}
+
+/** Strip non-digits and format with thousands separator for display */
+function formatPriceInput(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  return Number(digits).toLocaleString("en-US");
+}
+
+function PriceInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <div className="relative">
+      <Input
+        dir="ltr"
+        inputMode="numeric"
+        placeholder={placeholder}
+        className="h-11 pr-14 text-left text-sm font-medium tabular-nums"
+        value={formatPriceInput(value)}
+        onChange={(e) => onChange(e.target.value.replace(/\D/g, ""))}
+      />
+      <span className="pointer-events-none absolute start-3 top-1/2 flex -translate-y-1/2 items-center gap-1 text-xs text-muted-foreground">
+        <Coins className="h-3.5 w-3.5" />
+        ریال
+      </span>
+    </div>
+  );
+}
+
+function ImageUpload({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      onChange(await cropImageToSquare(file));
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs">عکس محصول</Label>
+      <label className="group relative flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/50 p-4 transition-colors hover:border-primary/40 hover:bg-primary/[0.02]">
+        {value ? (
+          <>
+            <img
+              src={value}
+              alt="پیش‌نمایش"
+              className="h-20 w-20 rounded-lg object-cover outline outline-1 outline-black/10 transition-transform group-hover:scale-[1.02]"
+            />
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <ImagePlus className="h-3 w-3" />
+              <span>برای تعویض کلیک کنید</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 transition-colors group-hover:bg-primary/10">
+              <ImagePlus className="h-5 w-5 text-slate-400 transition-colors group-hover:text-primary" />
+            </div>
+            <div className="text-center">
+              <p className="text-xs font-medium text-slate-600">عکس محصول</p>
+              <p className="text-[10px] text-muted-foreground">برش خودکار ۱:۱</p>
+            </div>
+          </>
+        )}
+        <input
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          onChange={(e) => handleFile(e.target.files?.[0])}
+        />
+      </label>
+    </div>
+  );
 }
 
 export function MenuBomBuilder() {
@@ -77,7 +152,7 @@ function ProductForm({ categories }: { categories: Category[] }) {
     onSuccess: () => { toast.success("محصول ثبت شد"); qc.invalidateQueries({ queryKey: ["menu"] }); setTitle(""); setNameEn(""); setPrice(""); setImageUrl(""); },
     onError: (e: Error) => toast.error(e.message),
   });
-  return <form className="grid gap-2 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); mut.mutate(); }}><Input placeholder="نام فارسی محصول" value={title} onChange={(e) => setTitle(e.target.value)} /><Input dir="ltr" placeholder="English name" value={nameEn} onChange={(e) => setNameEn(e.target.value)} /><Input placeholder="قیمت (تومان)" inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} /><Input type="number" min="1" placeholder="ترتیب نمایش" value={priority} onChange={(e) => setPriority(e.target.value)} /><div className="space-y-1"><Label>عکس محصول (برش خودکار ۱:۱)</Label><Input type="file" accept="image/*" onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; try { setImageUrl(await cropImageToSquare(file)); } catch (error) { toast.error((error as Error).message); } }} /></div><Select value={categoryId} onValueChange={setCategoryId}><SelectTrigger><SelectValue placeholder="دسته" /></SelectTrigger><SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><Select value={station} onValueChange={(v) => setStation(v as TicketStation)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Bar">بار</SelectItem><SelectItem value="Kitchen">آشپزخانه</SelectItem><SelectItem value="KitchenAndBar">هر دو</SelectItem></SelectContent></Select><Button className="sm:col-span-2" type="submit" disabled={!title || !price || !categoryId || mut.isPending}>{mut.isPending ? "در حال ثبت..." : "ثبت محصول"}</Button></form>;
+  return <form className="grid gap-2 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); mut.mutate(); }}><Input placeholder="نام فارسی محصول" value={title} onChange={(e) => setTitle(e.target.value)} /><Input dir="ltr" placeholder="English name" value={nameEn} onChange={(e) => setNameEn(e.target.value)} /><PriceInput value={price} onChange={setPrice} placeholder="قیمت" /><Input type="number" min="1" placeholder="ترتیب نمایش" value={priority} onChange={(e) => setPriority(e.target.value)} /><ImageUpload value={imageUrl} onChange={setImageUrl} /><Select value={categoryId} onValueChange={setCategoryId}><SelectTrigger><SelectValue placeholder="دسته" /></SelectTrigger><SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select><Select value={station} onValueChange={(v) => setStation(v as TicketStation)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Bar">بار</SelectItem><SelectItem value="Kitchen">آشپزخانه</SelectItem><SelectItem value="KitchenAndBar">هر دو</SelectItem></SelectContent></Select><Button className="sm:col-span-2" type="submit" disabled={!title || !price || !categoryId || mut.isPending}>{mut.isPending ? "در حال ثبت..." : "ثبت محصول"}</Button></form>;
 }
 
 function ItemEditor({ item, inventory }: { item: MenuItemDto; inventory: { id: string; name: string; sku: string }[] }) {
@@ -92,8 +167,8 @@ function ItemEditor({ item, inventory }: { item: MenuItemDto; inventory: { id: s
   const saveBom = useMutation({ mutationFn: () => api.upsertRecipe({ menuItemId: item.id, menuItemModifierId: null, name: `BOM ${item.title}`, lines: invId ? [...lines, { inventoryItemId: invId, quantity: Number(qty), unit }] : lines }), onSuccess: () => { toast.success("رسپی ذخیره شد"); setInvId(""); qc.invalidateQueries({ queryKey: ["menu"] }); }, onError: (e: Error) => toast.error(e.message) });
 
   return <div className="space-y-4"><div className="flex items-start gap-3">{item.imageUrl && <img src={item.imageUrl} alt={item.title} className="h-16 w-16 rounded-xl object-cover outline outline-1 outline-black/10" />}<div><h3 className="font-black">{item.title}</h3>{item.nameEn && <p className="text-sm text-muted-foreground">{item.nameEn}</p>}<p className="text-sm">{formatToman(item.basePrice)}</p></div></div><div className="rounded-xl border bg-muted/30 p-3"><Label>ترتیب نمایش در صندوق</Label><div className="mt-1 flex gap-2"><Input type="number" min="1" value={priority} onChange={(e) => setPriority(e.target.value)} /><Button onClick={() => update.mutate()} disabled={update.isPending}>ذخیره ترتیب</Button></div></div>
-    <div className="grid gap-2"><Label>ویرایش محصول</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="نام فارسی" /><Input dir="ltr" value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="English name" /><Input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="قیمت (تومان)" /><div className="space-y-1"><Label>تعویض عکس (برش خودکار ۱:۱)</Label><Input type="file" accept="image/*" onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; try { setImageUrl(await cropImageToSquare(file)); } catch (error) { toast.error((error as Error).message); } }} /></div>{imageUrl && <img src={imageUrl} alt="پیش‌نمایش" className="h-24 w-24 rounded-xl object-cover outline outline-1 outline-black/10" />}<Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="توضیحات" /><div className="flex gap-2"><Button className="flex-1" onClick={() => update.mutate()}>ذخیره تغییرات</Button><Button variant="destructive" onClick={() => window.confirm("این محصول حذف شود؟") && remove.mutate()}>حذف محصول</Button></div></div>
-    <div className="grid gap-2"><Label>اضافات</Label>{item.modifiers.map((m) => <div key={m.id} className="flex items-center gap-2 rounded-lg border p-2"><Badge>{m.name}</Badge><span className="flex-1 text-xs">{formatToman(m.extraPrice)}</span><Button size="sm" variant="outline" onClick={() => { setEditingMod(m.id); setModName(m.name); setModPrice(String(m.extraPrice / 10)); }}>ویرایش</Button><Button size="sm" variant="destructive" onClick={() => window.confirm("این اضافه حذف شود؟") && deleteMod.mutate(m.id)}>حذف</Button></div>)}<div className="grid grid-cols-2 gap-2"><Input placeholder="نام اضافه" value={modName} onChange={(e) => setModName(e.target.value)} /><Input placeholder="قیمت تومان" value={modPrice} onChange={(e) => setModPrice(e.target.value)} /><Button className="col-span-2" variant="outline" onClick={() => saveMod.mutate()} disabled={!modName || !modPrice}>{editingMod ? "ذخیره ویرایش اضافه" : "افزودن اضافه"}</Button></div></div>
+    <div className="grid gap-2"><Label>ویرایش محصول</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="نام فارسی" /><Input dir="ltr" value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="English name" /><PriceInput value={price} onChange={setPrice} placeholder="قیمت" /><ImageUpload value={imageUrl} onChange={setImageUrl} /><Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="توضیحات" /><div className="flex gap-2"><Button className="flex-1" onClick={() => update.mutate()}>ذخیره تغییرات</Button><Button variant="destructive" onClick={() => window.confirm("این محصول حذف شود؟") && remove.mutate()}>حذف محصول</Button></div></div>
+    <div className="grid gap-2"><Label>اضافات</Label>{item.modifiers.map((m) => <div key={m.id} className="flex items-center gap-2 rounded-lg border p-2"><Badge>{m.name}</Badge><span className="flex-1 text-xs">{formatToman(m.extraPrice)}</span><Button size="sm" variant="outline" onClick={() => { setEditingMod(m.id); setModName(m.name); setModPrice(String(m.extraPrice / 10)); }}>ویرایش</Button><Button size="sm" variant="destructive" onClick={() => window.confirm("این اضافه حذف شود؟") && deleteMod.mutate(m.id)}>حذف</Button></div>)}<div className="grid grid-cols-2 gap-2"><Input placeholder="نام اضافه" value={modName} onChange={(e) => setModName(e.target.value)} /><PriceInput value={modPrice} onChange={setModPrice} placeholder="قیمت اضافه" /><Button className="col-span-2" variant="outline" onClick={() => saveMod.mutate()} disabled={!modName || !modPrice}>{editingMod ? "ذخیره ویرایش اضافه" : "افزودن اضافه"}</Button></div></div>
     <div><Label>رسپی / اتصال به انبار</Label><ul className="my-2 space-y-1 text-sm">{lines.map((l) => <li key={l.inventoryItemId}>{inventory.find((i) => i.id === l.inventoryItemId)?.name ?? l.inventoryItemId} — {l.quantity} {l.unit}</li>)}</ul><Select value={invId} onValueChange={setInvId}><SelectTrigger><SelectValue placeholder="ماده اولیه" /></SelectTrigger><SelectContent>{inventory.map((i) => <SelectItem key={i.id} value={i.id}>{i.name} ({i.sku})</SelectItem>)}</SelectContent></Select><div className="mt-2 flex gap-2"><Input value={qty} onChange={(e) => setQty(e.target.value)} /><Select value={unit} onValueChange={(v) => setUnit(v as UnitOfMeasure)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["Gr", "Ml", "Kg", "Liter", "Count"].map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select></div><Button className="mt-2 w-full" onClick={() => saveBom.mutate()}>ذخیره رسپی</Button></div>
   </div>;
 }

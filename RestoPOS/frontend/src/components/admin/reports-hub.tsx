@@ -17,7 +17,8 @@ import {
 } from "recharts";
 import { CalendarRange, Clock3, Crown, ListOrdered, TrendingUp, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Field, Input } from "@/components/ui/input";
+import { Field } from "@/components/ui/input";
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -68,6 +69,18 @@ function cardTitle(icon: React.ReactNode, title: string, sub?: string) {
       </div>
     </div>
   );
+}
+
+/** Start of the LOCAL day an ISO timestamp points at (inclusive from-date). */
+function dayStartIso(noonIso: string) {
+  const d = new Date(noonIso);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).toISOString();
+}
+
+/** End of the LOCAL day an ISO timestamp points at (inclusive to-date). */
+function dayEndIso(noonIso: string) {
+  const d = new Date(noonIso);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).toISOString();
 }
 
 export function ReportsHub() {
@@ -121,10 +134,18 @@ export function ReportsHub() {
       {/* Range picker */}
       <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-end">
         <Field label="از تاریخ" className="w-full sm:max-w-60">
-          <Input type="datetime-local" dir="ltr" className="text-end" value={from.slice(0, 16)} onChange={(e) => e.target.value && setFrom(new Date(e.target.value).toISOString())} />
+          <JalaliDatePicker
+            value={from}
+            maxIso={to}
+            onChange={(noonIso) => setFrom(dayStartIso(noonIso))}
+          />
         </Field>
         <Field label="تا تاریخ" className="w-full sm:max-w-60">
-          <Input type="datetime-local" dir="ltr" className="text-end" value={to.slice(0, 16)} onChange={(e) => e.target.value && setTo(new Date(e.target.value).toISOString())} />
+          <JalaliDatePicker
+            value={to}
+            minIso={from}
+            onChange={(noonIso) => setTo(dayEndIso(noonIso))}
+          />
         </Field>
         <div className="flex items-center gap-2 pb-1 text-[13px] text-muted-foreground sm:ms-auto">
           <CalendarRange className="size-4" aria-hidden />

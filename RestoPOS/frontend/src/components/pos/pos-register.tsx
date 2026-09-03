@@ -1,11 +1,12 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Clock3,
   Coffee,
   CreditCard,
+  Hourglass,
   LayoutGrid,
   LogOut,
   Minus,
@@ -63,6 +64,9 @@ import { TourTrigger } from "@/features/product-tour";
 
 type RightPanelTab = "cart" | "drafts";
 
+/** App motion token (--ease-out-quart) used for tab/page transitions. */
+const EASE_OUT_QUART: [number, number, number, number] = [0.25, 1, 0.5, 1];
+
 export function PosRegister() {
   const router = useRouter();
   const session = useAuthStore((s) => s.session);
@@ -70,7 +74,14 @@ export function PosRegister() {
   const cart = useCartStore();
   const [clock, setClock] = useState(new Date());
 
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(() => {
+    // Restore the search term persisted in the URL (?q=…), so a refresh or a
+    // shared link lands on the same results. Safe to read here: PosRegister
+    // mounts client-side only after the auth gate hydrates, so there is no
+    // SSR markup to mismatch.
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("q") ?? "";
+  });
   const [categoryId, setCategoryId] = useState<string>("all");
   const [picked, setPicked] = useState<MenuItemDto | null>(null);
   const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
@@ -83,6 +94,18 @@ export function PosRegister() {
     const t = setInterval(() => setClock(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Mirror the live search term into the URL (?q=…) via history.replaceState —
+  // no router navigation, so typing never remounts the page or flashes.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const value = q.trim();
+    if (value) url.searchParams.set("q", value);
+    else url.searchParams.delete("q");
+    const next = url.pathname + url.search;
+    const current = window.location.pathname + window.location.search;
+    if (next !== current) window.history.replaceState(null, "", next);
+  }, [q]);
 
   const health = useHealth();
   const categories = useCategories(false);
@@ -282,22 +305,32 @@ export function PosRegister() {
         </div>
 
         <div className="ms-auto flex items-center gap-1 sm:gap-2">
-          {/* Live date & time — designed like the rest of the header controls */}
+          {/* Live date & time — one line, designed like the rest of the
+              header controls. Weekday appears only on wide screens so the
+              chip stays compact on md/lg. */}
           <div
             className="hidden items-center md:flex"
             role="timer"
             aria-label="تاریخ و ساعت جاری"
           >
-            <div className="flex items-center gap-2.5 rounded-xl border border-input bg-card px-2.5 py-1 shadow-xs">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
-                <Clock3 className="size-4" strokeWidth={1.9} aria-hidden />
+            <div className="flex items-center gap-2 rounded-xl border border-input bg-card px-2.5 py-1.5 shadow-xs">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
+                <Clock3 className="size-3.5" strokeWidth={1.9} aria-hidden />
               </span>
-              <span className="flex flex-col items-start py-0.5 leading-none">
-                <span className="font-mono text-sm font-bold tracking-tight tabular-nums">
-                  {toShamsiClock(clock)}
+              <span className="flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold leading-none tracking-tight tabular-nums text-foreground">
+                <span className="hidden xl:inline">{weekdayFa(clock)}</span>
+                <span
+                  aria-hidden
+                  className="hidden text-muted-foreground/70 xl:inline"
+                >
+                  ·
                 </span>
-                <span className="mt-1 text-[10px] font-medium text-muted-foreground">
-                  {weekdayFa(clock)} · {toShamsiDate(clock)}
+                <span>{toShamsiDate(clock)}</span>
+                <span aria-hidden className="text-muted-foreground/70">
+                  ·
+                </span>
+                <span className="font-mono  font-semibold text-sm">
+                  {toShamsiClock(clock)}
                 </span>
               </span>
             </div>
@@ -319,6 +352,12 @@ export function PosRegister() {
           >
             {shift.data ? "شیفت باز" : "بدون شیفت"}
           </Badge>
+          <Link href="/kds" className="hidden lg:block">
+            <Button size="sm" variant="ghost" className="text-muted-foreground">
+              <MonitorSmartphone className="size-4" aria-hidden />
+              نمایشگر
+            </Button>
+          </Link>
           <TourTrigger
             tourId="register"
             label="آموزش صندوق"
@@ -326,12 +365,7 @@ export function PosRegister() {
             placement="bottom"
           />
           <ThemeToggle className="size-9" />
-          <Link href="/kds" className="hidden lg:block">
-            <Button size="sm" variant="ghost" className="text-muted-foreground">
-              <MonitorSmartphone className="size-4" aria-hidden />
-              نمایشگر
-            </Button>
-          </Link>
+
           <Link href="/admin" className="hidden md:block">
             <Button
               size="icon-sm"
@@ -449,7 +483,7 @@ export function PosRegister() {
           {/* Product grid */}
           <div
             data-tour="pos-products"
-            className="pos-scroll grid min-h-0 flex-1 auto-rows-min grid-cols-2 content-start gap-2 overflow-y-auto pb-1 sm:grid-cols-3 sm:gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+            className="pos-scroll grid min-h-0 flex-1 auto-rows-min grid-cols-2 content-start gap-2 overflow-y-auto pb-1 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
           >
             {menu.isLoading &&
               Array.from({ length: 10 }).map((_, i) => (
@@ -731,6 +765,18 @@ function CartPane({
   const cart = useCartStore();
   const totals = cart.totals();
 
+  // Smooth rise-and-crossfade between the cart ⇄ drafts panels. Both panels
+  // occupy the SAME absolutely-positioned box (see below), so the switch has
+  // no flex reflow — the only movement is the animation itself. The app-wide
+  // <MotionConfig reducedMotion="user"> disables the y-movement for
+  // reduced-motion systems while keeping this short opacity fade.
+  const panelMotion = {
+    initial: { opacity: 0, y: 18 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -10 },
+    transition: { duration: 0.26, ease: EASE_OUT_QUART },
+  };
+
   return (
     <div className={cn("flex h-full min-h-0 flex-col", className)}>
       <div className="shrink-0 space-y-3 border-b border-border p-3">
@@ -758,6 +804,7 @@ function CartPane({
             }`}
             onClick={() => onTabChange("drafts")}
           >
+            <Hourglass className="size-4" aria-hidden />
             در انتظار پرداخت
             <span
               className={`rounded-full px-1.5 text-[10px] font-bold ${
@@ -770,21 +817,37 @@ function CartPane({
             </span>
           </button>
         </div>
-        {rightPanelTab === "cart" ? (
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold">صورت حساب زنده</h2>
-            {cart.serverOrderNumber ? (
+        {/* Constant-height subheader: keeps the region above the panels
+            stable so the tab switch never shifts the layout. */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold">
+            {rightPanelTab === "cart"
+              ? "صورت حساب زنده"
+              : "در انتظار پرداخت"}
+          </h2>
+          {rightPanelTab === "cart" ? (
+            cart.serverOrderNumber ? (
               <Badge variant="neutral">{cart.serverOrderNumber}</Badge>
             ) : (
               <Badge variant="outline">فاکتور محلی</Badge>
-            )}
-          </div>
-        ) : null}
+            )
+          ) : (
+            <Badge variant="neutral">{drafts?.length ?? 0} سفارش</Badge>
+          )}
+        </div>
       </div>
 
-      {/* Pending-payment drafts */}
-      {rightPanelTab === "drafts" ? (
-        <div className="pos-scroll flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
+      {/* Content region — both panels live in the SAME box as stacked
+          absolute layers, so switching tabs is a pure crossfade + rise with
+          zero layout reflow. */}
+      <div className="relative min-h-0 flex-1">
+        <AnimatePresence initial={false}>
+          {rightPanelTab === "drafts" ? (
+            <motion.div
+              key="drafts"
+              {...panelMotion}
+              className="pos-scroll absolute inset-0 flex flex-col gap-2 overflow-y-auto p-3"
+            >
           {(drafts ?? []).map((draft, i) => {
             const isActive = cart.serverOrderId === draft.id;
             const orderTypeLabel =
@@ -866,12 +929,14 @@ function CartPane({
               </p>
             </div>
           ) : null}
-        </div>
-      ) : null}
-
-      {/* Cart lines */}
-      {rightPanelTab === "cart" ? (
-        <div className="pos-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+            </motion.div>
+          ) : (
+            <motion.div
+              key="cart"
+              {...panelMotion}
+              className="absolute inset-0 flex min-h-0 flex-col"
+            >
+              <div className="pos-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
           {cart.lines.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-center">
               <div className="flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground/60">
@@ -964,12 +1029,9 @@ function CartPane({
               </div>
             ))
           )}
-        </div>
-      ) : null}
-
-      {/* Totals + actions */}
-      {rightPanelTab === "cart" ? (
-        <div className="shrink-0 space-y-1.5 border-t border-border bg-card p-3">
+              </div>
+              {/* Totals + actions — pinned under the cart lines */}
+              <div className="shrink-0 space-y-1.5 border-t border-border bg-card p-3">
           <input type="hidden" value={cart.customerPhone} readOnly />
           <input
             type="hidden"
@@ -1052,8 +1114,11 @@ function CartPane({
           >
             ارسال به بار/آشپزخانه
           </Button>
-        </div>
-      ) : null}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

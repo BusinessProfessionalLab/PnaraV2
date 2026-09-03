@@ -4,7 +4,12 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuthStore } from "@/lib/auth-store";
 import { tourManager } from "../manager";
-import { clearTourProgress, getTourState, setTourStatus } from "../storage";
+import {
+  clearTourProgress,
+  getTourState,
+  getTourStatus,
+  setTourStatus,
+} from "../storage";
 import { useProductTour } from "../hooks/use-product-tour";
 import { WelcomeDialog } from "./welcome-dialog";
 
@@ -17,8 +22,12 @@ function isEligibleRoute(path: string) {
 
 /**
  * Mounted once inside the root providers. Responsibilities:
- *  1. First-login offer — shown once per user/version when no tour state
- *     exists yet; starting or skipping persists the decision.
+ *  1. First-visit offer — the welcome popup shows only for users who have
+ *     never reached a terminal state on this tour version (status
+ *     "not_started"). Completing the tour ("متوجه شدم" on the last step) or
+ *     closing/skipping it (popover X, Escape, backdrop, or "فعلاً نه") writes
+ *     "completed"/"skipped" to localStorage, so the popup never auto-shows
+ *     again. Manual replay from the header help button always stays available.
  *  2. Resume — after an accidental refresh mid-tour, continues from the
  *     persisted step when the route matches (no restart from step 1).
  *  3. Safety — if the user leaves the route mid-tour (browser back/forward),
@@ -59,7 +68,13 @@ export function TourHost() {
       }
     }
 
-    if (!offerShownForUser.current) {
+    // First-timers only: once a terminal state exists for this tour version
+    // (completed / skipped — both saved to localStorage by the manager or the
+    // dismiss handler above), never auto-offer the tour again.
+    if (
+      !offerShownForUser.current &&
+      getTourStatus(userId, "onboarding") === "not_started"
+    ) {
       offerShownForUser.current = true;
       setOfferOpen(true);
     }

@@ -45,6 +45,7 @@ export type CategoryDto = {
   iconUrl?: string | null;
   imageUrl?: string | null;
   parentId?: string | null;
+  isSystem?: boolean;
 };
 
 export type RecipeLineDto = {

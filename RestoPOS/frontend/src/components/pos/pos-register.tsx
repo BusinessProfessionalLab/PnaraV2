@@ -307,6 +307,7 @@ export function PosRegister() {
               همه
             </button>
             {(categories.data ?? [])
+              .filter((c) => !c.isSystem)
               .slice()
               .sort((a, b) => a.displayPriority - b.displayPriority)
               .map((c) => (

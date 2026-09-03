@@ -333,7 +333,7 @@ public sealed class GetMenuQueryHandler(IApplicationDbContext db) : IRequestHand
             .AsQueryable();
 
         if (request.ActiveOnly)
-            query = query.Where(m => m.IsActive);
+            query = query.Where(m => m.IsActive && !m.Category.IsSystem);
 
         var items = await query.OrderBy(m => m.DisplayPriority).ThenBy(m => m.Title).ToListAsync(cancellationToken);
         return items.Select(MenuMapping.ToDto).ToList();

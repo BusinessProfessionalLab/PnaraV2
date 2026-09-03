@@ -98,9 +98,12 @@ export function PosRegister() {
   });
   const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
   const shift = useQuery({ queryKey: ["shift"], queryFn: api.currentShift });
-  const drafts = useQuery({
-    queryKey: ["order-drafts"],
-    queryFn: api.draftOrders,
+  const pendingOrders = useQuery({
+    queryKey: ["orders-unpaid"],
+    queryFn: async () => {
+      const orders = await api.activeOrders();
+      return orders.filter((order) => order.status !== "Paid" && order.status !== "Cancelled");
+    },
     refetchInterval: 10000,
   });
 
@@ -128,20 +131,12 @@ export function PosRegister() {
     [searchMatches, categoryId],
   );
 
-  const categoryCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const { item, score } of searchMatches) {
-      if (score > 0) counts.set(item.categoryId, (counts.get(item.categoryId) ?? 0) + 1);
-    }
-    return counts;
-  }, [searchMatches]);
-
   const totals = cart.totals();
 
   const draftMut = useMutation({
     mutationFn: syncCartToServer,
     onSuccess: (order) => {
-      qc.invalidateQueries({ queryKey: ["order-drafts"] });
+      qc.invalidateQueries({ queryKey: ["orders-unpaid"] });
       cart.clear();
       toast.success(`پیش‌نویس ${order.orderNumber} ذخیره شد`);
     },
@@ -164,7 +159,7 @@ export function PosRegister() {
       cart.clear();
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["order-drafts"] });
+      qc.invalidateQueries({ queryKey: ["orders-unpaid"] });
       toast.message("فاکتور نیمه‌کاره حذف شد");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -178,7 +173,7 @@ export function PosRegister() {
     onSuccess: (order) => {
       toast.success(`ارسال شد: ${order.orderNumber}`);
       qc.invalidateQueries({ queryKey: ["inventory"] });
-      qc.invalidateQueries({ queryKey: ["order-drafts"] });
+      qc.invalidateQueries({ queryKey: ["orders-unpaid"] });
       cart.clear();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -399,13 +394,30 @@ export function PosRegister() {
 
         <aside className="flex w-[380px] shrink-0 flex-col border-s bg-pos-ticket" dir="rtl">
           <div className="border-b p-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-black">صورتحساب زنده</h2>
-              {cart.serverOrderNumber ? (
-                <Badge>{cart.serverOrderNumber}</Badge>
-              ) : (
-                <Badge variant="outline">محلی</Badge>
-              )}
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
+              <button
+                type="button"
+                className={`rounded-lg px-2 py-2 text-sm font-black transition-colors ${
+                  rightPanelTab === "cart" ? "bg-white text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+                onClick={() => setRightPanelTab("cart")}
+              >
+                صورت حساب زنده
+              </button>
+              <button
+                type="button"
+                className={`flex items-center justify-center gap-2 rounded-lg px-2 py-2 text-sm font-black transition-colors ${
+                  rightPanelTab === "drafts" ? "bg-white text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+                onClick={() => setRightPanelTab("drafts")}
+              >
+                <span>در انتظار پرداخت</span>
+                <Badge variant="warning">{pendingOrders.data?.length ?? 0}</Badge>
+              </button>
+            </div>
+            <div className={rightPanelTab === "cart" ? "mt-3 flex items-center justify-between" : "hidden"}>
+              <h2 className="font-black">صورت حساب زنده</h2>
+              {cart.serverOrderNumber ? <Badge>{cart.serverOrderNumber}</Badge> : <Badge variant="outline">محلی</Badge>}
             </div>
             <Input
               className="hidden"
@@ -418,13 +430,14 @@ export function PosRegister() {
               }
             />
             {null}
-            <div className={rightPanelTab === "drafts" ? "mt-3 flex min-h-0 flex-1 flex-col rounded-xl border bg-amber-50 p-2" : "hidden"}>
+          </div>
+          <div className={rightPanelTab === "drafts" ? "mt-3 flex min-h-0 flex-1 flex-col rounded-xl border bg-amber-50 p-2" : "hidden"}>
               <div className="mb-2 flex items-center justify-between text-sm font-black">
-                <span>پیش‌نویس‌های ذخیره‌شده</span>
-                <Badge variant="warning">{drafts.data?.length ?? 0}</Badge>
+                <span>سفارش‌های در انتظار پرداخت</span>
+                <Badge variant="warning">{pendingOrders.data?.length ?? 0}</Badge>
               </div>
               <div className="pos-scroll flex-1 space-y-1 overflow-y-auto">
-                {(drafts.data ?? []).map((draft) => (
+                {(pendingOrders.data ?? []).map((draft) => (
                   <button
                     key={draft.id}
                     className={`w-full rounded-lg px-2 py-2 text-right text-xs hover:bg-amber-100 ${
@@ -463,13 +476,12 @@ export function PosRegister() {
                     </div>
                   </button>
                 ))}
-                {!drafts.data?.length ? (
+                {!pendingOrders.data?.length ? (
                   <p className="text-xs text-muted-foreground">
-                    پیش‌نویسی وجود ندارد
+                    سفارشی در انتظار پرداخت وجود ندارد
                   </p>
                 ) : null}
               </div>
-            </div>
           </div>
           <div className={`pos-scroll flex-1 space-y-2 overflow-y-auto p-3 ${rightPanelTab === "cart" ? "" : "hidden"}`}>
             {cart.lines.length === 0 ? (

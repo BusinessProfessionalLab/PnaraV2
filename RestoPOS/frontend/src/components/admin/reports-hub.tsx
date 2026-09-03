@@ -15,12 +15,42 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Card, Input } from "@/components/ui/input";
+import { CalendarRange, Clock3, Crown, ListOrdered, TrendingUp, Users } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Field, Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { api } from "@/lib/api";
 import { formatToman, rialToToman } from "@/lib/currency";
 import { daysAgoUtc } from "@/lib/jalali";
+import { cn } from "@/lib/cn";
 
-const COLORS = ["#C41E3A", "#1F2937", "#D97706", "#059669", "#2563EB", "#7C3AED"];
+const COLORS = ["#c4383f", "#3f5d87", "#b06b1f", "#2e7d5b", "#7a5ea8", "#8c9bab"];
+const BAND_COLOR: Record<string, string> = {
+  Star: "#2e7d5b",
+  Underperforming: "#c4383f",
+};
+
+const PRESETS = [
+  { label: "۷ روز", days: 7 },
+  { label: "۱۴ روز", days: 14 },
+  { label: "۳۰ روز", days: 30 },
+];
+
+function cardTitle(icon: React.ReactNode, title: string, sub?: string) {
+  return (
+    <div className="flex items-center gap-2 border-b border-border/70 px-5 py-4">
+      <span className="flex size-8 items-center justify-center rounded-lg bg-primary-soft text-primary">
+        {icon}
+      </span>
+      <div>
+        <h2 className="text-[15px] font-bold">{title}</h2>
+        {sub ? <p className="text-xs text-muted-foreground">{sub}</p> : null}
+      </div>
+    </div>
+  );
+}
 
 export function ReportsHub() {
   const [from, setFrom] = useState(daysAgoUtc(14));
@@ -38,97 +68,226 @@ export function ReportsHub() {
       return { hour, orderCount: row?.orderCount ?? 0, toman: rialToToman(row?.netSales ?? 0) };
     });
   }, [hourly.data]);
-  const max = Math.max(1, ...heat.map((h) => h.toman));
+  const maxToman = Math.max(1, ...heat.map((h) => h.toman));
+
+  const anyLoading = products.isLoading || cats.isLoading || hourly.isLoading || perf.isLoading || staff.isLoading;
+  const totalSales = (products.data ?? []).reduce((s, p) => s + p.netSales, 0);
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-2">
-        <Input type="datetime-local" onChange={(e) => e.target.value && setFrom(new Date(e.target.value).toISOString())} />
-        <Input type="datetime-local" onChange={(e) => e.target.value && setTo(new Date(e.target.value).toISOString())} />
-      </div>
-      <Card className="p-4">
-        <h2 className="mb-3 font-black">ساعات پیک فروش</h2>
-        <div className="grid grid-cols-12 gap-1">
-          {heat.map((h) => (
-            <div key={h.hour} className="text-center">
-              <div
-                className="h-16 rounded-md"
-                style={{ background: `rgba(196,30,58,${0.12 + (h.toman / max) * 0.88})` }}
-                title={`${h.hour}:00 — ${h.toman}`}
-              />
-              <div className="text-[10px]">{h.hour}</div>
-            </div>
-          ))}
+    <div className="space-y-5">
+      <PageHeader
+        title="گزارش‌ها"
+        description="تحلیل فروش بر اساس دوره انتخابی — مقادیر به تومان نمایش داده می‌شوند"
+        actions={
+          <div className="flex gap-1 rounded-xl bg-muted p-1">
+            {PRESETS.map((p) => (
+              <button
+                key={p.days}
+                type="button"
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150",
+                  (from === daysAgoUtc(p.days) ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"),
+                )}
+                onClick={() => {
+                  setFrom(daysAgoUtc(p.days));
+                  setTo(new Date().toISOString());
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        }
+      />
+
+      {/* Range picker */}
+      <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-end">
+        <Field label="از تاریخ" className="w-full sm:max-w-60">
+          <Input type="datetime-local" dir="ltr" className="text-end" value={from.slice(0, 16)} onChange={(e) => e.target.value && setFrom(new Date(e.target.value).toISOString())} />
+        </Field>
+        <Field label="تا تاریخ" className="w-full sm:max-w-60">
+          <Input type="datetime-local" dir="ltr" className="text-end" value={to.slice(0, 16)} onChange={(e) => e.target.value && setTo(new Date(e.target.value).toISOString())} />
+        </Field>
+        <div className="flex items-center gap-2 pb-1 text-[13px] text-muted-foreground sm:ms-auto">
+          <CalendarRange className="size-4" aria-hidden />
+          <span className="tabular-nums">{formatToman(totalSales)} فروش در این بازه</span>
         </div>
       </Card>
+
+      {/* Peak hours */}
+      <Card className="overflow-hidden">
+        {cardTitle(<Clock3 className="size-4" aria-hidden />, "ساعات پیک فروش", "داغی ساعات بر اساس فروش (تومان)")}
+        <div className="p-5">
+          {hourly.isLoading ? (
+            <div className="flex h-32 items-end gap-1">
+              {Array.from({ length: 24 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 flex-1 rounded-md" />
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="flex h-36 items-end gap-1">
+                {heat.map((h) => {
+                  const intensity = h.toman / maxToman;
+                  return (
+                    <div key={h.hour} className="group relative flex h-full flex-1 items-end" title={`${h.hour}:00 — ${h.orderCount} سفارش · ${formatToman(h.toman * 10)}`}>
+                      <div
+                        className="w-full rounded-md bg-primary transition-opacity duration-150 group-hover:opacity-90"
+                        style={{
+                          height: `${Math.max(4, Math.round(intensity * 100))}%`,
+                          opacity: 0.18 + intensity * 0.62,
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-2 flex gap-1">
+                {heat.map((h) => (
+                  <div key={h.hour} className="flex-1 text-center text-[9px] leading-4 text-muted-foreground tabular-nums">
+                    {h.hour % 3 === 0 ? h.hour : ""}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </Card>
+
+      {/* Charts */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="h-80 p-4">
-          <h2 className="mb-2 font-black">توزیع درآمد دسته‌ها</h2>
-          <ResponsiveContainer>
-            <PieChart>
-              <Pie data={cats.data ?? []} dataKey="netSales" nameKey="categoryName" outerRadius={90} label>
-                {(cats.data ?? []).map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(v) => formatToman(Number(v))} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+        <Card className="overflow-hidden">
+          {cardTitle(<TrendingUp className="size-4" aria-hidden />, "توزیع درآمد دسته‌ها")}
+          <div className="h-72 p-4">
+            {(cats.data ?? []).length === 0 ? (
+              <ChartEmpty loading={cats.isLoading} />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={cats.data ?? []} dataKey="netSales" nameKey="categoryName" innerRadius={55} outerRadius={85} paddingAngle={2} stroke="none">
+                    {(cats.data ?? []).map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v) => formatToman(Number(v))} />
+                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
         </Card>
-        <Card className="h-80 p-4">
-          <h2 className="mb-2 font-black">پرفروش در برابر کم‌فروش</h2>
-          <ResponsiveContainer>
-            <BarChart data={perf.data ?? []}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="title" hide />
-              <YAxis />
-              <Tooltip formatter={(v) => formatToman(Number(v))} />
-              <Bar dataKey="netSales">
-                {(perf.data ?? []).map((p, i) => (
-                  <Cell key={i} fill={p.band === "Star" ? "#059669" : p.band === "Underperforming" ? "#C41E3A" : "#D97706"} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+
+        <Card className="overflow-hidden">
+          {cardTitle(<Crown className="size-4" aria-hidden />, "پرفروش در برابر کم‌فروش")}
+          <div className="h-72 p-4">
+            {(perf.data ?? []).length === 0 ? (
+              <ChartEmpty loading={perf.isLoading} />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={perf.data ?? []} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e9edf2" />
+                  <XAxis dataKey="title" hide />
+                  <YAxis tickLine={false} axisLine={false} width={44} tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v) => formatToman(Number(v))} cursor={{ fill: "#f0f2f5" }} />
+                  <Bar dataKey="netSales" radius={[6, 6, 0, 0]}>
+                    {(perf.data ?? []).map((p, i) => (
+                      <Cell key={i} fill={BAND_COLOR[p.band] ?? COLORS[i % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
         </Card>
       </div>
-      <Card className="p-4">
-        <h2 className="mb-3 font-black">ممیزی عملکرد صندوق‌دار</h2>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-right text-muted-foreground">
-              <th className="p-2">پرسنل</th>
-              <th>تعداد سفارش</th>
-              <th>فروش</th>
-              <th>میانگین فاکتور</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(staff.data ?? []).map((s) => (
-              <tr key={s.staffId} className="border-t">
-                <td className="p-2 font-bold">{s.staffName}</td>
-                <td>{s.orderCount}</td>
-                <td>{formatToman(s.netSales)}</td>
-                <td>{formatToman(s.averageTicket)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
-      <Card className="p-4">
-        <h2 className="mb-3 font-black">فروش کالا</h2>
-        <ul className="space-y-1 text-sm">
-          {(products.data ?? []).map((p) => (
-            <li key={p.menuItemId} className="flex justify-between border-b py-2">
-              <span>
-                {p.title} · {p.categoryName} · {p.quantity} عدد
-              </span>
-              <span className="font-bold">{formatToman(p.netSales)}</span>
-            </li>
-          ))}
-        </ul>
-      </Card>
+
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        {/* Staff audit */}
+        <Card className="overflow-hidden">
+          {cardTitle(<Users className="size-4" aria-hidden />, "ممیزی عملکرد صندوق‌دار")}
+          {anyLoading ? (
+            <div className="space-y-3 p-5">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+            </div>
+          ) : (staff.data ?? []).length === 0 ? (
+            <div className="p-5">
+              <EmptyState compact icon={Users} title="داده‌ای در این بازه نیست" description="بازه زمانی دیگری انتخاب کنید" />
+            </div>
+          ) : (
+            <ul className="divide-y divide-border/70">
+              {(staff.data ?? []).map((s) => (
+                <li key={s.staffId} className="flex items-center gap-3 px-5 py-3">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-muted-foreground tabular-nums">
+                    {String(s.staffName?.trim().charAt(0) ?? "؟")}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold">{s.staffName}</div>
+                    <div className="text-[11px] text-muted-foreground tabular-nums">{s.orderCount} سفارش</div>
+                  </div>
+                  <div className="text-end">
+                    <div className="text-sm font-bold tabular-nums">{formatToman(s.netSales)}</div>
+                    <div className="text-[11px] text-muted-foreground tabular-nums">
+                      میانگین {formatToman(s.averageTicket)}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        {/* Top products */}
+        <Card className="overflow-hidden">
+          {cardTitle(<ListOrdered className="size-4" aria-hidden />, "فروش کالا")}
+          {products.isLoading ? (
+            <div className="space-y-3 p-5">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+            </div>
+          ) : (products.data ?? []).length === 0 ? (
+            <div className="p-5">
+              <EmptyState compact icon={ListOrdered} title="فروشی ثبت نشده" description="در این بازه فروشی وجود ندارد" />
+            </div>
+          ) : (
+            <ul className="divide-y divide-border/70">
+              {(products.data ?? [])
+                .slice()
+                .sort((a, b) => b.netSales - a.netSales)
+                .slice(0, 10)
+                .map((p, i) => (
+                  <li key={p.menuItemId} className="flex items-center gap-3 px-5 py-2.5">
+                    <span className={cn("w-5 text-center text-xs font-black tabular-nums", i === 0 ? "text-warning" : "text-muted-foreground")}>
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium">{p.title}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {p.categoryName} · {p.quantity} عدد
+                      </div>
+                    </div>
+                    <span className="text-[13px] font-bold tabular-nums">{formatToman(p.netSales)}</span>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function ChartEmpty({ loading }: { loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Skeleton className="h-40 w-40 rounded-full" />
+      </div>
+    );
+  }
+  return (
+    <div className="flex h-full items-center justify-center text-[13px] text-muted-foreground">
+      داده‌ای برای نمایش نیست
     </div>
   );
 }

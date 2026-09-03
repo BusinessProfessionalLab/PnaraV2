@@ -1,6 +1,9 @@
-export function hexToHsl(hex: string) {
+export function hexToHslChannels(hex: string) {
   const raw = hex.replace("#", "");
-  const bigint = parseInt(raw.length === 3 ? raw.split("").map((c) => c + c).join("") : raw, 16);
+  const bigint = parseInt(
+    raw.length === 3 ? raw.split("").map((c) => c + c).join("") : raw,
+    16,
+  );
   const r = ((bigint >> 16) & 255) / 255;
   const g = ((bigint >> 8) & 255) / 255;
   const b = (bigint & 255) / 255;
@@ -24,15 +27,24 @@ export function hexToHsl(hex: string) {
     }
     h /= 6;
   }
-  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 
-export function applyTheme(primary: string, secondary: string) {
+/**
+ * Applies the store brand color. The neutral system is static; only the
+ * accent channels are written so `--color-primary*` tokens resolve at runtime.
+ */
+export function applyTheme(primary: string) {
   if (typeof document === "undefined") return;
+  const { h, s, l } = hexToHslChannels(primary || "#C41E3A");
   const root = document.documentElement;
-  root.style.setProperty("--primary", hexToHsl(primary || "#C41E3A"));
-  root.style.setProperty("--secondary", hexToHsl(secondary || "#1F2937"));
-  root.style.setProperty("--ring", hexToHsl(primary || "#C41E3A"));
+  root.style.setProperty("--ph", String(h));
+  root.style.setProperty("--ps", `${s}%`);
+  root.style.setProperty("--pl", `${l}%`);
+  // Clean up legacy variables so nothing stale overrides the new layer.
+  root.style.removeProperty("--primary");
+  root.style.removeProperty("--secondary");
+  root.style.removeProperty("--ring");
 }
 
 export function playAlert(kind: "new" | "ready" | "error" = "new") {

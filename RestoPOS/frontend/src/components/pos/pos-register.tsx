@@ -7,8 +7,12 @@ import {
   CreditCard,
   LayoutGrid,
   LogOut,
+  Minus,
+  MonitorSmartphone,
+  Plus,
   Search,
   Settings2,
+  ShoppingBasket,
   Trash2,
   UtensilsCrossed,
   Wifi,
@@ -19,7 +23,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Badge, Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -28,13 +33,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth-store";
 import { useCartStore } from "@/lib/cart-store";
 import { formatToman } from "@/lib/currency";
 import { toShamsiClock, toShamsiDate, weekdayFa } from "@/lib/jalali";
 import { syncCartToServer } from "@/lib/sync-cart";
-import type { CustomerDto, MenuItemDto } from "@/lib/types";
+import type { MenuItemDto } from "@/lib/types";
 import { fuzzyScore } from "@/lib/fuzzy-search";
 import { CheckoutModal } from "./checkout-modal";
 import { ModifierDrawer } from "./modifier-drawer";
@@ -196,154 +201,213 @@ export function PosRegister() {
   }
 
   return (
-    <div className="flex h-dvh flex-col bg-[hsl(30_20%_94%)]">
-      <header className="flex items-center gap-3 border-b bg-secondary px-4 py-2 text-secondary-foreground">
-        <div className="flex items-center gap-2">
-          <UtensilsCrossed className="h-5 w-5 text-primary" strokeWidth={2} />
-          <div>
-            <div className="text-sm font-black">
+    <div className="flex h-dvh flex-col overflow-hidden bg-background">
+      {/* ── Top bar ─────────────────────────────────────────────── */}
+      <header className="z-20 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-card px-3 sm:px-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
+            <UtensilsCrossed className="size-[18px]" strokeWidth={2} aria-hidden />
+          </div>
+          <div className="hidden min-w-0 sm:block">
+            <div className="truncate text-sm font-bold leading-5">
               {settings.data?.storeName ?? "ToastIran POS"}
             </div>
-            <div className="text-[11px] opacity-70">
+            <div className="text-[11px] text-muted-foreground">
               صندوق · {session?.fullName}
             </div>
           </div>
         </div>
-        <Select
-          value={cart.orderType}
-          onValueChange={(v) =>
-            cart.setMeta({
-              orderType: v as typeof cart.orderType,
-              ...(v === "DineIn" ? {} : { tableNumber: "" }),
-            })
-          }
-        >
-          <SelectTrigger className="h-10 w-36 bg-white/10 text-white">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="DineIn">حضوری</SelectItem>
-            <SelectItem value="Takeaway">بیرون‌بر</SelectItem>
-            <SelectItem value="Bar">سالن</SelectItem>
-          </SelectContent>
-        </Select>
-        <Input
-          placeholder="شماره میز"
-          className={`h-10 w-28 bg-white/10 text-white placeholder:text-white/60 ${cart.orderType === "Bar" ? "" : "hidden"}`}
-          value={cart.tableNumber}
-          onChange={(e) => cart.setMeta({ tableNumber: e.target.value })}
-        />
-        <div className="ms-auto flex items-center gap-3 text-center">
-          <div>
-            <div className="font-mono text-lg font-black leading-none">
+
+        <div className="flex items-center gap-2">
+          <Select
+            value={cart.orderType}
+            onValueChange={(v) =>
+              cart.setMeta({
+                orderType: v as typeof cart.orderType,
+                ...(v === "DineIn" ? {} : { tableNumber: "" }),
+              })
+            }
+          >
+            <SelectTrigger aria-label="نوع سفارش" className="h-9 w-auto min-w-[6.5rem]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="DineIn">حضوری</SelectItem>
+              <SelectItem value="Takeaway">بیرون‌بر</SelectItem>
+              <SelectItem value="Bar">سالن</SelectItem>
+            </SelectContent>
+          </Select>
+          {cart.orderType !== "DineIn" ? (
+            <Input
+              aria-label="شماره میز"
+              placeholder="میز"
+              inputMode="numeric"
+              className="h-9 w-20 text-center"
+              value={cart.tableNumber}
+              onChange={(e) => cart.setMeta({ tableNumber: e.target.value })}
+            />
+          ) : null}
+        </div>
+
+        <div className="ms-auto flex items-center gap-1.5 sm:gap-2">
+          <div className="hidden text-center md:block">
+            <div className="font-mono text-base font-bold leading-5 tabular-nums">
               {toShamsiClock(clock)}
             </div>
-            <div className="text-[11px] opacity-70">
+            <div className="text-[10px] text-muted-foreground">
               {weekdayFa(clock)} {toShamsiDate(clock)}
             </div>
           </div>
           <Badge
             variant={health.isSuccess ? "success" : "danger"}
-            className="gap-1"
+            className="hidden sm:inline-flex"
           >
             {health.isSuccess ? (
-              <Wifi className="h-3 w-3" />
+              <Wifi className="size-3" aria-hidden />
             ) : (
-              <WifiOff className="h-3 w-3" />
+              <WifiOff className="size-3" aria-hidden />
             )}
-            {health.isSuccess ? "POS آنلاین" : "قطع ارتباط"}
+            {health.isSuccess ? "آنلاین" : "قطع ارتباط"}
           </Badge>
-          <Badge variant={shift.data ? "success" : "warning"}>
+          <Badge variant={shift.data ? "neutral" : "warning"} className="hidden md:inline-flex">
             {shift.data ? "شیفت باز" : "بدون شیفت"}
           </Badge>
-          <Link href="/kds">
-            <Button size="sm" variant="ghost" className="text-white">
-              نمایشگر بار
+          <Link href="/kds" className="hidden lg:block">
+            <Button size="sm" variant="ghost" className="text-muted-foreground">
+              <MonitorSmartphone className="size-4" aria-hidden />
+              نمایشگر
             </Button>
           </Link>
-          <Link href="/admin">
+          <Link href="/admin" className="hidden md:block">
             <Button
-              size="icon"
+              size="icon-sm"
               variant="ghost"
-              className="text-white"
+              className="text-muted-foreground"
               aria-label="پنل مدیریت"
             >
-              <Settings2 className="h-4 w-4" />
+              <Settings2 className="size-4" aria-hidden />
             </Button>
           </Link>
           <Button
-            size="icon"
+            size="icon-sm"
             variant="ghost"
-            className="text-white"
+            className="text-muted-foreground"
             aria-label="خروج"
             onClick={() => {
               logout();
               router.push("/login");
             }}
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="size-4" aria-hidden />
           </Button>
         </div>
       </header>
 
+      {/* ── Workspace: catalog + cart ───────────────────────────── */}
       <div className="flex min-h-0 flex-1" dir="ltr">
-        <section className="flex min-w-0 flex-1 flex-col p-3" dir="rtl">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pr-9"
-                placeholder="جستجو بر اساس نام، دسته یا SKU مواد..."
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-            </div>
+        {/* Catalog */}
+        <section className="flex min-w-0 flex-1 flex-col gap-3 p-3 sm:p-4" dir="rtl">
+          <div className="relative">
+            <Search
+              className="absolute start-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
+            <Input
+              className="h-11 ps-10 pe-10"
+              placeholder="جستجو بر اساس نام، دسته یا SKU مواد…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+            {q ? (
+              <button
+                type="button"
+                aria-label="پاک کردن جستجو"
+                onClick={() => setQ("")}
+                className="absolute end-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <span aria-hidden className="text-lg leading-none">×</span>
+              </button>
+            ) : null}
           </div>
-          <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+
+          {/* Category rail */}
+          <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5">
             <button
+              type="button"
               onClick={() => setCategoryId("all")}
-              className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold ${categoryId === "all" ? "bg-primary text-white" : "bg-card"}`}
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors duration-150 ${
+                categoryId === "all"
+                  ? "border-transparent bg-primary text-primary-foreground shadow-xs"
+                  : "border-border bg-card text-muted-foreground hover:border-border-strong hover:text-foreground"
+              }`}
             >
               همه
+              <span
+                className={`rounded-full px-1.5 py-px text-[10px] font-bold ${
+                  categoryId === "all"
+                    ? "bg-white/20 text-white"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {filtered.length}
+              </span>
             </button>
             {(categories.data ?? [])
               .filter((c) => !c.isSystem)
               .slice()
               .sort((a, b) => a.displayPriority - b.displayPriority)
-              .map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => setCategoryId(c.id)}
-                  className={`flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold ${categoryId === c.id ? "bg-primary text-white" : "bg-card"}`}
-                >
-                  {c.name}
-                  <span className="rounded-full bg-black/10 px-2 text-[11px]">
-                    {c.displayPriority}
-                  </span>
-                </button>
-              ))}
+              .map((c) => {
+                const active = categoryId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setCategoryId(c.id)}
+                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-[13px] font-semibold transition-colors duration-150 ${
+                      active
+                        ? "border-transparent bg-primary text-primary-foreground shadow-xs"
+                        : "border-border bg-card text-muted-foreground hover:border-border-strong hover:text-foreground"
+                    }`}
+                  >
+                    {c.name}
+                    <span
+                      className={`rounded-full px-1.5 py-px text-[10px] font-bold ${
+                        active ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {categoryCounts.get(c.id) ?? 0}
+                    </span>
+                  </button>
+                );
+              })}
           </div>
-          <div className="pos-scroll grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-y-auto md:grid-cols-3 2xl:grid-cols-4">
+
+          {/* Product grid */}
+          <div className="pos-scroll grid min-h-0 flex-1 auto-rows-min grid-cols-2 content-start gap-3 overflow-y-auto pb-1 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {menu.isLoading &&
-              Array.from({ length: 8 }).map((_, i) => (
+              Array.from({ length: 10 }).map((_, i) => (
                 <div
                   key={i}
-                  className="flex min-h-[180px] flex-col overflow-hidden rounded-2xl border bg-card"
+                  className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card"
                 >
-                  <Skeleton className="h-28 w-full flex-shrink-0 rounded-none" />
-                  <div className="space-y-2 p-3">
+                  <Skeleton className="h-28 w-full flex-shrink-0 rounded-none border-b-0" />
+                  <div className="flex flex-1 flex-col justify-between gap-2 p-3">
                     <Skeleton className="h-4 w-2/3" />
                     <Skeleton className="h-3 w-1/3" />
                   </div>
                 </div>
               ))}
             {!menu.isLoading && filtered.length === 0 && (
-              <div className="col-span-full flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
-                <Coffee className="size-10 opacity-40" />
-                <p className="text-sm font-semibold">آیتمی یافت نشد</p>
-                <p className="text-xs">
-                  فیلتر جستجو یا دسته‌بندی را تغییر دهید
-                </p>
+              <div className="col-span-full flex flex-col items-center justify-center gap-3 py-16">
+                <div className="flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+                  <Coffee className="size-5" strokeWidth={1.75} aria-hidden />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-semibold">آیتمی یافت نشد</p>
+                  <p className="mt-1 text-[13px] text-muted-foreground">
+                    عبارت جستجو یا دسته‌بندی را تغییر دهید
+                  </p>
+                </div>
               </div>
             )}
             {filtered.map((item) => {
@@ -360,25 +424,30 @@ export function PosRegister() {
               return (
                 <motion.button
                   key={item.id}
-                  whileTap={{ scale: 0.96 }}
+                  type="button"
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => {
                     setRightPanelTab("cart");
                     setEditingLineIndex(null);
                     cart.addLine(item, 1, []);
                   }}
-                  className="flex h-[220px] hover:cursor-pointer flex-col overflow-hidden rounded-2xl border bg-card text-right shadow-sm"
+                  className="group flex h-full min-h-[13rem] cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-card text-start shadow-xs transition-[border-color,box-shadow] duration-150 hover:border-border-strong hover:shadow-card-hover"
                 >
-                  <div className="relative h-28 flex-shrink-0 bg-muted">
+                  <div className="relative h-28 flex-shrink-0 bg-muted/70">
                     {item.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={item.imageUrl}
                         alt={item.title}
-                        className="h-full w-full object-cover outline outline-1 outline-black/10"
+                        className="h-full w-full object-cover"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center">
-                        <Coffee className="size-10 text-muted-foreground" />
+                        <Coffee
+                          className="size-9 text-muted-foreground/60"
+                          strokeWidth={1.4}
+                          aria-hidden
+                        />
                       </div>
                     )}
                     <Badge
@@ -389,7 +458,7 @@ export function PosRegister() {
                             ? "warning"
                             : "danger"
                       }
-                      className="absolute left-2 top-2"
+                      className="absolute end-2 top-2 backdrop-blur-sm"
                     >
                       {stock === "ok"
                         ? "موجود"
@@ -398,29 +467,29 @@ export function PosRegister() {
                           : "ناموجود"}
                     </Badge>
                   </div>
-                  <div className="flex flex-1 flex-col justify-between p-3">
-                    <div className="font-bold">{item.title}</div>
+                  <div className="flex flex-1 flex-col justify-between gap-1.5 p-3">
+                    <div className="text-sm font-bold leading-5">{item.title}</div>
                     {discountPercent > 0 ? (
-                      <div className="mt-1 space-y-0.5">
+                      <div className="space-y-1">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs text-muted-foreground line-through">
+                          <span className="text-[11px] text-muted-foreground line-through">
                             {formatToman(item.basePrice)}
                           </span>
-                          <Badge variant="danger" className="text-[10px]">
-                            {discountPercent}٪ تخفیف
+                          <Badge variant="danger" className="px-1.5 py-0.5 text-[10px]">
+                            {discountPercent}٪
                           </Badge>
                         </div>
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-black text-primary">
+                          <span className="text-[13px] font-bold text-primary">
                             {formatToman(discountedPrice)}
                           </span>
-                          <span className="text-[11px] text-emerald-700">
+                          <span className="text-[10px] text-success">
                             {formatToman(discountAmount)} صرفه‌جویی
                           </span>
                         </div>
                       </div>
                     ) : (
-                      <div className="text-sm text-primary">
+                      <div className="text-[13px] font-bold text-primary">
                         {formatToman(item.basePrice)}
                       </div>
                     )}
@@ -431,80 +500,61 @@ export function PosRegister() {
           </div>
         </section>
 
+        {/* Cart column */}
         <aside
-          className="flex w-[380px] shrink-0 flex-col border-s bg-pos-ticket"
+          className="flex w-[21.5rem] shrink-0 flex-col border-s border-border bg-card max-md:w-[19rem]"
           dir="rtl"
         >
-          <div className="border-b p-4">
+          <div className="shrink-0 space-y-3 border-b border-border p-3">
             <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
               <button
                 type="button"
-                className={`rounded-lg hover:cursor-pointer px-2 py-2 text-sm font-black transition-colors ${
+                className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[13px] font-semibold transition-all duration-150 ${
                   rightPanelTab === "cart"
-                    ? "bg-white text-primary shadow-sm"
+                    ? "bg-card text-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 onClick={() => setRightPanelTab("cart")}
               >
-                صورت حساب زنده
+                <ShoppingBasket className="size-4" aria-hidden />
+                صورت حساب
               </button>
               <button
                 type="button"
-                className={`flex hover:cursor-pointer items-center justify-center gap-2 rounded-lg px-2 py-2 text-sm font-black transition-colors ${
+                className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[13px] font-semibold transition-all duration-150 ${
                   rightPanelTab === "drafts"
-                    ? "bg-white text-primary shadow-sm"
+                    ? "bg-card text-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 onClick={() => setRightPanelTab("drafts")}
               >
-                <span>در انتظار پرداخت</span>
-                <Badge variant="warning">
+                در انتظار پرداخت
+                <span
+                  className={`rounded-full px-1.5 text-[10px] font-bold ${
+                    rightPanelTab === "drafts"
+                      ? "bg-primary-soft text-primary"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
                   {pendingOrders.data?.length ?? 0}
-                </Badge>
+                </span>
               </button>
             </div>
-            <div
-              className={
-                rightPanelTab === "cart"
-                  ? "mt-3 flex items-center justify-between"
-                  : "hidden"
-              }
-            >
-              <h2 className="font-black">صورت حساب زنده</h2>
-              {cart.serverOrderNumber ? (
-                <Badge>{cart.serverOrderNumber}</Badge>
-              ) : (
-                <Badge variant="outline">محلی</Badge>
-              )}
-            </div>
-            <Input
-              className="hidden"
-              placeholder="موبایل مشتری ۰۹۱۲..."
-              value={cart.customerPhone}
-              onChange={(e) =>
-                cart.setMeta({
-                  customerPhone: e.target.value.replace(/\D/g, "").slice(0, 11),
-                })
-              }
-            />
-            {null}
+            {rightPanelTab === "cart" ? (
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold">صورت حساب زنده</h2>
+                {cart.serverOrderNumber ? (
+                  <Badge variant="neutral">{cart.serverOrderNumber}</Badge>
+                ) : (
+                  <Badge variant="outline">فاکتور محلی</Badge>
+                )}
+              </div>
+            ) : null}
           </div>
-          <div
-            className={
-              rightPanelTab === "drafts"
-                ? "mt-3 flex min-h-0 flex-1 flex-col rounded-2xl bg-white/80 ring-1 ring-black/[0.04] backdrop-blur-sm p-3"
-                : "hidden"
-            }
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-bold tracking-tight">
-                سفارش‌های در انتظار پرداخت
-              </h3>
-              <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-slate-100 px-1.5 text-[11px] font-bold text-slate-600">
-                {pendingOrders.data?.length ?? 0}
-              </span>
-            </div>
-            <div className="pos-scroll flex-1 space-y-2 overflow-y-auto px-1 py-1">
+
+          {/* Pending-payment drafts */}
+          {rightPanelTab === "drafts" ? (
+            <div className="pos-scroll flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">
               {(pendingOrders.data ?? []).map((draft, i) => {
                 const isActive = cart.serverOrderId === draft.id;
                 const orderTypeLabel =
@@ -512,254 +562,251 @@ export function PosRegister() {
                     ? "حضوری"
                     : draft.orderType === "Takeaway"
                       ? "بیرون‌بر"
-                      : "بار";
+                      : "سالن";
                 return (
                   <button
                     key={draft.id}
-                    style={{ transitionDelay: `${i * 30}ms` }}
-                    className={[
-                      "hover:cursor-pointer",
-                      "group w-full rounded-2xl bg-white px-3.5 py-3 text-right",
-                      "shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)]",
-                      "transition-[box-shadow,background-color,transform] duration-150 ease-[cubic-bezier(0.2,0,0,1)]",
-                      "hover:shadow-[0_2px_8px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.04)]",
-                      "active:scale-[0.97] active:shadow-[0_0_0_rgba(0,0,0,0)]",
+                    type="button"
+                    style={{ transitionDelay: `${i * 25}ms` }}
+                    className={`animate-fade-in group w-full cursor-pointer rounded-xl border p-3 text-start transition-[border-color,background-color,transform] duration-150 active:scale-[0.99] ${
                       isActive
-                        ? "ring-2 ring-primary bg-primary/10 shadow-[0_1px_3px_rgba(196,30,58,0.12),0_0_0_1px_rgba(196,30,58,0.08)]"
-                        : "ring-1 ring-black/[0.06] hover:ring-black/[0.10]",
-                    ].join(" ")}
+                        ? "border-primary/40 bg-primary-soft/60"
+                        : "border-border bg-card hover:border-border-strong"
+                    }`}
                     onClick={() => loadDraftMut.mutate(draft.id)}
                     disabled={loadDraftMut.isPending}
                   >
-                    {/* Row 1: order number + price badge */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="inline-flex size-6 items-center justify-center rounded-lg bg-slate-100 text-[10px] font-bold text-slate-500 transition-colors duration-150 group-hover:bg-primary/10 group-hover:text-primary">
+                        <span
+                          className={`flex size-6 items-center justify-center rounded-lg text-[10px] font-bold transition-colors ${
+                            isActive
+                              ? "bg-primary text-white"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
                           {i + 1}
                         </span>
-                        <span className="text-[13px] font-bold text-slate-800">
-                          سفارش {draft.orderNumber}
-                        </span>
+                        <span className="text-[13px] font-bold">سفارش {draft.orderNumber}</span>
                       </div>
-                      <span className="rounded-lg bg-slate-900 px-2.5 py-1 text-xs font-bold text-white tabular-nums">
+                      <span className="rounded-lg bg-foreground px-2 py-1 text-xs font-bold text-background tabular-nums">
                         {formatToman(draft.grandTotal)}
                       </span>
                     </div>
-
-                    {/* Row 2: meta tags */}
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                      <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                      <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                         {orderTypeLabel}
                       </span>
                       {draft.tableNumber ? (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                        <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                           میز {draft.tableNumber}
                         </span>
                       ) : null}
-                      <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                      <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                         {draft.items.length} آیتم
                       </span>
                       {draft.customerPhone ? (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                        <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                           {draft.customerPhone}
                         </span>
                       ) : null}
                     </div>
-
-                    {/* Row 3: items preview */}
                     {(draft.items.length > 0 || draft.notes) && (
-                      <div className="mt-2 border-t border-slate-100 pt-2">
-                        <p className="truncate text-[11px] leading-relaxed text-slate-400">
-                          {draft.items
-                            .slice(0, 2)
-                            .map((item) => `${item.title} × ${item.quantity}`)
-                            .join(" · ")}
-                          {draft.items.length > 2 ? " · …" : ""}
-                          {draft.notes ? (
-                            <span className="text-slate-300">
-                              {" "}
-                              · {draft.notes}
-                            </span>
-                          ) : null}
-                        </p>
-                      </div>
+                      <p className="mt-2 truncate border-t border-border/70 pt-2 text-[11px] leading-5 text-muted-foreground">
+                        {draft.items
+                          .slice(0, 2)
+                          .map((item) => `${item.title} × ${item.quantity}`)
+                          .join(" · ")}
+                        {draft.items.length > 2 ? " · …" : ""}
+                        {draft.notes ? ` · ${draft.notes}` : ""}
+                      </p>
                     )}
                   </button>
                 );
               })}
               {!pendingOrders.data?.length ? (
-                <div className="flex flex-col items-center justify-center gap-2 py-8">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-slate-100">
-                    <svg
-                      className="size-5 text-slate-300"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M12 6v6l4 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+                <div className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-center">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground/60">
+                    <LayoutGrid className="size-4" aria-hidden />
                   </div>
-                  <p className="text-[11px] font-medium text-slate-400">
-                    سفارشی در انتظار پرداخت وجود ندارد
+                  <p className="text-[13px] font-medium text-muted-foreground">
+                    سفارشی در انتظار پرداخت نیست
                   </p>
                 </div>
               ) : null}
             </div>
-          </div>
-          <div
-            className={`pos-scroll flex-1 space-y-2 overflow-y-auto p-3 ${rightPanelTab === "cart" ? "" : "hidden"}`}
-          >
-            {cart.lines.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
-                <LayoutGrid className="size-10 opacity-40" />
-                <div className="text-center">
-                  <p className="text-sm font-semibold">سبد خرید خالی است</p>
-                  <p className="mt-1 text-xs text-pretty">
-                    از فهرست محصولات سمت چپ آیتم انتخاب کنید
-                  </p>
+          ) : null}
+
+          {/* Cart lines */}
+          {rightPanelTab === "cart" ? (
+            <div className="pos-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+              {cart.lines.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-center">
+                  <div className="flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground/60">
+                    <ShoppingBasket className="size-5" strokeWidth={1.75} aria-hidden />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">سبد خالی است</p>
+                    <p className="mt-1 max-w-[16rem] text-[13px] leading-5 text-muted-foreground text-pretty">
+                      برای شروع، یک آیتم از فهرست سمت راست انتخاب کنید
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              cart.lines.map((line, lineIndex) => (
-                <div
-                  key={`${line.menuItemId}-${lineIndex}`}
-                  className="cursor-pointer rounded-2xl border bg-white p-3 transition-colors hover:border-primary"
-                  onClick={() => {
-                    const menuItem = (menu.data ?? []).find(
-                      (item) => item.id === line.menuItemId,
-                    );
-                    if (!menuItem) return;
-                    setEditingLineIndex(lineIndex);
-                    setPicked(menuItem);
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-bold">{line.title}</div>
-                      <div className="flex flex-wrap gap-1 pt-1">
-                        {line.modifiers.map((m) => (
-                          <Badge key={m.id} variant="outline">
-                            {m.name}
-                          </Badge>
-                        ))}
+              ) : (
+                cart.lines.map((line, lineIndex) => (
+                  <div
+                    key={`${line.menuItemId}-${lineIndex}`}
+                    className="cursor-pointer rounded-xl border border-border bg-card p-3 transition-colors duration-150 hover:border-border-strong"
+                    onClick={() => {
+                      const menuItem = (menu.data ?? []).find(
+                        (item) => item.id === line.menuItemId,
+                      );
+                      if (!menuItem) return;
+                      setEditingLineIndex(lineIndex);
+                      setPicked(menuItem);
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-bold leading-5">{line.title}</div>
+                        {line.modifiers.length > 0 ? (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {line.modifiers.map((m) => (
+                              <Badge key={m.id} variant="neutral">
+                                {m.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : null}
                       </div>
-                    </div>
-                    <button
-                      className="hover:bg-gray-200/50 rounded-2xl p-2"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        cart.removeLine(lineIndex);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 hover:cursor-pointer  text-destructive" />
-                    </button>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="size-12 rounded-full border-2 text-lg"
-                        aria-label="کاهش تعداد"
+                      <button
+                        type="button"
+                        className="rounded-lg p-1.5 text-muted-foreground outline-none transition-colors duration-150 hover:bg-danger/10 hover:text-danger"
+                        aria-label={`حذف ${line.title}`}
                         onClick={(event) => {
                           event.stopPropagation();
-                          cart.updateQty(lineIndex, line.quantity - 1);
+                          cart.removeLine(lineIndex);
                         }}
                       >
-                        −
-                      </Button>
-                      <span className="w-10 text-center text-2xl font-black tabular-nums">
-                        {line.quantity}
+                        <Trash2 className="size-4" aria-hidden />
+                      </button>
+                    </div>
+                    <div className="mt-2.5 flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          aria-label="کاهش تعداد"
+                          className="flex size-8 items-center justify-center rounded-full border border-border text-muted-foreground outline-none transition-colors duration-150 hover:border-border-strong hover:bg-muted hover:text-foreground"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            cart.updateQty(lineIndex, line.quantity - 1);
+                          }}
+                        >
+                          <Minus className="size-3.5" aria-hidden />
+                        </button>
+                        <span className="w-8 text-center text-base font-bold tabular-nums">
+                          {line.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label="افزایش تعداد"
+                          className="flex size-8 items-center justify-center rounded-full border border-border text-muted-foreground outline-none transition-colors duration-150 hover:border-border-strong hover:bg-muted hover:text-foreground"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            cart.updateQty(lineIndex, line.quantity + 1);
+                          }}
+                        >
+                          <Plus className="size-3.5" aria-hidden />
+                        </button>
+                      </div>
+                      <span className="text-sm font-bold tabular-nums">
+                        {formatToman(
+                          line.unitPrice * line.quantity +
+                            line.modifiers.reduce(
+                              (s, m) => s + m.extraPrice * m.quantity,
+                              0,
+                            ) *
+                              line.quantity,
+                        )}
                       </span>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="size-12 rounded-full border-2 text-lg"
-                        aria-label="افزایش تعداد"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          cart.updateQty(lineIndex, line.quantity + 1);
-                        }}
-                      >
-                        +
-                      </Button>
                     </div>
-                    <span className="text-lg font-black tabular-nums">
-                      {formatToman(
-                        line.unitPrice * line.quantity +
-                          line.modifiers.reduce(
-                            (s, m) => s + m.extraPrice * m.quantity,
-                            0,
-                          ) *
-                            line.quantity,
-                      )}
-                    </span>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-          <div
-            className={`space-y-2 border-t bg-white p-4 [&>div:nth-child(2)]:hidden ${rightPanelTab === "cart" ? "" : "hidden"}`}
-          >
-            <Tot
-              k={`جمع جزء (${cart.discountPercent}٪ تخفیف)`}
-              v={formatToman(totals.subtotal)}
-            />
-            <Tot k="افزودنی" v={formatToman(totals.modifiersTotal)} />
-            <div className="hidden">
-              <Input
-                type="number"
-                placeholder="% تخفیف"
+                ))
+              )}
+            </div>
+          ) : null}
+
+          {/* Totals + actions */}
+          {rightPanelTab === "cart" ? (
+            <div className="shrink-0 space-y-1.5 border-t border-border bg-card p-3">
+              <input type="hidden" value={cart.customerPhone} readOnly />
+              <input
+                type="hidden"
                 value={cart.discountPercent || ""}
                 onChange={(e) =>
                   cart.setMeta({ discountPercent: Number(e.target.value) || 0 })
                 }
               />
-              <Input
-                type="number"
-                placeholder="مبلغ تخفیف (ریال)"
+              <input
+                type="hidden"
                 value={cart.discountAmount || ""}
                 onChange={(e) =>
                   cart.setMeta({ discountAmount: Number(e.target.value) || 0 })
                 }
               />
-            </div>
-            <Tot
-              k={`ارزش افزوده (${Math.round(cart.vatRate * 100)}٪)`}
-              v={formatToman(totals.taxAmount)}
-            />
-            <Tot k="قابل پرداخت" v={formatToman(totals.grandTotal)} big />
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              <Button
-                variant="outline"
-                disabled={
-                  !cart.lines.length ||
-                  draftMut.isPending ||
-                  sendMut.isPending ||
-                  discardMut.isPending
-                }
-                onClick={() => draftMut.mutate()}
-              >
-                ثبت موقت
-              </Button>
-              <Button
-                variant="destructive"
-                disabled={
-                  (!cart.lines.length && !cart.serverOrderId) ||
-                  draftMut.isPending ||
-                  sendMut.isPending ||
-                  discardMut.isPending
-                }
-                onClick={() => discardMut.mutate()}
-              >
-                حذف نیمه‌کاره
-              </Button>
+              <TotRow
+                k={`جمع جزء${cart.discountPercent ? ` (${cart.discountPercent}٪ تخفیف)` : ""}`}
+                v={formatToman(totals.subtotal)}
+              />
+              <TotRow
+                k={`ارزش افزوده (${Math.round(cart.vatRate * 100)}٪)`}
+                v={formatToman(totals.taxAmount)}
+              />
+              <div className="flex items-center justify-between border-t border-border/70 pt-2">
+                <span className="text-base font-bold">قابل پرداخت</span>
+                <span className="text-lg font-black text-primary tabular-nums">
+                  {formatToman(totals.grandTotal)}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-11"
+                  disabled={
+                    !cart.lines.length ||
+                    draftMut.isPending ||
+                    sendMut.isPending ||
+                    discardMut.isPending
+                  }
+                  onClick={() => draftMut.mutate()}
+                >
+                  ثبت موقت
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-11 text-danger hover:bg-danger/10 hover:text-danger"
+                  disabled={
+                    (!cart.lines.length && !cart.serverOrderId) ||
+                    draftMut.isPending ||
+                    sendMut.isPending ||
+                    discardMut.isPending
+                  }
+                  onClick={() => discardMut.mutate()}
+                >
+                  حذف نیمه‌کاره
+                </Button>
+                <Button
+                  className="col-span-2 h-12"
+                  size="lg"
+                  disabled={!cart.lines.length}
+                  onClick={() => setCheckout(true)}
+                >
+                  <CreditCard className="size-5" aria-hidden />
+                  تسویه و پرداخت
+                </Button>
+              </div>
               <Button
                 className="hidden"
                 variant="secondary"
@@ -773,16 +820,8 @@ export function PosRegister() {
               >
                 ارسال به بار/آشپزخانه
               </Button>
-              <Button
-                className="col-span-2"
-                disabled={!cart.lines.length}
-                onClick={() => setCheckout(true)}
-              >
-                <CreditCard className="h-4 w-4" />
-                تسویه و پرداخت
-              </Button>
             </div>
-          </div>
+          ) : null}
         </aside>
       </div>
 
@@ -820,43 +859,11 @@ export function PosRegister() {
   );
 }
 
-function Tot({ k, v, big }: { k: string; v: string; big?: boolean }) {
+function TotRow({ k, v }: { k: string; v: string }) {
   return (
-    <div
-      className={`flex justify-between ${big ? "text-lg font-black text-primary" : "text-sm"}`}
-    >
+    <div className="flex items-center justify-between text-[13px] text-muted-foreground">
       <span>{k}</span>
-      <span>{v}</span>
+      <span className="font-medium text-foreground tabular-nums">{v}</span>
     </div>
   );
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function CustomerBadge({
-  phone,
-  customer,
-  error,
-}: {
-  phone: string;
-  customer?: CustomerDto;
-  error: unknown;
-}) {
-  if (!/^09\d{9}$/.test(phone)) return null;
-  if (customer) {
-    return (
-      <div className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-        مشتری وفادار — {customer.visitCount} سفارش قبلی ·{" "}
-        {formatToman(customer.totalSpent)} خرید · {customer.loyaltyPoints}{" "}
-        امتیاز
-      </div>
-    );
-  }
-  if (error instanceof ApiError && error.status === 404) {
-    return (
-      <div className="mt-2 text-xs text-muted-foreground">
-        مشتری جدید — در تسویه وارد باشگاه می‌شود
-      </div>
-    );
-  }
-  return null;
 }

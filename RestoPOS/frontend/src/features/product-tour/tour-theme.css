@@ -5,7 +5,12 @@
    ------------------------------------------------------------------------- */
 
 .ti-tour-popover.driver-popover {
-  --driver-popover-font-family: var(--font-vazir);
+  /* Vazirmatn first, then the same graceful fallbacks the app body uses —
+     so tour text renders identically to the app even while the webfont
+     is still swapping in (--font-sans is a :root-level Tailwind token, so
+     it resolves regardless of where Driver.js mounts the popover). */
+  --driver-popover-font-family: var(--font-sans);
+  font-family: var(--font-sans);
 
   width: min(24rem, calc(100vw - 1.5rem));
   min-width: min(18rem, calc(100vw - 1.5rem));
@@ -26,7 +31,7 @@
 
 .ti-tour-popover .driver-popover-title {
   margin: 0;
-  font-family: var(--font-vazir);
+  font-family: inherit;
   font-size: 0.9375rem;
   font-weight: 700;
   line-height: 1.6;
@@ -36,7 +41,7 @@
 
 .ti-tour-popover .driver-popover-description {
   margin: 0.375rem 0 0;
-  font-family: var(--font-vazir);
+  font-family: inherit;
   font-size: 0.8125rem;
   font-weight: 400;
   line-height: 1.75;
@@ -84,7 +89,7 @@
 
 .ti-tour-popover .driver-popover-progress-text {
   margin: 0;
-  font-family: var(--font-vazir);
+  font-family: inherit;
   font-size: 0.6875rem;
   font-weight: 600;
   color: var(--color-muted-foreground);
@@ -96,7 +101,7 @@
 }
 
 .ti-tour-popover .driver-popover-footer-btn {
-  font-family: var(--font-vazir);
+  font-family: inherit;
   font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1;

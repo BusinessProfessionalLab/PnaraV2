@@ -6,6 +6,7 @@ import {
   BarChart3,
   Boxes,
   ClipboardList,
+  History,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -20,6 +21,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { appConfig } from "@/config/app";
 import { useSettings } from "@/queries/settings";
 import { useAuthStore } from "@/lib/auth-store";
 import { cn } from "@/lib/cn";
@@ -143,20 +145,61 @@ function SidebarNav({ storeName, onNavigate }: { storeName?: string; onNavigate?
         </div>
       </div>
 
-      <div className="flex items-center gap-1 border-t border-border px-2.5 py-2.5">
-        <ThemeToggle />
-        <button
-          type="button"
-          onClick={() => {
-            onNavigate?.();
-            logout();
-            router.push("/login");
-          }}
-          className="flex h-9 flex-1 items-center gap-2 rounded-xl px-2.5 text-sm font-medium text-muted-foreground outline-none transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+      {/* Product metadata: version → change log. Quiet, but interactive. */}
+      <div className="border-t border-border">
+        <Link
+          href="/admin/version"
+          onClick={onNavigate}
+          aria-label="نسخه برنامه و تاریخچه تغییرات"
+          aria-current={path === "/admin/version" ? "page" : undefined}
+          className={cn(
+            "group flex items-center gap-2.5 rounded-xl px-3 py-2 text-start outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50",
+            path === "/admin/version"
+              ? "bg-primary-soft/60 text-primary"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          )}
         >
-          <LogOut className="size-[18px]" strokeWidth={1.8} aria-hidden />
-          خروج از حساب
-        </button>
+          <span
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-150",
+              path === "/admin/version"
+                ? "bg-primary-soft text-primary"
+                : "bg-muted text-muted-foreground group-hover:bg-card group-hover:text-foreground",
+            )}
+          >
+            <History className="size-4" strokeWidth={1.9} aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] leading-4 font-semibold">
+              نسخه برنامه
+            </span>
+            <span className="mt-0.5 block text-[10px] leading-3 text-muted-foreground/80">
+              مشاهده تغییرات هر نسخه
+            </span>
+          </span>
+          <span
+            dir="ltr"
+            className="font-mono text-xs font-bold text-muted-foreground tabular-nums"
+          >
+            v{appConfig.version}
+          </span>
+        </Link>
+
+        <div className="flex items-center gap-1 border-t border-border/70 px-2.5 py-2.5">
+          <ThemeToggle />
+          <button
+            type="button"
+            onClick={() => {
+              onNavigate?.();
+              logout();
+              router.push("/login");
+            }}
+            className="flex h-9 flex-1 items-center gap-2 rounded-xl px-2.5 text-sm font-medium text-muted-foreground outline-none transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            <LogOut className="size-[18px]" strokeWidth={1.8} aria-hidden />
+            خروج از حساب
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -208,6 +251,21 @@ function RailNav({ storeName, onNavigate }: { storeName?: string; onNavigate?: (
         })}
       </nav>
       <div className="flex w-full flex-col items-center gap-1 border-t border-border px-2 py-2.5">
+        <Link
+          href="/admin/version"
+          onClick={onNavigate}
+          title="نسخه برنامه و تغییرات"
+          aria-label="نسخه برنامه و تغییرات"
+          aria-current={path === "/admin/version" ? "page" : undefined}
+          className={cn(
+            "flex size-10 shrink-0 items-center justify-center rounded-xl outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50",
+            path === "/admin/version"
+              ? "bg-primary-soft text-primary"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          )}
+        >
+          <History className="size-[18px]" strokeWidth={1.8} aria-hidden />
+        </Link>
         <ThemeToggle className="size-10" />
         <button
           type="button"

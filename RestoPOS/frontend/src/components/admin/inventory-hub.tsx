@@ -391,8 +391,8 @@ function InboundForm({ items }: { items: { id: string; name: string }[] }) {
             onChange={(e) => setQty(e.target.value)}
           />
         </Field>
-        <Field label="قیمت خرید واحد (تومان)">
-          <MoneyInput value={cost} onValueChange={setCost} className="text-end" />
+        <Field label="قیمت خرید واحد">
+          <MoneyInput value={cost} onValueChange={setCost} />
         </Field>
       </div>
 

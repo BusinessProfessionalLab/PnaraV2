@@ -42,7 +42,6 @@ import { errorMessage } from "@/api/errors";
 import {
   Boxes,
   CirclePlus,
-  Coins,
   FolderTree,
   ImagePlus,
   Layers3,
@@ -96,20 +95,9 @@ function PriceInput({
   onChange: (v: string) => void;
   placeholder?: string;
 }) {
-  return (
-    <MoneyInput
-      value={value}
-      onValueChange={onChange}
-      placeholder={placeholder}
-      className="pe-20 ps-3 text-left font-medium tabular-nums"
-      endAdornment={
-        <>
-          <Coins className="size-3.5" aria-hidden />
-          تومان
-        </>
-      }
-    />
-  );
+  // The تومان chip lives inside MoneyInput itself, so every price field in
+  // the product gets the exact same unit indicator without duplicating it.
+  return <MoneyInput value={value} onValueChange={onChange} placeholder={placeholder} />;
 }
 
 function ImageUpload({ value, onChange }: { value: string; onChange: (url: string) => void }) {
@@ -472,7 +460,7 @@ function ProductForm({ categories }: { categories: Category[] }) {
         <Input dir="ltr" className="text-start" value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="Espresso" />
       </Field>
       <Field label="قیمت">
-        <PriceInput value={price} onChange={setPrice} placeholder="قیمت به تومان" />
+        <PriceInput value={price} onChange={setPrice} placeholder="قیمت محصول" />
       </Field>
       <Field label="دسته">
         <Select value={categoryId} onValueChange={setCategoryId}>
@@ -595,7 +583,7 @@ function SharedAddonCreator() {
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثلاً شیر اضافه" />
           </Field>
           <Field label="قیمت اضافه">
-            <PriceInput value={price} onChange={setPrice} placeholder="تومان" />
+            <PriceInput value={price} onChange={setPrice} />
           </Field>
           {editingId ? (
             <div className="flex gap-2">

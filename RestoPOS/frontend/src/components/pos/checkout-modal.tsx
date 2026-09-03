@@ -2,7 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { Banknote, Loader2, Printer, Smartphone, Timer } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { printOrderTickets } from "@/components/print/receipts";
 import { Button } from "@/components/ui/button";
@@ -52,12 +52,50 @@ export function CheckoutModal({
   const cart = useCartStore();
   const [method, setMethod] = useState<PaymentMethod>("Cash");
   // Cash is tendered in toman (the field label says so); cart math is in rial.
-  // Kept as raw digits so the separator-formatted input can be emptied while typing.
-  const [received, setReceived] = useState(() => String(rialToToman(amount)));
+  // Kept as raw digits (no separators) so the input can be emptied while typing.
+  // Deliberately starts empty — it is seeded every time the dialog opens.
+  const [received, setReceived] = useState("");
   const [refNo, setRefNo] = useState("");
   const [deviceId, setDeviceId] = useState<string>("");
   const [waiting, setWaiting] = useState(false);
   const [width, setWidth] = useState<"80mm" | "58mm">("80mm");
+
+  /*
+   * Settlement-state lifecycle.
+   *
+   * This component stays mounted for the whole POS session — only the Radix
+   * dialog content mounts/unmounts — so its useState values survive across
+   * opens and would otherwise leak from one settlement into the next.
+   *
+   * - Closing the dialog clears every piece of transient state (typed digits,
+   *   reference number, selected device, POS polling flag) so the next open
+   *   always starts clean.
+   * - Opening it seeds the fields from the order that is on screen at that
+   *   moment. The amount prop is read through a ref (not an effect dependency)
+   *   so the seed always reflects the latest render and nothing resets the
+   *   field while the user is editing inside an open dialog.
+   */
+  const amountRef = useRef(amount);
+  amountRef.current = amount;
+
+  useEffect(() => {
+    if (!open) {
+      setMethod("Cash");
+      setReceived("");
+      setRefNo("");
+      setDeviceId("");
+      setWaiting(false);
+      return;
+    }
+    // Prefill the received field with the payable (converted to toman) so the
+    // change row is correct immediately; a previous settlement's value can
+    // never survive into this one.
+    setMethod("Cash");
+    setReceived(String(rialToToman(amountRef.current)));
+    setRefNo("");
+    setDeviceId("");
+    setWaiting(false);
+  }, [open]);
 
   const devices = usePosDevices({ enabled: open });
   const settings = useSettings({ enabled: open });
@@ -159,11 +197,11 @@ export function CheckoutModal({
 
           {method === "Cash" ? (
             <div className="space-y-3 rounded-xl border border-border p-4">
-              <Field label="مبلغ دریافتی (تومان)">
+              <Field label="مبلغ دریافتی">
                 <MoneyInput
                   value={received}
                   onValueChange={setReceived}
-                  className="text-end font-bold tabular-nums"
+                  className="font-bold"
                 />
               </Field>
               <div

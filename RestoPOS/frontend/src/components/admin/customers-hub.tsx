@@ -3,16 +3,32 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Badge, Card, Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { api } from "@/lib/api";
+import { Users } from "lucide-react";
 import { formatToman } from "@/lib/currency";
 
 export function CustomersHub() {
   const [term, setTerm] = useState("");
   const q = useQuery({ queryKey: ["customers", term], queryFn: () => api.customers(term || undefined) });
   return (
-    <Card className="p-4">
-      <h2 className="mb-3 font-black">باشگاه مشتریان</h2>
+    <Card className="animate-fade-up p-4">
+      <h2 className="mb-3 text-lg font-bold">باشگاه مشتریان</h2>
       <Input placeholder="جستجوی موبایل یا نام" value={term} onChange={(e) => setTerm(e.target.value)} className="mb-4 max-w-sm" />
+      {q.isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
+        </div>
+      ) : (q.data ?? []).length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title="مشتری ثبت نشده"
+          description="مشتریان پس از اولین سفارش خودکار ثبت می‌شوند"
+        />
+      ) : (
       <table className="w-full text-sm">
         <thead>
           <tr className="text-right text-muted-foreground">
@@ -39,6 +55,7 @@ export function CustomersHub() {
           ))}
         </tbody>
       </table>
+      )}
     </Card>
   );
 }

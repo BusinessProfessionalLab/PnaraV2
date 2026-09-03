@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { playAlert } from "@/lib/theme";
 import { createKitchenConnection, joinKitchen } from "@/lib/signalr";
@@ -58,14 +59,35 @@ export function KdsBoard({ station }: { station: "kitchen" | "bar" }) {
   });
 
   return (
-    <div className="min-h-screen bg-secondary p-4 text-white">
+    <div className="min-h-dvh bg-secondary p-4 text-white">
       <header className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-black">{station === "bar" ? "نمایشگر باریستا" : "نمایشگر آشپزخانه"}</h1>
+        <h1 className="text-2xl font-black text-balance">{station === "bar" ? "نمایشگر باریستا" : "نمایشگر آشپزخانه"}</h1>
         <Badge variant={live === "on" ? "success" : live === "error" ? "danger" : "warning"}>
           SignalR {live === "on" ? "متصل" : live === "error" ? "قطع" : "در حال اتصال"}
         </Badge>
       </header>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {orders.isLoading && (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rounded-2xl border bg-white p-4 space-y-3">
+              <div className="flex justify-between">
+                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-5 w-16" />
+              </div>
+              <Skeleton className="h-4 w-32" />
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-5 w-3/4" />
+              </div>
+            </div>
+          ))
+        )}
+        {!orders.isLoading && tickets.length === 0 && (
+          <div className="col-span-full flex flex-col items-center justify-center gap-2 py-16 text-white/60">
+            <p className="text-lg font-semibold">هیچ سفارش فعالی نیست</p>
+            <p className="text-sm">سفارش‌های جدید اینجا ظاهر می‌شوند</p>
+          </div>
+        )}
         {tickets.map((order) => (
           <Card key={order.id} className="bg-white p-4 text-foreground">
             <div className="flex items-center justify-between">

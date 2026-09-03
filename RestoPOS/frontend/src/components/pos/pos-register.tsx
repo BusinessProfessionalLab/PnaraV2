@@ -20,6 +20,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge, Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -34,28 +35,9 @@ import { formatToman } from "@/lib/currency";
 import { toShamsiClock, toShamsiDate, weekdayFa } from "@/lib/jalali";
 import { syncCartToServer } from "@/lib/sync-cart";
 import type { CustomerDto, MenuItemDto } from "@/lib/types";
+import { fuzzyScore } from "@/lib/fuzzy-search";
 import { CheckoutModal } from "./checkout-modal";
 import { ModifierDrawer } from "./modifier-drawer";
-
-function fuzzyScore(query: string, text: string) {
-  const q = query.normalize("NFKC").replace(/\s+/g, " ").trim();
-  const t = text.normalize("NFKC").toLowerCase();
-  if (!q) return 1;
-  if (t.includes(q)) return 1000 + q.length;
-  let qi = 0;
-  let score = 0;
-  let streak = 0;
-  for (let i = 0; i < t.length && qi < q.length; i += 1) {
-    if (t[i] === q[qi]) {
-      qi += 1;
-      streak += 1;
-      score += 10 + streak;
-    } else {
-      streak = 0;
-    }
-  }
-  return qi === q.length ? score : 0;
-}
 
 export function PosRegister() {
   const router = useRouter();
@@ -63,7 +45,7 @@ export function PosRegister() {
   const logout = useAuthStore((s) => s.logout);
   const cart = useCartStore();
   const [clock, setClock] = useState(new Date());
-  const [online, setOnline] = useState(true);
+
   const [q, setQ] = useState("");
   const [categoryId, setCategoryId] = useState<string>("all");
   const [picked, setPicked] = useState<MenuItemDto | null>(null);
@@ -82,7 +64,6 @@ export function PosRegister() {
     queryFn: api.health,
     refetchInterval: 15000,
   });
-  useEffect(() => setOnline(health.isSuccess), [health.isSuccess]);
 
   const categories = useQuery({
     queryKey: ["categories"],
@@ -109,15 +90,18 @@ export function PosRegister() {
 
   const searchMatches = useMemo(() => {
     const items = menu.data ?? [];
-    const term = q.trim().toLowerCase();
+    const term = q.trim();
+    const skus = inventory.data ?? [];
     return items.map((item) => {
-      const hay = `${item.title} ${item.description ?? ""} ${item.categoryName} ${item.recipe?.lines.map((l) => l.inventoryItemId).join(" ")}`.toLowerCase();
-      const skuHit = (inventory.data ?? []).some(
-        (inv) =>
-          inv.sku.toLowerCase().includes(term) &&
-          item.recipe?.lines.some((l) => l.inventoryItemId === inv.id),
-      );
-      const score = !term ? 1 : Math.max(fuzzyScore(term, hay), skuHit ? 100 : 0);
+      // Build a rich haystack: title, description, category, recipe SKUs
+      const skuText = item.recipe?.lines
+        .map((l) => {
+          const inv = skus.find((s) => s.id === l.inventoryItemId);
+          return inv ? `${inv.sku} ${inv.name}` : "";
+        })
+        .join(" ") ?? "";
+      const hay = `${item.title} ${item.description ?? ""} ${item.categoryName} ${skuText}`;
+      const score = !term ? 1 : fuzzyScore(term, hay);
       return { item, score };
     });
   }, [menu.data, q, inventory.data]);
@@ -125,11 +109,28 @@ export function PosRegister() {
   const filtered = useMemo(
     () =>
       searchMatches
-        .filter(({ item, score }) => (categoryId === "all" || item.categoryId === categoryId) && score > 0)
-        .sort((a, b) => b.score - a.score || a.item.displayPriority - b.item.displayPriority)
+        .filter(
+          ({ item, score }) =>
+            (categoryId === "all" || item.categoryId === categoryId) &&
+            score > 0,
+        )
+        .sort(
+          (a, b) =>
+            b.score - a.score ||
+            a.item.displayPriority - b.item.displayPriority,
+        )
         .map(({ item }) => item),
     [searchMatches, categoryId],
   );
+
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const { item, score } of searchMatches) {
+      if (score > 0)
+        counts.set(item.categoryId, (counts.get(item.categoryId) ?? 0) + 1);
+    }
+    return counts;
+  }, [searchMatches]);
 
   const totals = cart.totals();
 
@@ -192,10 +193,10 @@ export function PosRegister() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-[hsl(30_20%_94%)]">
+    <div className="flex h-dvh flex-col bg-[hsl(30_20%_94%)]">
       <header className="flex items-center gap-3 border-b bg-secondary px-4 py-2 text-secondary-foreground">
         <div className="flex items-center gap-2">
-          <UtensilsCrossed className="h-5 w-5 text-primary" />
+          <UtensilsCrossed className="h-5 w-5 text-primary" strokeWidth={2} />
           <div>
             <div className="text-sm font-black">
               {settings.data?.storeName ?? "ToastIran POS"}
@@ -238,13 +239,16 @@ export function PosRegister() {
               {weekdayFa(clock)} {toShamsiDate(clock)}
             </div>
           </div>
-          <Badge variant={online ? "success" : "danger"} className="gap-1">
-            {online ? (
+          <Badge
+            variant={health.isSuccess ? "success" : "danger"}
+            className="gap-1"
+          >
+            {health.isSuccess ? (
               <Wifi className="h-3 w-3" />
             ) : (
               <WifiOff className="h-3 w-3" />
             )}
-            {online ? "POS آنلاین" : "قطع ارتباط"}
+            {health.isSuccess ? "POS آنلاین" : "قطع ارتباط"}
           </Badge>
           <Badge variant={shift.data ? "success" : "warning"}>
             {shift.data ? "شیفت باز" : "بدون شیفت"}
@@ -255,7 +259,12 @@ export function PosRegister() {
             </Button>
           </Link>
           <Link href="/admin">
-            <Button size="icon" variant="ghost" className="text-white">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="text-white"
+              aria-label="پنل مدیریت"
+            >
               <Settings2 className="h-4 w-4" />
             </Button>
           </Link>
@@ -263,6 +272,7 @@ export function PosRegister() {
             size="icon"
             variant="ghost"
             className="text-white"
+            aria-label="خروج"
             onClick={() => {
               logout();
               router.push("/login");
@@ -303,43 +313,68 @@ export function PosRegister() {
                   className={`flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold ${categoryId === c.id ? "bg-primary text-white" : "bg-card"}`}
                 >
                   {c.name}
-                  <span className="rounded-full bg-black/10 px-2 text-[11px]">{c.displayPriority}</span>
+                  <span className="rounded-full bg-black/10 px-2 text-[11px]">
+                    {c.displayPriority}
+                  </span>
                 </button>
               ))}
           </div>
-          <div className="pos-scroll grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-y-auto md:grid-cols-3 xl:grid-cols-4">
+          <div className="pos-scroll grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-y-auto md:grid-cols-3 2xl:grid-cols-4">
+            {menu.isLoading &&
+              Array.from({ length: 8 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex min-h-[180px] flex-col overflow-hidden rounded-2xl border bg-card"
+                >
+                  <Skeleton className="h-28 w-full flex-shrink-0 rounded-none" />
+                  <div className="space-y-2 p-3">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                </div>
+              ))}
+            {!menu.isLoading && filtered.length === 0 && (
+              <div className="col-span-full flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
+                <Coffee className="size-10 opacity-40" />
+                <p className="text-sm font-semibold">آیتمی یافت نشد</p>
+                <p className="text-xs">
+                  فیلتر جستجو یا دسته‌بندی را تغییر دهید
+                </p>
+              </div>
+            )}
             {filtered.map((item) => {
               const stock = stockOf(item);
               const discountPercent =
                 item.discountPercent > 0
                   ? item.discountPercent
-                  : item.categoryDiscountPercent ?? 0;
+                  : (item.categoryDiscountPercent ?? 0);
               const discountAmount = Math.round(
-                (item.basePrice * Math.min(100, Math.max(0, discountPercent))) / 100,
+                (item.basePrice * Math.min(100, Math.max(0, discountPercent))) /
+                  100,
               );
               const discountedPrice = item.basePrice - discountAmount;
               return (
                 <motion.button
                   key={item.id}
-                  whileTap={{ scale: 0.98 }}
+                  whileTap={{ scale: 0.96 }}
                   onClick={() => {
                     setRightPanelTab("cart");
                     setEditingLineIndex(null);
                     cart.addLine(item, 1, []);
                   }}
-                  className="overflow-hidden rounded-2xl border bg-card text-right shadow-sm"
+                  className="flex h-[220px] flex-col overflow-hidden rounded-2xl border bg-card text-right shadow-sm"
                 >
-                  <div className="relative h-28 bg-muted">
+                  <div className="relative h-28 flex-shrink-0 bg-muted">
                     {item.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={item.imageUrl}
                         alt={item.title}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover outline outline-1 outline-black/10"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center">
-                        <Coffee className="h-10 w-10 text-muted-foreground" />
+                        <Coffee className="size-10 text-muted-foreground" />
                       </div>
                     )}
                     <Badge
@@ -359,7 +394,7 @@ export function PosRegister() {
                           : "ناموجود"}
                     </Badge>
                   </div>
-                  <div className="p-3">
+                  <div className="flex flex-1 flex-col justify-between p-3">
                     <div className="font-bold">{item.title}</div>
                     {discountPercent > 0 ? (
                       <div className="mt-1 space-y-0.5">
@@ -392,7 +427,10 @@ export function PosRegister() {
           </div>
         </section>
 
-        <aside className="flex w-[380px] shrink-0 flex-col border-s bg-pos-ticket" dir="rtl">
+        <aside
+          className="flex w-[380px] shrink-0 flex-col border-s bg-pos-ticket"
+          dir="rtl"
+        >
           <div className="border-b p-4">
             <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
               <button
@@ -432,6 +470,13 @@ export function PosRegister() {
             {null}
           </div>
           <div className={rightPanelTab === "drafts" ? "mt-3 flex min-h-0 flex-1 flex-col rounded-xl border bg-amber-50 p-2" : "hidden"}>
+            <div
+              className={
+                rightPanelTab === "drafts"
+                  ? "mt-3 flex min-h-0 flex-1 flex-col rounded-xl border bg-amber-50 p-2"
+                  : "hidden"
+              }
+            >
               <div className="mb-2 flex items-center justify-between text-sm font-black">
                 <span>سفارش‌های در انتظار پرداخت</span>
                 <Badge variant="warning">{pendingOrders.data?.length ?? 0}</Badge>
@@ -484,10 +529,20 @@ export function PosRegister() {
               </div>
           </div>
           <div className={`pos-scroll flex-1 space-y-2 overflow-y-auto p-3 ${rightPanelTab === "cart" ? "" : "hidden"}`}>
+            </div>
+          </div>
+          <div
+            className={`pos-scroll flex-1 space-y-2 overflow-y-auto p-3 ${rightPanelTab === "cart" ? "" : "hidden"}`}
+          >
             {cart.lines.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
-                <LayoutGrid className="h-10 w-10" />
-                <p>آیتمی انتخاب نشده</p>
+              <div className="flex h-full flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
+                <LayoutGrid className="size-10 opacity-40" />
+                <div className="text-center">
+                  <p className="text-sm font-semibold">سبد خرید خالی است</p>
+                  <p className="mt-1 text-xs text-pretty">
+                    از فهرست محصولات سمت چپ آیتم انتخاب کنید
+                  </p>
+                </div>
               </div>
             ) : (
               cart.lines.map((line, lineIndex) => (
@@ -528,6 +583,7 @@ export function PosRegister() {
                       <Button
                         size="icon"
                         variant="outline"
+                        aria-label="کاهش تعداد"
                         onClick={(event) => {
                           event.stopPropagation();
                           cart.updateQty(lineIndex, line.quantity - 1);
@@ -541,6 +597,7 @@ export function PosRegister() {
                       <Button
                         size="icon"
                         variant="outline"
+                        aria-label="افزایش تعداد"
                         onClick={(event) => {
                           event.stopPropagation();
                           cart.updateQty(lineIndex, line.quantity + 1);
@@ -564,7 +621,9 @@ export function PosRegister() {
               ))
             )}
           </div>
-          <div className={`space-y-2 border-t bg-white p-4 [&>div:nth-child(2)]:hidden ${rightPanelTab === "cart" ? "" : "hidden"}`}>
+          <div
+            className={`space-y-2 border-t bg-white p-4 [&>div:nth-child(2)]:hidden ${rightPanelTab === "cart" ? "" : "hidden"}`}
+          >
             <Tot
               k={`جمع جزء (${cart.discountPercent}٪ تخفیف)`}
               v={formatToman(totals.subtotal)}

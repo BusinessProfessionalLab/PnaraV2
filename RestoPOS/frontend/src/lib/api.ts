@@ -177,7 +177,7 @@ export const api = {
   addons: (activeOnly = true) =>
     apiFetch<import("./types").AddonDto[]>(
       `http://192.168.100.249:5000/api/menu/addons?activeOnly=${activeOnly}`,
-    ),
+    ).then((items) => items.map((a) => ({ ...a, title: a.name, basePrice: a.extraPrice }))),
   createAddon: (payload: unknown) =>
     apiFetch<string>("http://192.168.100.249:5000/api/menu/addons", { method: "POST", body: JSON.stringify(payload) }),
   updateAddon: (id: string, payload: unknown) =>

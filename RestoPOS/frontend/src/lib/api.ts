@@ -138,6 +138,11 @@ export const api = {
     apiFetch<void>(`http://192.168.100.249:5000/api/menu/categories/${id}`, {
       method: "DELETE",
     }),
+  reorderCategories: (orderedIds: string[]) =>
+    apiFetch<void>("http://192.168.100.249:5000/api/menu/categories/order", {
+      method: "PUT",
+      body: JSON.stringify({ orderedIds }),
+    }),
   menuItems: (activeOnly = true) =>
     apiFetch<import("./types").MenuItemDto[]>(
       `http://192.168.100.249:5000/api/menu/items?activeOnly=${activeOnly}`,
@@ -159,6 +164,11 @@ export const api = {
   deleteMenuItem: (id: string) =>
     apiFetch<void>(`http://192.168.100.249:5000/api/menu/items/${id}`, {
       method: "DELETE",
+    }),
+  reorderMenuItems: (categoryId: string, orderedIds: string[]) =>
+    apiFetch<void>("http://192.168.100.249:5000/api/menu/items/order", {
+      method: "PUT",
+      body: JSON.stringify({ categoryId, orderedIds }),
     }),
   createModifier: (payload: unknown) =>
     apiFetch<string>("http://192.168.100.249:5000/api/menu/modifiers", {

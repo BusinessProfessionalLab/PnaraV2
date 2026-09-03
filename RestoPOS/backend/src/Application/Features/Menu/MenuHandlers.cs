@@ -69,6 +69,35 @@ public sealed class DeleteCategoryCommandHandler(IApplicationDbContext db) : IRe
     }
 }
 
+public sealed class ReorderCategoriesCommandHandler(IApplicationDbContext db) : IRequestHandler<ReorderCategoriesCommand>
+{
+    public async Task Handle(ReorderCategoriesCommand request, CancellationToken cancellationToken)
+    {
+        if (request.OrderedIds.Count != request.OrderedIds.Distinct().Count())
+            throw new DomainException("شناسه تکراری در ترتیب دسته‌بندی‌ها وجود دارد.");
+
+        var categories = await db.Categories
+            .Where(c => !c.IsSystem)
+            .OrderBy(c => c.DisplayPriority)
+            .ThenBy(c => c.Name)
+            .ToListAsync(cancellationToken);
+
+        var byId = categories.ToDictionary(c => c.Id);
+        if (request.OrderedIds.Any(id => !byId.ContainsKey(id)))
+            throw new DomainException("یک یا چند دسته‌بندی برای مرتب‌سازی معتبر نیست.");
+
+        var requestedIds = request.OrderedIds.ToHashSet();
+        var ordered = request.OrderedIds.Select(id => byId[id])
+            .Concat(categories.Where(c => !requestedIds.Contains(c.Id)));
+
+        var priority = 1;
+        foreach (var category in ordered)
+            category.DisplayPriority = priority++;
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+}
+
 public sealed class GetCategoriesQueryHandler(IApplicationDbContext db) : IRequestHandler<GetCategoriesQuery, IReadOnlyList<CategoryDto>>
 {
     public async Task<IReadOnlyList<CategoryDto>> Handle(GetCategoriesQuery request, CancellationToken cancellationToken)
@@ -153,6 +182,35 @@ public sealed class DeleteMenuItemCommandHandler(IApplicationDbContext db) : IRe
         item.IsDeleted = true;
         item.IsActive = false;
         item.DeletedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+}
+
+public sealed class ReorderMenuItemsCommandHandler(IApplicationDbContext db) : IRequestHandler<ReorderMenuItemsCommand>
+{
+    public async Task Handle(ReorderMenuItemsCommand request, CancellationToken cancellationToken)
+    {
+        if (request.OrderedIds.Count != request.OrderedIds.Distinct().Count())
+            throw new DomainException("شناسه تکراری در ترتیب محصولات وجود دارد.");
+
+        var items = await db.MenuItems
+            .Where(m => m.CategoryId == request.CategoryId)
+            .OrderBy(m => m.DisplayPriority)
+            .ThenBy(m => m.Title)
+            .ToListAsync(cancellationToken);
+
+        var byId = items.ToDictionary(m => m.Id);
+        if (request.OrderedIds.Any(id => !byId.ContainsKey(id)))
+            throw new DomainException("یک یا چند محصول متعلق به این دسته‌بندی نیست.");
+
+        var requestedIds = request.OrderedIds.ToHashSet();
+        var ordered = request.OrderedIds.Select(id => byId[id])
+            .Concat(items.Where(m => !requestedIds.Contains(m.Id)));
+
+        var priority = 1;
+        foreach (var item in ordered)
+            item.DisplayPriority = priority++;
+
         await db.SaveChangesAsync(cancellationToken);
     }
 }

@@ -36,6 +36,14 @@ public sealed class MenuController(ISender sender) : ControllerBase
         return NoContent();
     }
 
+    [HttpPut("categories/order")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<IActionResult> ReorderCategories(ReorderCategoriesCommand command, CancellationToken ct)
+    {
+        await sender.Send(command, ct);
+        return NoContent();
+    }
+
     [HttpGet("items")]
     public async Task<ActionResult<IReadOnlyList<MenuItemDto>>> Items([FromQuery] bool activeOnly = true, CancellationToken ct = default) =>
         Ok(await sender.Send(new GetMenuQuery(activeOnly), ct));
@@ -62,6 +70,14 @@ public sealed class MenuController(ISender sender) : ControllerBase
     public async Task<IActionResult> DeleteItem(Guid id, CancellationToken ct)
     {
         await sender.Send(new DeleteMenuItemCommand(id), ct);
+        return NoContent();
+    }
+
+    [HttpPut("items/order")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<IActionResult> ReorderItems(ReorderMenuItemsCommand command, CancellationToken ct)
+    {
+        await sender.Send(command, ct);
         return NoContent();
     }
 

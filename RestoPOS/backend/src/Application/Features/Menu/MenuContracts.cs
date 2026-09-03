@@ -32,6 +32,7 @@ public sealed record MenuItemDto(
 public sealed record CreateCategoryCommand(string Name, string? NameEn, int DisplayPriority, bool IsVisible, string? IconUrl, string? ImageUrl, Guid? ParentId, decimal DiscountPercent = 0) : MediatR.IRequest<Guid>;
 public sealed record UpdateCategoryCommand(Guid Id, string Name, string? NameEn, int DisplayPriority, bool IsVisible, string? IconUrl, string? ImageUrl, Guid? ParentId, decimal DiscountPercent = 0) : MediatR.IRequest;
 public sealed record DeleteCategoryCommand(Guid Id) : MediatR.IRequest;
+public sealed record ReorderCategoriesCommand(IReadOnlyList<Guid> OrderedIds) : MediatR.IRequest;
 public sealed record GetCategoriesQuery(bool IncludeHidden = false) : MediatR.IRequest<IReadOnlyList<CategoryDto>>;
 
 public sealed record CreateMenuItemCommand(
@@ -64,6 +65,7 @@ public sealed record UpdateMenuItemCommand(
     decimal DiscountPercent = 0) : MediatR.IRequest;
 
 public sealed record DeleteMenuItemCommand(Guid Id) : MediatR.IRequest;
+public sealed record ReorderMenuItemsCommand(Guid CategoryId, IReadOnlyList<Guid> OrderedIds) : MediatR.IRequest;
 public sealed record GetMenuQuery(bool ActiveOnly = true) : MediatR.IRequest<IReadOnlyList<MenuItemDto>>;
 public sealed record GetMenuItemQuery(Guid Id) : MediatR.IRequest<MenuItemDto>;
 

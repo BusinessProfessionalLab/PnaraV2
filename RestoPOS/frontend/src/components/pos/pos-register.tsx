@@ -37,7 +37,12 @@ import {
 } from "@/components/ui/select";
 import { errorMessage } from "@/api/errors";
 import { orderKeys } from "@/queries/keys";
-import { useActiveUnpaidOrders, useDiscardDraft, useGetOrder, useSubmitOrder } from "@/queries/orders";
+import {
+  useActiveUnpaidOrders,
+  useDiscardDraft,
+  useGetOrder,
+  useSubmitOrder,
+} from "@/queries/orders";
 import { useCategories, useMenuItems } from "@/queries/menu";
 import { useCurrentShift } from "@/queries/shift";
 import { useHealth } from "@/queries/health";
@@ -225,7 +230,11 @@ export function PosRegister() {
       <header className="z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card px-3 sm:h-16 sm:gap-3 sm:px-4">
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
-            <UtensilsCrossed className="size-[18px]" strokeWidth={2} aria-hidden />
+            <UtensilsCrossed
+              className="size-[18px]"
+              strokeWidth={2}
+              aria-hidden
+            />
           </div>
           <div className="hidden min-w-0 sm:block">
             <div className="truncate text-sm font-bold leading-5">
@@ -273,7 +282,11 @@ export function PosRegister() {
 
         <div className="ms-auto flex items-center gap-1 sm:gap-2">
           {/* Live date & time — designed like the rest of the header controls */}
-          <div className="hidden items-center md:flex" role="timer" aria-label="تاریخ و ساعت جاری">
+          <div
+            className="hidden items-center md:flex"
+            role="timer"
+            aria-label="تاریخ و ساعت جاری"
+          >
             <div className="flex items-center gap-2.5 rounded-xl border border-input bg-card px-2.5 py-1 shadow-xs">
               <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
                 <Clock3 className="size-4" strokeWidth={1.9} aria-hidden />
@@ -299,7 +312,10 @@ export function PosRegister() {
             )}
             {health.isSuccess ? "آنلاین" : "قطع ارتباط"}
           </Badge>
-          <Badge variant={shift.data ? "neutral" : "warning"} className="hidden xl:inline-flex">
+          <Badge
+            variant={shift.data ? "neutral" : "warning"}
+            className="hidden xl:inline-flex"
+          >
             {shift.data ? "شیفت باز" : "بدون شیفت"}
           </Badge>
           <ThemeToggle className="size-9" />
@@ -337,7 +353,10 @@ export function PosRegister() {
       {/* ── Workspace: catalog + cart ───────────────────────────── */}
       <div className="flex min-h-0 flex-1" dir="ltr">
         {/* Catalog */}
-        <section className="flex min-w-0 flex-1 flex-col gap-3 p-3 sm:p-4" dir="rtl">
+        <section
+          className="flex min-w-0 flex-1 flex-col gap-3 p-3 sm:p-4"
+          dir="rtl"
+        >
           <div className="relative">
             <Search
               className="absolute start-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -356,7 +375,9 @@ export function PosRegister() {
                 onClick={() => setQ("")}
                 className="absolute end-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground"
               >
-                <span aria-hidden className="text-lg leading-none">×</span>
+                <span aria-hidden className="text-lg leading-none">
+                  ×
+                </span>
               </button>
             ) : null}
           </div>
@@ -403,7 +424,9 @@ export function PosRegister() {
                     {c.name}
                     <span
                       className={`rounded-full px-1.5 py-px text-[10px] font-bold ${
-                        active ? "bg-primary-foreground/15 text-primary-foreground" : "bg-muted text-muted-foreground"
+                        active
+                          ? "bg-primary-foreground/15 text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
                       }`}
                     >
                       {categoryCounts.get(c.id) ?? 0}
@@ -419,12 +442,12 @@ export function PosRegister() {
               Array.from({ length: 10 }).map((_, i) => (
                 <div
                   key={i}
-                  className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card"
+                  className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-2.5 sm:p-3"
                 >
-                  <Skeleton className="h-24 w-full flex-shrink-0 rounded-none border-b-0 sm:h-28" />
-                  <div className="flex flex-1 flex-col justify-between gap-2 p-3">
-                    <Skeleton className="h-4 w-2/3" />
-                    <Skeleton className="h-3 w-1/3" />
+                  <Skeleton className="aspect-square w-full rounded-xl" />
+                  <div className="flex flex-1 flex-col gap-2.5 p-2 sm:p-3">
+                    <Skeleton className="h-5 w-2/3" />
+                    <Skeleton className="h-5 w-1/3" />
                   </div>
                 </div>
               ))}
@@ -447,11 +470,13 @@ export function PosRegister() {
                 item.discountPercent > 0
                   ? item.discountPercent
                   : (item.categoryDiscountPercent ?? 0);
-              const discountAmount = Math.round(
-                (item.basePrice * Math.min(100, Math.max(0, discountPercent))) /
-                  100,
-              );
-              const discountedPrice = item.basePrice - discountAmount;
+              const discountedPrice =
+                item.basePrice -
+                Math.round(
+                  (item.basePrice *
+                    Math.min(100, Math.max(0, discountPercent))) /
+                    100,
+                );
               return (
                 <motion.button
                   key={item.id}
@@ -462,25 +487,13 @@ export function PosRegister() {
                     setEditingLineIndex(null);
                     cart.addLine(item, 1, []);
                   }}
-                  className="group flex h-full min-h-[13rem] cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-card text-start shadow-xs transition-[border-color,box-shadow] duration-150 hover:border-border-strong hover:shadow-card-hover"
+                  className="group flex h-full cursor-pointer select-none flex-col overflow-hidden rounded-2xl border border-border bg-card text-start shadow-xs outline-none transition-[border-color,box-shadow] duration-150 hover:border-border-strong hover:shadow-card-hover focus-visible:ring-2 focus-visible:ring-primary/30"
                 >
-                  <div className="relative h-24 flex-shrink-0 bg-muted/70 sm:h-28">
-                    {item.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={item.imageUrl}
-                        alt={item.title}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center">
-                        <Coffee
-                          className="size-8 text-muted-foreground/60 sm:size-9"
-                          strokeWidth={1.4}
-                          aria-hidden
-                        />
-                      </div>
-                    )}
+                  <div className="relative mx-2.5 mt-2.5 sm:mx-3 sm:mt-3">
+                    <MenuItemImage
+                      src={item.imageUrl}
+                      className="aspect-square w-full"
+                    />
                     <Badge
                       variant={
                         stock === "ok"
@@ -498,30 +511,33 @@ export function PosRegister() {
                           : "ناموجود"}
                     </Badge>
                   </div>
-                  <div className="flex flex-1 flex-col justify-between gap-1.5 p-3">
-                    <div className="text-sm font-bold leading-5">{item.title}</div>
+                  <div className="flex min-h-0 flex-1 flex-col p-3 pb-3.5 sm:p-3.5 sm:pb-4">
+                    <div className="line-clamp-2 text-[15px] leading-6 font-bold break-words">
+                      {item.title}
+                    </div>
                     {discountPercent > 0 ? (
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[11px] text-muted-foreground line-through">
+                      <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
+                        <div className="flex min-w-0 flex-col leading-none">
+                          <span className="text-xs font-medium text-muted-foreground line-through tabular-nums">
                             {formatToman(item.basePrice)}
                           </span>
-                          <Badge variant="danger" className="px-1.5 py-0.5 text-[10px]">
-                            {discountPercent}٪
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[13px] font-bold text-primary">
+                          <span className="mt-1.5 truncate text-[15px] font-extrabold text-primary tabular-nums sm:text-base">
                             {formatToman(discountedPrice)}
                           </span>
-                          <span className="text-[10px] text-success">
-                            {formatToman(discountAmount)} صرفه‌جویی
-                          </span>
                         </div>
+                        <Badge
+                          variant="danger"
+                          title={`${discountPercent}٪ تخفیف`}
+                          className="shrink-0 px-2 py-1 text-[11px]"
+                        >
+                          {discountPercent}٪
+                        </Badge>
                       </div>
                     ) : (
-                      <div className="text-[13px] font-bold text-primary">
-                        {formatToman(item.basePrice)}
+                      <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
+                        <span className="truncate text-[15px] font-extrabold text-primary tabular-nums sm:text-base">
+                          {formatToman(item.basePrice)}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -604,7 +620,10 @@ export function PosRegister() {
       </div>
 
       {/* Mobile cart sheet */}
-      <MobileCartSheet open={cartSheetOpen} onClose={() => setCartSheetOpen(false)}>
+      <MobileCartSheet
+        open={cartSheetOpen}
+        onClose={() => setCartSheetOpen(false)}
+      >
         <CartPane
           rightPanelTab={rightPanelTab}
           onTabChange={setRightPanelTab}
@@ -780,7 +799,9 @@ function CartPane({
                     >
                       {i + 1}
                     </span>
-                    <span className="text-[13px] font-bold">سفارش {draft.orderNumber}</span>
+                    <span className="text-[13px] font-bold">
+                      سفارش {draft.orderNumber}
+                    </span>
                   </div>
                   <span className="rounded-lg bg-foreground px-2 py-1 text-xs font-bold text-background tabular-nums">
                     {formatToman(draft.grandTotal)}
@@ -836,7 +857,11 @@ function CartPane({
           {cart.lines.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-center">
               <div className="flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground/60">
-                <ShoppingBasket className="size-5" strokeWidth={1.75} aria-hidden />
+                <ShoppingBasket
+                  className="size-5"
+                  strokeWidth={1.75}
+                  aria-hidden
+                />
               </div>
               <div>
                 <p className="text-sm font-semibold">سبد خالی است</p>
@@ -854,7 +879,9 @@ function CartPane({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-bold leading-5">{line.title}</div>
+                    <div className="truncate text-sm font-bold leading-5">
+                      {line.title}
+                    </div>
                     {line.modifiers.length > 0 ? (
                       <div className="mt-1 flex flex-wrap gap-1">
                         {line.modifiers.map((m) => (
@@ -1073,6 +1100,53 @@ function TotRow({ k, v }: { k: string; v: string }) {
     <div className="flex items-center justify-between text-[13px] text-muted-foreground">
       <span>{k}</span>
       <span className="font-medium text-foreground tabular-nums">{v}</span>
+    </div>
+  );
+}
+
+/**
+ * Menu-item artwork on a soft, ringed square stage. `object-cover` fills
+ * the 1:1 box edge-to-edge so the dish reads clearly at a glance; the
+ * placeholder icon takes over when the URL is missing or fails to load,
+ * keeping the card geometry stable.
+ */
+function MenuItemImage({
+  src,
+  className,
+}: {
+  src: string | null | undefined;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const show = !!src && !failed;
+
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-center overflow-hidden rounded-xl bg-muted/80 ring-1 ring-inset ring-border/50",
+        className,
+      )}
+    >
+      {show ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src as string}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          onError={() => setFailed(true)}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center">
+          <Coffee
+            className="size-8 text-muted-foreground/45 sm:size-9"
+            strokeWidth={1.4}
+            aria-hidden
+          />
+        </div>
+      )}
     </div>
   );
 }

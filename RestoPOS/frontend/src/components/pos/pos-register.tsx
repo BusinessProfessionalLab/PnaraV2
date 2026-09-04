@@ -3,10 +3,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Check,
   Clock3,
   Coffee,
   CreditCard,
   Hourglass,
+  ListPlus,
   LayoutGrid,
   LogOut,
   Minus,
@@ -88,6 +90,10 @@ export function PosRegister() {
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("cart");
   const [checkout, setCheckout] = useState(false);
   const [cartSheetOpen, setCartSheetOpen] = useState(false);
+  // Multi-add mode: pick several products at once and append them together.
+  const [multiMode, setMultiMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [batchQty, setBatchQty] = useState(1);
   const qc = useQueryClient();
 
   useEffect(() => {
@@ -181,25 +187,32 @@ export function PosRegister() {
       const order = await getOrder.mutateAsync(orderId);
       cart.loadDraft(order);
       setCheckout(true);
-      toast.success(`پیش‌نویس ${order.orderNumber} باز شد`);
     } catch (error) {
       toast.error(errorMessage(error));
     }
   }
 
   function discardCart() {
-    if (cart.serverOrderId) {
-      discardDraft.mutate(cart.serverOrderId, {
-        onSuccess: () => {
-          cart.clear();
-          toast.message("فاکتور نیمه‌کاره حذف شد");
-        },
-        onError: (error) => toast.error(errorMessage(error)),
-      });
-    } else {
-      cart.clear();
-      toast.message("فاکتور نیمه‌کاره حذف شد");
+    // «حذف همه» always clears every line card from the current order first,
+    // so the cart empties instantly no matter what the server says.
+    const linkedOrderId = cart.serverOrderId;
+    cart.clear();
+    if (!linkedOrderId) {
+      toast.message("همه آیتم‌های این سفارش حذف شد");
+      return;
     }
+    // Best-effort server cleanup: a true draft gets deleted with no trace;
+    // an already-submitted order cannot be deleted by design (it must be
+    // cancelled instead), so that rejection is swallowed silently and the
+    // order stays listed until it is paid or cancelled.
+    discardDraft.mutate(linkedOrderId, {
+      onSuccess: () => {
+        toast.message("همه آیتم‌های این سفارش حذف شد");
+      },
+      onError: () => {
+        // Draft delete refused — nothing to do, the local cart is already clear.
+      },
+    });
   }
 
   const sendMut = useMutation({
@@ -246,6 +259,41 @@ export function PosRegister() {
     loadDraftOrder(orderId);
   }
 
+  /* ── Multi-add (floating dock) ─────────────────────────────── */
+
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+  function toggleSelect(id: string) {
+    setSelectedIds((current) =>
+      current.includes(id)
+        ? current.filter((itemId) => itemId !== id)
+        : [...current, id],
+    );
+  }
+
+  function exitMultiMode() {
+    setMultiMode(false);
+    setSelectedIds([]);
+    setBatchQty(1);
+  }
+
+  /** Append every selected product (each with `batchQty`) to the order. */
+  function confirmBatch() {
+    const chosen = selectedIds
+      .map((id) => (menu.data ?? []).find((item) => item.id === id))
+      .filter((item): item is MenuItemDto => Boolean(item));
+    if (chosen.length === 0 || batchQty < 1) return;
+    for (const item of chosen) cart.addLine(item, batchQty, []);
+    setRightPanelTab("cart");
+    setEditingLineIndex(null);
+    exitMultiMode();
+    toast.success(
+      batchQty === 1
+        ? `${chosen.length} محصول به سفارش اضافه شد`
+        : `${chosen.length} محصول (هرکدام ${batchQty} عدد) به سفارش اضافه شد`,
+    );
+  }
+
   const itemCount = cart.lines.reduce((sum, l) => sum + l.quantity, 0);
 
   return (
@@ -268,40 +316,6 @@ export function PosRegister() {
               صندوق · {session?.fullName}
             </div>
           </div>
-        </div>
-
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <Select
-            value={cart.orderType}
-            onValueChange={(v) =>
-              cart.setMeta({
-                orderType: v as typeof cart.orderType,
-                ...(v === "DineIn" ? {} : { tableNumber: "" }),
-              })
-            }
-          >
-            <SelectTrigger
-              aria-label="نوع سفارش"
-              className="h-9 min-w-[5.5rem] w-auto sm:min-w-[6.5rem]"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="DineIn">حضوری</SelectItem>
-              <SelectItem value="Takeaway">بیرون‌بر</SelectItem>
-              <SelectItem value="Bar">سالن</SelectItem>
-            </SelectContent>
-          </Select>
-          {cart.orderType !== "DineIn" ? (
-            <Input
-              aria-label="شماره میز"
-              placeholder="میز"
-              inputMode="numeric"
-              className="h-9 w-16 text-center sm:w-20"
-              value={cart.tableNumber}
-              onChange={(e) => cart.setMeta({ tableNumber: e.target.value })}
-            />
-          ) : null}
         </div>
 
         <div className="ms-auto flex items-center gap-1 sm:gap-2">
@@ -395,7 +409,7 @@ export function PosRegister() {
       <div className="flex min-h-0 flex-1" dir="ltr">
         {/* Catalog */}
         <section
-          className="flex min-w-0 flex-1 flex-col gap-3 p-3 sm:p-4"
+          className="relative flex min-w-0 flex-1 flex-col gap-3 p-3 sm:p-4"
           dir="rtl"
         >
           <div data-tour="pos-search" className="relative">
@@ -524,23 +538,47 @@ export function PosRegister() {
                     Math.min(100, Math.max(0, discountPercent))) /
                     100,
                 );
+              const isSelected = multiMode && selectedSet.has(item.id);
               return (
                 <motion.button
                   key={item.id}
                   type="button"
                   whileTap={{ scale: 0.97 }}
                   onClick={() => {
+                    if (multiMode) {
+                      toggleSelect(item.id);
+                      return;
+                    }
                     setRightPanelTab("cart");
                     setEditingLineIndex(null);
                     cart.addLine(item, 1, []);
                   }}
-                  className="group flex h-full cursor-pointer select-none flex-col overflow-hidden rounded-2xl border border-border bg-card text-start shadow-xs outline-none transition-[border-color,box-shadow] duration-150 hover:border-border-strong hover:shadow-card-hover focus-visible:ring-2 focus-visible:ring-primary/30"
+                  aria-pressed={multiMode ? isSelected : undefined}
+                  className={`group flex h-full cursor-pointer select-none flex-col overflow-hidden rounded-2xl border bg-card text-start shadow-xs outline-none transition-[border-color,box-shadow] duration-150 hover:border-border-strong hover:shadow-card-hover focus-visible:ring-2 focus-visible:ring-primary/30 ${
+                    multiMode
+                      ? isSelected
+                        ? "border-primary ring-2 ring-primary/30"
+                        : "border-border"
+                      : "border-border"
+                  }`}
                 >
                   <div className="relative mx-2.5 mt-2.5 sm:mx-3 sm:mt-3">
                     <MenuItemImage
                       src={item.imageUrl}
                       className="aspect-square w-full"
                     />
+                    {multiMode ? (
+                      <span
+                        aria-hidden
+                        className={`absolute start-2 top-2 flex size-6 items-center justify-center rounded-full border-2 backdrop-blur-sm transition-colors duration-150 ${
+                          isSelected
+                            ? "border-primary bg-primary-fill text-primary-foreground shadow-xs"
+                            : "border-foreground/60 bg-card/85 text-transparent"
+                        }`}
+                      >
+                        <Check className="size-3.5" strokeWidth={3} />
+                      </span>
+                    ) : null}
                     <Badge
                       variant={
                         stock === "ok"
@@ -591,7 +629,86 @@ export function PosRegister() {
                 </motion.button>
               );
             })}
+            {/* Extra bottom space so the floating dock never hides the
+                last row of cards while multi-select is active. */}
+            {multiMode ? (
+              <div className="col-span-full h-24 sm:h-20" aria-hidden />
+            ) : null}
           </div>
+
+          {/* Multi-add launcher — parked right next to the global shortcuts
+              FAB (fixed bottom-left), so both float together. */}
+          {!multiMode ? (
+            <Button
+              type="button"
+              onClick={() => setMultiMode(true)}
+              aria-label="افزودن چند محصول به سفارش"
+              title="افزودن چند محصول به سفارش"
+              className="fixed bottom-5 left-[4.5rem] z-40 h-12 gap-2 rounded-full px-4 shadow-lg shadow-primary/25 max-md:bottom-[4.9rem] md:left-[4.75rem]"
+            >
+              <ListPlus className="size-5" aria-hidden />
+              <span className="hidden text-[13px] sm:inline">
+                افزودن چند محصول
+              </span>
+            </Button>
+          ) : null}
+
+          {/* Multi-add toolbar — bottom-center of the catalog while selecting. */}
+          {multiMode ? (
+            <div className="pointer-events-none absolute inset-x-3 bottom-2 z-30 flex justify-center sm:bottom-4">
+              <div
+                className="animate-scale-in pointer-events-auto flex max-w-full items-center gap-1.5 rounded-2xl border border-border bg-card p-1.5 shadow-card-hover ring-1 ring-primary/25 sm:gap-2 sm:p-2"
+                role="toolbar"
+                aria-label="افزودن چند محصول به سفارش"
+              >
+                <span className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-primary-soft px-2.5 text-[13px] font-bold text-primary tabular-nums">
+                  <Check className="size-4" aria-hidden />
+                  {selectedIds.length}
+                </span>
+                <div
+                  className="flex h-9 items-center rounded-xl border border-border bg-muted/40 px-1"
+                  title="تعداد هر آیتم"
+                >
+                  <button
+                    type="button"
+                    aria-label="کم کردن تعداد هر آیتم"
+                    className="flex size-7 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-card hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+                    onClick={() => setBatchQty((n) => Math.max(1, n - 1))}
+                  >
+                    <Minus className="size-3.5" aria-hidden />
+                  </button>
+                  <span className="w-8 text-center text-sm font-black tabular-nums">
+                    {batchQty}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="بیشتر کردن تعداد هر آیتم"
+                    className="flex size-7 items-center justify-center rounded-lg text-muted-foreground outline-none transition-colors hover:bg-card hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+                    onClick={() => setBatchQty((n) => Math.min(99, n + 1))}
+                  >
+                    <Plus className="size-3.5" aria-hidden />
+                  </button>
+                </div>
+                <Button
+                  size="sm"
+                  className="h-9 gap-1.5 px-3 sm:px-4"
+                  disabled={selectedIds.length === 0}
+                  onClick={confirmBatch}
+                >
+                  <Check className="size-4" aria-hidden />
+                  تایید
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-9"
+                  onClick={exitMultiMode}
+                >
+                  انصراف
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </section>
 
         {/* Cart column — visible from md (tablets + desktops) */}
@@ -817,6 +934,7 @@ function CartPane({
             </span>
           </button>
         </div>
+
         {/* Constant-height subheader: keeps the region above the panels
             stable so the tab switch never shifts the layout. */}
         <div className="flex items-center justify-between">
@@ -826,11 +944,27 @@ function CartPane({
               : "در انتظار پرداخت"}
           </h2>
           {rightPanelTab === "cart" ? (
-            cart.serverOrderNumber ? (
-              <Badge variant="neutral">{cart.serverOrderNumber}</Badge>
-            ) : (
-              <Badge variant="outline">فاکتور محلی</Badge>
-            )
+            <div className="flex items-center gap-1.5">
+              {cart.serverOrderNumber ? (
+                <Badge variant="neutral">{cart.serverOrderNumber}</Badge>
+              ) : null}
+              <button
+                type="button"
+                onClick={onDiscard}
+                disabled={
+                  (!cart.lines.length && !cart.serverOrderId) ||
+                  draftPending ||
+                  sendPending ||
+                  discardPending
+                }
+                aria-label="حذف همه و شروع دوباره"
+                title="حذف همه آیتم‌های این سفارش"
+                className="flex h-6 shrink-0 items-center gap-1 rounded-lg px-1.5 text-xs font-semibold text-danger outline-none transition-colors duration-150 hover:bg-danger/10 focus-visible:ring-2 focus-visible:ring-danger/40 disabled:pointer-events-none disabled:opacity-40"
+              >
+                <Trash2 className="size-3.5" aria-hidden />
+                حذف همه
+              </button>
+            </div>
           ) : (
             <Badge variant="neutral">{drafts?.length ?? 0} سفارش</Badge>
           )}
@@ -936,6 +1070,44 @@ function CartPane({
               {...panelMotion}
               className="absolute inset-0 flex min-h-0 flex-col"
             >
+              {/* Order context — order type + table. Lives inside the live-cart
+                  panel so it crossfades with the صورت حساب tab only and never
+                  changes the header height. */}
+              <div className="flex shrink-0 items-center gap-1.5 border-b border-border bg-muted/25 p-2.5">
+                <Select
+                  value={cart.orderType}
+                  onValueChange={(v) =>
+                    cart.setMeta({
+                      orderType: v as typeof cart.orderType,
+                      ...(v === "DineIn" ? {} : { tableNumber: "" }),
+                    })
+                  }
+                >
+                  <SelectTrigger
+                    aria-label="نوع سفارش"
+                    className="h-9 min-w-0 flex-1"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DineIn">حضوری</SelectItem>
+                    <SelectItem value="Takeaway">بیرون‌بر</SelectItem>
+                    <SelectItem value="Bar">سالن</SelectItem>
+                  </SelectContent>
+                </Select>
+                {cart.orderType !== "DineIn" ? (
+                  <Input
+                    aria-label="شماره میز"
+                    placeholder="میز"
+                    inputMode="numeric"
+                    className="h-9 w-16 shrink-0 text-center sm:w-20"
+                    value={cart.tableNumber}
+                    onChange={(e) =>
+                      cart.setMeta({ tableNumber: e.target.value })
+                    }
+                  />
+                ) : null}
+              </div>
               <div className="pos-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
           {cart.lines.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 py-10 text-center">

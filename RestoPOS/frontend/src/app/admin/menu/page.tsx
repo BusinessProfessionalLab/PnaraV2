@@ -2,16 +2,14 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { MenuBomBuilder } from "@/components/admin/menu-bom-builder";
-import { CategoryManager } from "@/components/admin/category-manager";
-import { DisplayOrderManager } from "@/components/admin/display-order-manager";
+import { MenuSections } from "@/components/admin/menu-sections";
 
 export default function Page() {
   return (
     <div data-tour="menu-page" className="space-y-6">
       <PageHeader
         title="منو و رسپی"
-        description="ترتیب نمایش، دسته‌بندی‌ها، محصولات، افزودنی‌ها و اتصال مواد به انبار"
+        description="مدیریت منوی فروشگاه: ترتیب نمایش، دسته‌بندی‌ها، محصولات و افزودنی‌های مشترک"
         actions={
           <Button asChild variant="outline">
             <Link href="/pos">
@@ -21,9 +19,7 @@ export default function Page() {
           </Button>
         }
       />
-      <DisplayOrderManager />
-      <CategoryManager />
-      <MenuBomBuilder />
+      <MenuSections />
     </div>
   );
-}
+}

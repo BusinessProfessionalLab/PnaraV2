@@ -1,6 +1,5 @@
 "use client";
 
-
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,20 +18,23 @@ import {
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   useAddons,
   useAttachAddon,
   useCategories,
-  useCreateAddon,
-  useCreateCategory,
   useCreateMenuItem,
   useCreateModifier,
-  useDeleteAddon,
   useDeleteMenuItem,
   useDeleteModifier,
   useDetachAddon,
   useMenuItems,
-  useUpdateAddon,
-  useUpdateCategory,
   useUpdateMenuItem,
   useUpdateModifier,
   useUpsertRecipe,
@@ -40,17 +42,19 @@ import {
 import { useInventory } from "@/queries/inventory";
 import { errorMessage } from "@/api/errors";
 import {
-  Boxes,
   CirclePlus,
   FolderTree,
   ImagePlus,
   Layers3,
+  PackageOpen,
   Pencil,
   Plus,
   Save,
+  Search,
   Trash2,
 } from "lucide-react";
 import { formatToman } from "@/lib/currency";
+import { fuzzyScore } from "@/lib/fuzzy-search";
 import { cn } from "@/lib/cn";
 import type { MenuItemDto, TicketStation, UnitOfMeasure } from "@/lib/types";
 
@@ -146,201 +150,213 @@ function ImageUpload({ value, onChange }: { value: string; onChange: (url: strin
 
 /* ──────────────────────────────────────────────────────────────── */
 
-export function MenuBomBuilder() {
+export function ProductsManager() {
   const cats = useCategories(true);
   const items = useMenuItems(false);
   const inv = useInventory();
-  const createCategory = useCreateCategory();
-  const updateCategory = useUpdateCategory();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
-  const selected = items.data?.find((i) => i.id === selectedId) ?? null;
+  const [categoryId, setCategoryId] = useState("all");
+  const [query, setQuery] = useState("");
+  const [editItemId, setEditItemId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
-  async function createCat(name: string) {
-    const displayPriority =
-      Math.max(0, ...(cats.data ?? []).filter((c) => !c.isSystem).map((c) => c.displayPriority)) + 1;
-    try {
-      await createCategory.mutateAsync({ name, nameEn: null, displayPriority, isVisible: true, iconUrl: null, imageUrl: null, parentId: null });
-      toast.success("دسته ساخته شد");
-    } catch (error) {
-      toast.error(errorMessage(error));
-    }
-  }
+  const categories = useMemo(() => (cats.data ?? []).filter((c) => !c.isSystem), [cats.data]);
 
-  async function renameCategory(category: import("@/lib/types").CategoryDto, name: string) {
-    try {
-      await updateCategory.mutateAsync({ id: category.id, payload: { ...category, name } });
-      toast.success("دسته ویرایش شد");
-      setEditingCategoryId(null);
-    } catch (error) {
-      toast.error(errorMessage(error));
-    }
-  }
+  const filtered = useMemo(() => {
+    const list = items.data ?? [];
+    return list.filter((item) => {
+      if (categoryId !== "all" && item.categoryId !== categoryId) return false;
+      if (!query.trim()) return true;
+      return (
+        fuzzyScore(
+          query,
+          `${item.title} ${item.nameEn ?? ""} ${item.description ?? ""} ${item.categoryName}`,
+        ) > 0
+      );
+    });
+  }, [items.data, categoryId, query]);
+
+  const editingItem = useMemo(
+    () => items.data?.find((i) => i.id === editItemId) ?? null,
+    [items.data, editItemId],
+  );
 
   return (
     <div className="space-y-4">
-      <SharedAddonCreator />
-      <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-[18rem_1fr_24rem]">
-        {/* Categories */}
-        <Card className="overflow-hidden">
-          <CardHead icon={<FolderTree className="size-4" aria-hidden />} title="دسته‌ها" count={cats.data?.length} />
-          <div className="space-y-3 p-4">
-            <CategoryForm onCreate={createCat} />
-            <div className="space-y-2">
-              {cats.isLoading ? (
-                <>
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                </>
-              ) : (
-                (cats.data ?? [])
-                  .slice()
-                  .sort((a, b) => a.displayPriority - b.displayPriority)
-                  .map((c) =>
-                    editingCategoryId === c.id ? (
-                      <CategoryForm
-                        key={c.id}
-                        initialName={c.name}
-                        onCreate={(name) => renameCategory(c, name)}
-                        onCancel={() => setEditingCategoryId(null)}
-                      />
-                    ) : (
-                      <div key={c.id} className="flex items-center gap-2 rounded-xl border border-border bg-card p-2.5">
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-semibold">{c.name}</div>
-                          {c.nameEn ? (
-                            <div className="truncate text-[11px] text-muted-foreground" dir="ltr">
-                              {c.nameEn}
-                            </div>
-                          ) : null}
-                        </div>
-                        <Button type="button" size="icon-sm" variant="ghost" className="text-muted-foreground" aria-label={`ویرایش ${c.name}`} onClick={() => setEditingCategoryId(c.id)}>
-                          <Pencil className="size-3.5" aria-hidden />
-                        </Button>
-                      </div>
-                    ),
-                  )
-              )}
+      <Card className="overflow-hidden">
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-border/70 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-primary-soft text-primary">
+              <PackageOpen className="size-[18px]" aria-hidden />
+            </span>
+            <div>
+              <h2 className="text-[15px] font-bold">محصولات منو</h2>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
+                {items.isLoading ? "در حال بارگذاری…" : `${items.data?.length ?? 0} محصول`}
+              </p>
             </div>
           </div>
-        </Card>
+          <Button
+            className="ms-auto"
+            onClick={() => setCreateOpen(true)}
+            disabled={categories.length === 0}
+            title={categories.length === 0 ? "ابتدا یک دسته‌بندی بسازید" : undefined}
+          >
+            <CirclePlus className="size-4" aria-hidden />
+            افزودن محصول
+          </Button>
+        </div>
 
-        {/* Products */}
-        <Card className="overflow-hidden">
-          <CardHead icon={<Layers3 className="size-4" aria-hidden />} title="محصولات" count={items.data?.length} />
-          <div className="space-y-4 p-4">
-            <ProductForm categories={cats.data ?? []} />
-            <div className="space-y-2">
-              {items.isLoading ? (
-                <>
-                  <Skeleton className="h-16 w-full" />
-                  <Skeleton className="h-16 w-full" />
-                </>
-              ) : (items.data ?? []).length === 0 ? (
-                <EmptyState compact icon={Layers3} title="محصولی ثبت نشده" description="از فرم بالا اولین محصول را بسازید" />
-              ) : (
-                (items.data ?? []).map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setSelectedId(item.id)}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-xl border bg-card p-2.5 text-start outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring/50",
-                      selectedId === item.id
-                        ? "border-primary/40 bg-primary-soft/50 ring-1 ring-primary/20"
-                        : "border-border hover:border-border-strong",
-                    )}
-                  >
-                    {item.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.imageUrl} alt="" className="size-10 shrink-0 rounded-lg object-cover ring-1 ring-border" />
-                    ) : (
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                        <Layers3 className="size-4" aria-hidden />
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-semibold">{item.title}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">{item.categoryName}</div>
-                    </div>
-                    <span className="text-[13px] font-bold text-muted-foreground tabular-nums">
-                      {formatToman(item.basePrice)}
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
+        {/* Filters */}
+        <div className="flex flex-col gap-3 border-b border-border/70 bg-muted/30 px-5 py-3 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search
+              className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="جستجوی نام یا توضیحات محصول…"
+              className="ps-10"
+            />
           </div>
-        </Card>
+          <Select value={categoryId} onValueChange={setCategoryId}>
+            <SelectTrigger className="sm:w-64" aria-label="فیلتر دسته‌بندی">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه دسته‌ها</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        {/* Editor — full width below xl so the recipe editor has room */}
-        <Card className="overflow-hidden md:col-span-2 xl:col-span-1">
-          <CardHead icon={<Pencil className="size-4" aria-hidden />} title="ویرایش محصول و رسپی" />
-          <div className="p-4">
-            {selected ? (
-              <ItemEditor key={selected.id} item={selected} inventory={inv.data ?? []} />
-            ) : (
+        {/* Product grid */}
+        <div className="p-5">
+          {items.isLoading ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-2.5">
+                  <Skeleton className="aspect-square w-full rounded-xl" />
+                  <div className="flex flex-col gap-2 p-2">
+                    <Skeleton className="h-5 w-2/3" />
+                    <Skeleton className="h-5 w-1/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <EmptyState
+              icon={PackageOpen}
+              title="محصولی یافت نشد"
+              description={
+                query.trim() || categoryId !== "all"
+                  ? "فیلترها یا عبارت جستجو را تغییر دهید"
+                  : "هنوز محصولی ثبت نشده است؛ با دکمه «افزودن محصول» شروع کنید"
+              }
+            />
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {filtered.map((item) => (
+                <ProductCard key={item.id} item={item} onClick={() => setEditItemId(item.id)} />
+              ))}
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* Edit modal — opens in edit mode when a product card is clicked */}
+      <Dialog open={Boolean(editItemId)} onOpenChange={(open) => !open && setEditItemId(null)}>
+        <DialogContent wide>
+          <DialogHeader className="pe-12">
+            <DialogTitle>ویرایش محصول و رسپی</DialogTitle>
+            <DialogDescription>
+              {editingItem ? `${editingItem.title} — ${editingItem.categoryName}` : "محصول انتخاب‌شده"}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            {editingItem ? (
+              <ItemEditor
+                key={editingItem.id}
+                item={editingItem}
+                inventory={inv.data ?? []}
+                onDeleted={() => setEditItemId(null)}
+              />
+            ) : null}
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create modal */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent wide>
+          <DialogHeader className="pe-12">
+            <DialogTitle>افزودن محصول جدید</DialogTitle>
+            <DialogDescription>نام، قیمت، دسته و عکس محصول جدید را وارد کنید</DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            {categories.length === 0 ? (
               <EmptyState
                 compact
-                icon={Pencil}
-                title="محصولی انتخاب نشده"
-                description="برای ویرایش نام، قیمت، افزودنی‌ها و اتصال به انبار، محصولی را انتخاب کنید"
+                icon={FolderTree}
+                title="دسته‌ای وجود ندارد"
+                description="ابتدا از بخش «دسته‌بندی‌ها» یک دسته بسازید"
               />
+            ) : (
+              <ProductForm categories={categories} onCreated={() => setCreateOpen(false)} />
             )}
-          </div>
-        </Card>
-      </div>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function CardHead({ icon, title, count }: { icon: React.ReactNode; title: string; count?: number }) {
+function ProductCard({ item, onClick }: { item: MenuItemDto; onClick: () => void }) {
   return (
-    <div className="flex items-center justify-between gap-2 border-b border-border/70 px-4 py-3.5">
-      <div className="flex items-center gap-2">
-        <span className="flex size-7 items-center justify-center rounded-lg bg-primary-soft text-primary">{icon}</span>
-        <h2 className="text-sm font-bold">{title}</h2>
-      </div>
-      {count !== undefined ? (
-        <Badge variant="neutral" className="tabular-nums">
-          {count}
-        </Badge>
-      ) : null}
-    </div>
-  );
-}
-
-function CategoryForm({
-  onCreate,
-  initialName = "",
-  onCancel,
-}: {
-  onCreate: (name: string) => void;
-  initialName?: string;
-  onCancel?: () => void;
-}) {
-  const [name, setName] = useState(initialName);
-  return (
-    <form
-      className="flex gap-2"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (name.trim()) {
-          onCreate(name.trim());
-          if (!onCancel) setName("");
-        }
-      }}
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card text-start shadow-xs outline-none transition-[border-color,box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-card-hover focus-visible:ring-2 focus-visible:ring-primary/30"
     >
-      <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="نام دسته جدید…" />
-      <Button type="submit" variant={onCancel ? "outline" : "default"} aria-label="ذخیره دسته">
-        {onCancel ? <Save className="size-4" aria-hidden /> : <Plus className="size-4" aria-hidden />}
-      </Button>
-      {onCancel ? (
-        <Button type="button" variant="ghost" onClick={onCancel}>
-          انصراف
-        </Button>
-      ) : null}
-    </form>
+      <div className="relative mx-2.5 mt-2.5">
+        {item.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={item.imageUrl}
+            alt={item.title}
+            className="aspect-square w-full rounded-xl object-cover ring-1 ring-border/50"
+          />
+        ) : (
+          <div className="flex aspect-square w-full items-center justify-center rounded-xl bg-muted text-muted-foreground">
+            <Layers3 className="size-6" aria-hidden />
+          </div>
+        )}
+        {!item.isActive ? (
+          <Badge variant="neutral" className="absolute end-2 top-2 backdrop-blur-sm">
+            غیرفعال
+          </Badge>
+        ) : null}
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col p-3">
+        <div className="line-clamp-2 text-[15px] leading-6 font-bold break-words">{item.title}</div>
+        <div className="mt-0.5 truncate text-xs text-muted-foreground">{item.categoryName}</div>
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
+          <span className="truncate text-[15px] font-extrabold text-primary tabular-nums">
+            {formatToman(item.basePrice)}
+          </span>
+          <span className="flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground transition-colors duration-150 group-hover:text-primary">
+            <Pencil className="size-3" aria-hidden />
+            ویرایش
+          </span>
+        </div>
+      </div>
+    </button>
   );
 }
 
@@ -394,7 +410,13 @@ function AddonSelector({
   );
 }
 
-function ProductForm({ categories }: { categories: Category[] }) {
+function ProductForm({
+  categories,
+  onCreated,
+}: {
+  categories: Category[];
+  onCreated?: () => void;
+}) {
   const allAddons = useAddons(false);
   const allItems = useMenuItems(false);
   const createItem = useCreateMenuItem();
@@ -438,6 +460,7 @@ function ProductForm({ categories }: { categories: Category[] }) {
       setPrice("");
       setImageUrl("");
       setSelectedAddons([]);
+      onCreated?.();
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
@@ -507,182 +530,14 @@ function ProductForm({ categories }: { categories: Category[] }) {
 
 /* ──────────────────────────────────────────────────────────────── */
 
-function SharedAddonCreator() {
-  const allAddons = useAddons(false);
-  const createAddon = useCreateAddon();
-  const updateAddon = useUpdateAddon();
-  const deleteAddon = useDeleteAddon();
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-
-  async function create() {
-    try {
-      await createAddon.mutateAsync({
-        name,
-        extraPrice: Number(price) * 10,
-        ticketStation: "Bar",
-        displayPriority: (allAddons.data?.length ?? 0) + 1,
-      });
-      setName("");
-      setPrice("");
-      toast.success("افزودنی مشترک ساخته شد");
-    } catch (error) {
-      toast.error(errorMessage(error));
-    }
-  }
-
-  async function update() {
-    try {
-      await updateAddon.mutateAsync({
-        id: editingId!,
-        payload: {
-          name,
-          extraPrice: Number(price) * 10,
-          ticketStation: "Bar",
-          displayPriority: 1,
-          isActive: true,
-        },
-      });
-      setEditingId(null);
-      setName("");
-      setPrice("");
-      toast.success("افزودنی ویرایش شد");
-    } catch (error) {
-      toast.error(errorMessage(error));
-    }
-  }
-
-  async function remove(id: string) {
-    try {
-      await deleteAddon.mutateAsync(id);
-      setDeleteTarget(null);
-      toast.success("افزودنی حذف شد");
-    } catch (error) {
-      toast.error(errorMessage(error));
-    }
-  }
-
-  return (
-    <Card className="overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 px-5 py-4">
-        <div>
-          <h2 className="text-[15px] font-bold">افزودنی‌های مشترک</h2>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
-            یک‌بار ساخته می‌شود و روی چند محصول قابل استفاده است؛ تغییر قیمت فقط یک‌بار انجام می‌شود
-          </p>
-        </div>
-        <Badge variant="neutral" className="tabular-nums">
-          {allAddons.data?.length ?? 0} افزودنی
-        </Badge>
-      </div>
-      <div className="space-y-4 p-5">
-        <div className="grid items-end gap-3 sm:grid-cols-[1fr_12rem_auto]">
-          <Field label={editingId ? "ویرایش نام افزودنی" : "افزودنی جدید"}>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثلاً شیر اضافه" />
-          </Field>
-          <Field label="قیمت اضافه">
-            <PriceInput value={price} onChange={setPrice} />
-          </Field>
-          {editingId ? (
-            <div className="flex gap-2">
-              <Button
-                loading={updateAddon.isPending}
-                disabled={!name.trim() || !price}
-                onClick={() => update()}
-              >
-                ذخیره
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setEditingId(null);
-                  setName("");
-                  setPrice("");
-                }}
-              >
-                انصراف
-              </Button>
-            </div>
-          ) : (
-            <Button
-              loading={createAddon.isPending}
-              disabled={!name.trim() || !price}
-              onClick={() => create()}
-            >
-              <Plus className="size-4" aria-hidden />
-              ساخت افزودنی
-            </Button>
-          )}
-        </div>
-
-        {allAddons.isLoading ? (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-          </div>
-        ) : (allAddons.data ?? []).length === 0 ? (
-          <EmptyState compact icon={Boxes} title="افزودنی مشترکی نیست" description="برای شروع، افزودنی را از فرم بالا بسازید" />
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {(allAddons.data ?? []).map((a) => (
-              <div key={a.id} className="flex items-center gap-2 rounded-xl border border-border bg-card p-2.5">
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold">{a.name}</div>
-                  <div className="text-[11px] text-muted-foreground tabular-nums">{formatToman(a.extraPrice)}</div>
-                </div>
-                <Button
-                  type="button"
-                  size="icon-sm"
-                  variant="ghost"
-                  className="text-muted-foreground"
-                  aria-label={`ویرایش ${a.name}`}
-                  onClick={() => {
-                    setEditingId(a.id);
-                    setName(a.name);
-                    setPrice(String(a.extraPrice / 10));
-                  }}
-                >
-                  <Pencil className="size-3.5" aria-hidden />
-                </Button>
-                <Button
-                  type="button"
-                  size="icon-sm"
-                  variant="ghost"
-                  className="text-muted-foreground hover:bg-danger/10 hover:text-danger"
-                  aria-label={`حذف ${a.name}`}
-                  onClick={() => setDeleteTarget(a.id)}
-                >
-                  <Trash2 className="size-3.5" aria-hidden />
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <ConfirmDialog
-        open={Boolean(deleteTarget)}
-        onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="حذف افزودنی مشترک"
-        description="این افزودنی از همه محصولات متصل نیز حذف می‌شود."
-        confirmLabel="حذف"
-        pending={deleteAddon.isPending}
-        onConfirm={() => deleteTarget && remove(deleteTarget)}
-      />
-    </Card>
-  );
-}
-
-/* ──────────────────────────────────────────────────────────────── */
-
 function ItemEditor({
   item,
   inventory,
+  onDeleted,
 }: {
   item: MenuItemDto;
   inventory: { id: string; name: string; sku: string }[];
+  onDeleted?: () => void;
 }) {
   const allAddons = useAddons(false);
   const updateItem = useUpdateMenuItem();
@@ -737,6 +592,7 @@ function ItemEditor({
       await deleteItem.mutateAsync(item.id);
       toast.success("محصول حذف شد");
       setConfirmDelete(null);
+      onDeleted?.();
     } catch (error) {
       toast.error(errorMessage(error));
     }

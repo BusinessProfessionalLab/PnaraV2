@@ -93,7 +93,13 @@ function SidebarNav({
             </div>
             <nav className="space-y-0.5">
               {section.items.map((item) => {
-                const active = path === item.href;
+                // Prefix match keeps the item highlighted on its own sub-pages
+                // (e.g. /admin/menu → /admin/menu/products), but never for the
+                // bare /admin dashboard which would otherwise stay active on
+                // every admin route.
+                const active =
+                  path === item.href ||
+                  (item.href !== "/admin" && path.startsWith(item.href + "/"));
                 const Icon = item.icon;
                 return (
                   <Link
@@ -269,7 +275,9 @@ function RailNav({
         aria-label="ناوبری پنل مدیریت"
       >
         {all.map((item) => {
-          const active = path === item.href;
+          const active =
+            path === item.href ||
+            (item.href !== "/admin" && path.startsWith(item.href + "/"));
           const Icon = item.icon;
           return (
             <Link

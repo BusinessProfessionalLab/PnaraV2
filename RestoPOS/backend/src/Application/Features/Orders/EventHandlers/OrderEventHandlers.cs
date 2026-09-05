@@ -4,8 +4,10 @@ using Microsoft.Extensions.Logging;
 using RestoPOS.Application.Common.Interfaces;
 using RestoPOS.Application.Common.Models;
 using RestoPOS.Domain.Entities;
+using RestoPOS.Domain.Enums;
 using RestoPOS.Domain.Events;
 using RestoPOS.Domain.Exceptions;
+using RestoPOS.Domain.Services;
 
 namespace RestoPOS.Application.Features.Orders.EventHandlers;
 
@@ -25,25 +27,30 @@ public sealed class OrderSubmittedInventoryHandler(IApplicationDbContext db, ILo
             .Where(i => demand.Keys.Contains(i.Id))
             .ToDictionaryAsync(i => i.Id, cancellationToken);
 
-        foreach (var (inventoryItemId, quantity) in demand)
+        foreach (var (inventoryItemId, lines) in demand)
         {
             if (!stockItems.TryGetValue(inventoryItemId, out var stock) || !stock.IsActive)
                 throw new DomainException("یکی از مواد اولیه رسپی در انبار پیدا نشد یا غیرفعال است.");
+            var quantity = lines.Sum(line => UnitOfMeasureConversion.Convert(line.Quantity, line.Unit, stock.UnitOfMeasure));
             if (stock.CurrentStock < quantity)
                 throw new DomainException($"موجودی ماده اولیه «{stock.Name}» کافی نیست. موجودی فعلی: {stock.CurrentStock}، مقدار موردنیاز: {quantity}.");
         }
 
-        foreach (var (inventoryItemId, quantity) in demand)
-            stockItems[inventoryItemId].ApplyRecipeDeduction(quantity, order.Id, order.CashierId);
+        foreach (var (inventoryItemId, lines) in demand)
+        {
+            var stock = stockItems[inventoryItemId];
+            var quantity = lines.Sum(line => UnitOfMeasureConversion.Convert(line.Quantity, line.Unit, stock.UnitOfMeasure));
+            stock.ApplyRecipeDeduction(quantity, order.Id, order.CashierId);
+        }
 
         order.InventoryDeducted = true;
         await db.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Inventory deducted for order {OrderNumber}", order.OrderNumber);
     }
 
-    private static async Task<Dictionary<Guid, decimal>> BuildDemandAsync(IApplicationDbContext db, Order order, CancellationToken ct)
+    private static async Task<Dictionary<Guid, List<RecipeDemandLine>>> BuildDemandAsync(IApplicationDbContext db, Order order, CancellationToken ct)
     {
-        var demand = new Dictionary<Guid, decimal>();
+        var demand = new Dictionary<Guid, List<RecipeDemandLine>>();
 
         foreach (var item in order.Items)
         {
@@ -79,10 +86,14 @@ public sealed class OrderSubmittedInventoryHandler(IApplicationDbContext db, ILo
         return demand;
     }
 
-    private static void AddDemand(Dictionary<Guid, decimal> demand, Recipe recipe, decimal multiplier)
+    private static void AddDemand(Dictionary<Guid, List<RecipeDemandLine>> demand, Recipe recipe, decimal multiplier)
     {
         foreach (var line in recipe.Lines)
-            demand[line.InventoryItemId] = demand.GetValueOrDefault(line.InventoryItemId) + line.Quantity * multiplier;
+        {
+            if (!demand.TryGetValue(line.InventoryItemId, out var lines))
+                demand[line.InventoryItemId] = lines = [];
+            lines.Add(new RecipeDemandLine(line.Quantity * multiplier, line.Unit));
+        }
     }
 }
 
@@ -126,19 +137,22 @@ public sealed class OrderCancelledInventoryHandler(IApplicationDbContext db)
         var stockItems = await db.InventoryItems
             .Where(i => demand.Keys.Contains(i.Id))
             .ToDictionaryAsync(i => i.Id, cancellationToken);
-        foreach (var (inventoryItemId, quantity) in demand)
+        foreach (var (inventoryItemId, lines) in demand)
         {
             if (stockItems.TryGetValue(inventoryItemId, out var stock))
+            {
+                var quantity = lines.Sum(line => UnitOfMeasureConversion.Convert(line.Quantity, line.Unit, stock.UnitOfMeasure));
                 stock.ReverseRecipeDeduction(quantity, order.Id, order.CashierId);
+            }
         }
 
         order.InventoryDeducted = false;
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    private static async Task<Dictionary<Guid, decimal>> BuildDemandAsync(IApplicationDbContext db, Order order, CancellationToken ct)
+    private static async Task<Dictionary<Guid, List<RecipeDemandLine>>> BuildDemandAsync(IApplicationDbContext db, Order order, CancellationToken ct)
     {
-        var demand = new Dictionary<Guid, decimal>();
+        var demand = new Dictionary<Guid, List<RecipeDemandLine>>();
         foreach (var item in order.Items)
         {
             var recipe = await db.Recipes.Include(r => r.Lines)
@@ -166,9 +180,15 @@ public sealed class OrderCancelledInventoryHandler(IApplicationDbContext db)
         return demand;
     }
 
-    private static void AddDemand(Dictionary<Guid, decimal> demand, Recipe recipe, decimal multiplier)
+    private static void AddDemand(Dictionary<Guid, List<RecipeDemandLine>> demand, Recipe recipe, decimal multiplier)
     {
         foreach (var line in recipe.Lines)
-            demand[line.InventoryItemId] = demand.GetValueOrDefault(line.InventoryItemId) + line.Quantity * multiplier;
+        {
+            if (!demand.TryGetValue(line.InventoryItemId, out var lines))
+                demand[line.InventoryItemId] = lines = [];
+            lines.Add(new RecipeDemandLine(line.Quantity * multiplier, line.Unit));
+        }
     }
 }
+
+internal sealed record RecipeDemandLine(decimal Quantity, UnitOfMeasure Unit);

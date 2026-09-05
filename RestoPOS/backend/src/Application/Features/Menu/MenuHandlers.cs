@@ -410,17 +410,30 @@ public sealed class UpsertRecipeCommandHandler(IApplicationDbContext db) : IRequ
         recipe ??= new Recipe { MenuItemId = request.MenuItemId, MenuItemModifierId = request.MenuItemModifierId, AddonId = request.AddonId };
         recipe.Name = request.Name;
         var requested = request.Lines.ToDictionary(l => l.InventoryItemId);
+        var removedLines = new List<RecipeLine>();
         foreach (var existing in recipe.Lines.ToList())
         {
             if (!requested.TryGetValue(existing.InventoryItemId, out var line))
             {
-                db.RecipeLines.Remove(existing);
+                removedLines.Add(existing);
                 continue;
             }
             existing.Quantity = line.Quantity;
             existing.Unit = line.Unit;
             requested.Remove(existing.InventoryItemId);
         }
+
+        // Delete obsolete rows before inserting replacement rows. SQL Server can
+        // otherwise attempt the INSERT first and report a misleading concurrency
+        // failure when the unique (RecipeId, InventoryItemId) index is involved.
+        if (removedLines.Count > 0)
+        {
+            db.RecipeLines.RemoveRange(removedLines);
+            await db.SaveChangesAsync(cancellationToken);
+            foreach (var removed in removedLines)
+                recipe.Lines.Remove(removed);
+        }
+
         foreach (var line in requested.Values)
             recipe.Lines.Add(new RecipeLine
             {

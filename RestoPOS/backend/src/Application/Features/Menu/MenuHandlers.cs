@@ -146,8 +146,38 @@ public sealed class CreateMenuItemCommandHandler(IApplicationDbContext db) : IRe
             ,DiscountPercent = request.DiscountPercent
         };
         db.MenuItems.Add(item);
+        var recipeLines = request.RecipeLines ?? [];
+        if (recipeLines.Count > 0)
+        {
+            ValidateRecipeLines(recipeLines);
+            var inventoryIds = recipeLines.Select(x => x.InventoryItemId).ToHashSet();
+            var existingInventoryIds = await db.InventoryItems
+                .Where(x => inventoryIds.Contains(x.Id) && x.IsActive)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+            if (existingInventoryIds.Count != inventoryIds.Count)
+                throw new DomainException("یکی از مواد اولیه انتخاب‌شده در انبار وجود ندارد یا غیرفعال است.");
+            item.Recipe = new Recipe
+            {
+                Name = $"BOM {request.Title}",
+                Lines = recipeLines.Select(line => new RecipeLine
+                {
+                    InventoryItemId = line.InventoryItemId,
+                    Quantity = line.Quantity,
+                    Unit = line.Unit
+                }).ToList()
+            };
+        }
         await db.SaveChangesAsync(cancellationToken);
         return item.Id;
+    }
+
+    private static void ValidateRecipeLines(IReadOnlyList<RecipeLineDto> lines)
+    {
+        if (lines.Any(x => x.InventoryItemId == Guid.Empty || x.Quantity <= 0))
+            throw new DomainException("مواد اولیه رسپی و مقدار مصرف آن‌ها باید معتبر باشند.");
+        if (lines.Select(x => x.InventoryItemId).Distinct().Count() != lines.Count)
+            throw new DomainException("هر ماده اولیه فقط یک‌بار می‌تواند در رسپی ثبت شود.");
     }
 }
 
@@ -348,6 +378,9 @@ public sealed class UpsertRecipeCommandValidator : AbstractValidator<UpsertRecip
             l.RuleFor(i => i.InventoryItemId).NotEmpty();
             l.RuleFor(i => i.Quantity).GreaterThan(0);
         });
+        RuleFor(x => x.Lines)
+            .Must(lines => lines.Select(x => x.InventoryItemId).Distinct().Count() == lines.Count)
+            .WithMessage("هر ماده اولیه فقط یک‌بار می‌تواند در رسپی ثبت شود.");
     }
 }
 
@@ -355,6 +388,18 @@ public sealed class UpsertRecipeCommandHandler(IApplicationDbContext db) : IRequ
 {
     public async Task<Guid> Handle(UpsertRecipeCommand request, CancellationToken cancellationToken)
     {
+        if (request.MenuItemId is not null && !await db.MenuItems.AnyAsync(x => x.Id == request.MenuItemId, cancellationToken))
+            throw new NotFoundException(nameof(MenuItem), request.MenuItemId.Value);
+        if (request.Lines.Count > 0)
+        {
+            var inventoryIds = request.Lines.Select(x => x.InventoryItemId).ToHashSet();
+            var existingInventoryIds = await db.InventoryItems
+                .Where(x => inventoryIds.Contains(x.Id) && x.IsActive)
+                .Select(x => x.Id)
+                .ToListAsync(cancellationToken);
+            if (existingInventoryIds.Count != inventoryIds.Count)
+                throw new DomainException("یکی از مواد اولیه انتخاب‌شده در انبار وجود ندارد یا غیرفعال است.");
+        }
         var recipe = await db.Recipes
             .Include(r => r.Lines)
             .FirstOrDefaultAsync(r =>
@@ -364,18 +409,39 @@ public sealed class UpsertRecipeCommandHandler(IApplicationDbContext db) : IRequ
 
         recipe ??= new Recipe { MenuItemId = request.MenuItemId, MenuItemModifierId = request.MenuItemModifierId, AddonId = request.AddonId };
         recipe.Name = request.Name;
-        recipe.ReplaceLines(request.Lines.Select(l => new RecipeLine
+        var requested = request.Lines.ToDictionary(l => l.InventoryItemId);
+        foreach (var existing in recipe.Lines.ToList())
         {
-            InventoryItemId = l.InventoryItemId,
-            Quantity = l.Quantity,
-            Unit = l.Unit
-        }));
+            if (!requested.TryGetValue(existing.InventoryItemId, out var line))
+            {
+                db.RecipeLines.Remove(existing);
+                continue;
+            }
+            existing.Quantity = line.Quantity;
+            existing.Unit = line.Unit;
+            requested.Remove(existing.InventoryItemId);
+        }
+        foreach (var line in requested.Values)
+            recipe.Lines.Add(new RecipeLine
+            {
+                InventoryItemId = line.InventoryItemId,
+                Quantity = line.Quantity,
+                Unit = line.Unit
+            });
 
         if (recipe.Id == Guid.Empty || !await db.Recipes.AnyAsync(r => r.Id == recipe.Id, cancellationToken))
             db.Recipes.Add(recipe);
 
         await db.SaveChangesAsync(cancellationToken);
         return recipe.Id;
+    }
+
+    private static void ValidateRecipeLines(IReadOnlyList<RecipeLineDto> lines)
+    {
+        if (lines.Any(x => x.InventoryItemId == Guid.Empty || x.Quantity <= 0))
+            throw new DomainException("مواد اولیه رسپی و مقدار مصرف آن‌ها باید معتبر باشند.");
+        if (lines.Select(x => x.InventoryItemId).Distinct().Count() != lines.Count)
+            throw new DomainException("هر ماده اولیه فقط یک‌بار می‌تواند در رسپی ثبت شود.");
     }
 }
 

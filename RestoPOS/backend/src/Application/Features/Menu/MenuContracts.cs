@@ -47,7 +47,8 @@ public sealed record CreateMenuItemCommand(
     TicketStation TicketStation,
     int PrepTimeMinutes,
     string? NameEn = null,
-    decimal DiscountPercent = 0) : MediatR.IRequest<Guid>;
+    decimal DiscountPercent = 0,
+    IReadOnlyList<RecipeLineDto>? RecipeLines = null) : MediatR.IRequest<Guid>;
 
 public sealed record UpdateMenuItemCommand(
     Guid Id,

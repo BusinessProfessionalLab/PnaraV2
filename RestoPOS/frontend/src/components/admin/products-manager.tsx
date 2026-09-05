@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Label, Textarea } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
+import { RecipeEditor } from "@/components/admin/recipe-editor";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -37,7 +38,6 @@ import {
   useMenuItems,
   useUpdateMenuItem,
   useUpdateModifier,
-  useUpsertRecipe,
 } from "@/queries/menu";
 import { useInventory } from "@/queries/inventory";
 import { errorMessage } from "@/api/errors";
@@ -56,7 +56,7 @@ import {
 import { formatToman } from "@/lib/currency";
 import { fuzzyScore } from "@/lib/fuzzy-search";
 import { cn } from "@/lib/cn";
-import type { MenuItemDto, TicketStation, UnitOfMeasure } from "@/lib/types";
+import type { InventoryItemDto, MenuItemDto, RecipeLineDto, TicketStation } from "@/lib/types";
 
 type Category = { id: string; name: string };
 
@@ -308,7 +308,7 @@ export function ProductsManager() {
                 description="ابتدا از بخش «دسته‌بندی‌ها» یک دسته بسازید"
               />
             ) : (
-              <ProductForm categories={categories} onCreated={() => setCreateOpen(false)} />
+              <ProductForm categories={categories} inventory={inv.data ?? []} onCreated={() => setCreateOpen(false)} />
             )}
           </DialogBody>
         </DialogContent>
@@ -412,9 +412,11 @@ function AddonSelector({
 
 function ProductForm({
   categories,
+  inventory,
   onCreated,
 }: {
   categories: Category[];
+  inventory: InventoryItemDto[];
   onCreated?: () => void;
 }) {
   const allAddons = useAddons(false);
@@ -429,6 +431,7 @@ function ProductForm({
   const [imageUrl, setImageUrl] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [station, setStation] = useState<TicketStation>("Bar");
+  const [recipeLines, setRecipeLines] = useState<RecipeLineDto[]>([]);
 
   async function submit() {
     if (!title.trim() || !price || !categoryId) return;
@@ -448,6 +451,7 @@ function ProductForm({
         isActive: true,
         ticketStation: station,
         prepTimeMinutes: 4,
+        recipeLines,
       });
       await Promise.all(
         selectedAddons.map((addonId) =>
@@ -515,6 +519,9 @@ function ProductForm({
       <div className="sm:col-span-2">
         <AddonSelector addons={allAddons.data ?? []} selected={selectedAddons} onChange={setSelectedAddons} />
       </div>
+      <div className="sm:col-span-2">
+        <RecipeEditor item={null} inventory={inventory} onLinesChange={setRecipeLines} />
+      </div>
       <Button
         type="submit"
         className="sm:col-span-2"
@@ -536,7 +543,7 @@ function ItemEditor({
   onDeleted,
 }: {
   item: MenuItemDto;
-  inventory: { id: string; name: string; sku: string }[];
+  inventory: InventoryItemDto[];
   onDeleted?: () => void;
 }) {
   const allAddons = useAddons(false);
@@ -545,7 +552,6 @@ function ItemEditor({
   const createModifier = useCreateModifier();
   const editModifier = useUpdateModifier();
   const removeModifier = useDeleteModifier();
-  const saveRecipe = useUpsertRecipe();
   const attachAddon = useAttachAddon();
   const detachAddon = useDetachAddon();
   const [sharedAddonIds, setSharedAddonIds] = useState<string[]>(() => (item.addons ?? []).map((a) => a.id));
@@ -557,11 +563,7 @@ function ItemEditor({
   const [modName, setModName] = useState("");
   const [modPrice, setModPrice] = useState("");
   const [editingMod, setEditingMod] = useState<string | null>(null);
-  const [invId, setInvId] = useState("");
-  const [qty, setQty] = useState("18");
-  const [unit, setUnit] = useState<UnitOfMeasure>("Gr");
   const [confirmDelete, setConfirmDelete] = useState<null | { kind: "product" } | { kind: "modifier"; id: string; name: string }>(null);
-  const lines = useMemo(() => item.recipe?.lines ?? [], [item]);
 
   async function update() {
     try {
@@ -634,23 +636,6 @@ function ItemEditor({
     try {
       await removeModifier.mutateAsync(id);
       toast.success("اضافه حذف شد");
-    } catch (error) {
-      toast.error(errorMessage(error));
-    }
-  }
-
-  async function saveBom() {
-    try {
-      await saveRecipe.mutateAsync({
-        menuItemId: item.id,
-        menuItemModifierId: null,
-        name: `BOM ${item.title}`,
-        lines: invId
-          ? [...lines, { inventoryItemId: invId, quantity: Number(qty), unit }]
-          : lines,
-      });
-      toast.success("رسپی ذخیره شد");
-      setInvId("");
     } catch (error) {
       toast.error(errorMessage(error));
     }
@@ -792,64 +777,7 @@ function ItemEditor({
       </div>
 
       {/* Recipe / BOM */}
-      <div className="space-y-3 rounded-xl border border-border p-3.5">
-        <SectionLabel>رسپی و اتصال به انبار</SectionLabel>
-        {lines.length > 0 ? (
-          <ul className="space-y-1 rounded-lg bg-muted/40 p-2.5">
-            {lines.map((l) => (
-              <li key={l.inventoryItemId} className="flex items-center justify-between text-[13px]">
-                <span>{inventory.find((i) => i.id === l.inventoryItemId)?.name ?? l.inventoryItemId}</span>
-                <span className="text-muted-foreground tabular-nums">
-                  {l.quantity} {l.unit}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            هنوز ماده‌ای به رسپی وصل نشده؛ پس از اتصال، موجودی هنگام فروش به‌صورت خودکار کم می‌شود.
-          </p>
-        )}
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Select value={invId} onValueChange={setInvId}>
-            <SelectTrigger>
-              <SelectValue placeholder="ماده اولیه از انبار…" />
-            </SelectTrigger>
-            <SelectContent>
-              {inventory.map((i) => (
-                <SelectItem key={i.id} value={i.id}>
-                  {i.name} ({i.sku})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="flex gap-2">
-            <Input type="number" inputMode="numeric" className="tabular-nums" value={qty} onChange={(e) => setQty(e.target.value)} aria-label="مقدار مصرف" />
-            <Select value={unit} onValueChange={(v) => setUnit(v as UnitOfMeasure)}>
-              <SelectTrigger className="w-28 shrink-0">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(["Gr", "Ml", "Kg", "Liter", "Count"] as UnitOfMeasure[]).map((u) => (
-                  <SelectItem key={u} value={u}>
-                    {u}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <Button
-          variant="secondary"
-          className="w-full"
-          loading={saveRecipe.isPending}
-          disabled={!invId || !qty || saveRecipe.isPending}
-          onClick={() => saveBom()}
-        >
-          <Save className="size-4" aria-hidden />
-          افزودن به رسپی و ذخیره
-        </Button>
-      </div>
+      <RecipeEditor item={item} inventory={inventory} />
 
       <ConfirmDialog
         open={Boolean(confirmDelete)}

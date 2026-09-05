@@ -5,6 +5,7 @@ using RestoPOS.Application.Common.Interfaces;
 using RestoPOS.Application.Common.Models;
 using RestoPOS.Domain.Entities;
 using RestoPOS.Domain.Events;
+using RestoPOS.Domain.Exceptions;
 
 namespace RestoPOS.Application.Features.Orders.EventHandlers;
 
@@ -19,34 +20,69 @@ public sealed class OrderSubmittedInventoryHandler(IApplicationDbContext db, ILo
         if (order is null || order.InventoryDeducted)
             return;
 
-        foreach (var item in order.Items)
-        {
-            var recipe = await db.Recipes.Include(r => r.Lines)
-                .FirstOrDefaultAsync(r => r.MenuItemId == item.MenuItemId, cancellationToken);
-            if (recipe is not null)
-                await DeductAsync(db, recipe, item.Quantity, order, cancellationToken);
+        var demand = await BuildDemandAsync(db, order, cancellationToken);
+        var stockItems = await db.InventoryItems
+            .Where(i => demand.Keys.Contains(i.Id))
+            .ToDictionaryAsync(i => i.Id, cancellationToken);
 
-            foreach (var modifier in item.Modifiers)
-            {
-                var modifierRecipe = await db.Recipes.Include(r => r.Lines)
-                    .FirstOrDefaultAsync(r => r.MenuItemModifierId == modifier.MenuItemModifierId, cancellationToken);
-                if (modifierRecipe is not null)
-                    await DeductAsync(db, modifierRecipe, item.Quantity * modifier.Quantity, order, cancellationToken);
-            }
+        foreach (var (inventoryItemId, quantity) in demand)
+        {
+            if (!stockItems.TryGetValue(inventoryItemId, out var stock) || !stock.IsActive)
+                throw new DomainException("یکی از مواد اولیه رسپی در انبار پیدا نشد یا غیرفعال است.");
+            if (stock.CurrentStock < quantity)
+                throw new DomainException($"موجودی ماده اولیه «{stock.Name}» کافی نیست. موجودی فعلی: {stock.CurrentStock}، مقدار موردنیاز: {quantity}.");
         }
+
+        foreach (var (inventoryItemId, quantity) in demand)
+            stockItems[inventoryItemId].ApplyRecipeDeduction(quantity, order.Id, order.CashierId);
 
         order.InventoryDeducted = true;
         await db.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Inventory deducted for order {OrderNumber}", order.OrderNumber);
     }
 
-    private static async Task DeductAsync(IApplicationDbContext db, Recipe recipe, int multiplier, Order order, CancellationToken ct)
+    private static async Task<Dictionary<Guid, decimal>> BuildDemandAsync(IApplicationDbContext db, Order order, CancellationToken ct)
+    {
+        var demand = new Dictionary<Guid, decimal>();
+
+        foreach (var item in order.Items)
+        {
+            var recipes = new List<Recipe>();
+            var recipe = await db.Recipes.Include(r => r.Lines)
+                .FirstOrDefaultAsync(r => r.MenuItemId == item.MenuItemId, ct);
+            if (recipe is not null)
+                recipes.Add(recipe);
+
+            foreach (var modifier in item.Modifiers)
+            {
+                if (modifier.MenuItemModifierId is { } modifierId)
+                {
+                    var modifierRecipe = await db.Recipes.Include(r => r.Lines)
+                        .FirstOrDefaultAsync(r => r.MenuItemModifierId == modifierId, ct);
+                    if (modifierRecipe is not null)
+                        AddDemand(demand, modifierRecipe, item.Quantity * modifier.Quantity);
+                }
+
+                if (modifier.AddonId is { } addonId)
+                {
+                    var addonRecipe = await db.Recipes.Include(r => r.Lines)
+                        .FirstOrDefaultAsync(r => r.AddonId == addonId, ct);
+                    if (addonRecipe is not null)
+                        AddDemand(demand, addonRecipe, item.Quantity * modifier.Quantity);
+                }
+            }
+
+            foreach (var itemRecipe in recipes)
+                AddDemand(demand, itemRecipe, item.Quantity);
+        }
+
+        return demand;
+    }
+
+    private static void AddDemand(Dictionary<Guid, decimal> demand, Recipe recipe, decimal multiplier)
     {
         foreach (var line in recipe.Lines)
-        {
-            var stock = await db.InventoryItems.FirstOrDefaultAsync(i => i.Id == line.InventoryItemId, ct);
-            stock?.ApplyRecipeDeduction(line.Quantity * multiplier, order.Id, order.CashierId);
-        }
+            demand[line.InventoryItemId] = demand.GetValueOrDefault(line.InventoryItemId) + line.Quantity * multiplier;
     }
 }
 
@@ -86,32 +122,53 @@ public sealed class OrderCancelledInventoryHandler(IApplicationDbContext db)
         if (order is null || !order.InventoryDeducted)
             return;
 
-        foreach (var item in order.Items)
+        var demand = await BuildDemandAsync(db, order, cancellationToken);
+        var stockItems = await db.InventoryItems
+            .Where(i => demand.Keys.Contains(i.Id))
+            .ToDictionaryAsync(i => i.Id, cancellationToken);
+        foreach (var (inventoryItemId, quantity) in demand)
         {
-            var recipe = await db.Recipes.Include(r => r.Lines)
-                .FirstOrDefaultAsync(r => r.MenuItemId == item.MenuItemId, cancellationToken);
-            if (recipe is not null)
-                await ReverseAsync(db, recipe, item.Quantity, order, cancellationToken);
-
-            foreach (var modifier in item.Modifiers)
-            {
-                var modifierRecipe = await db.Recipes.Include(r => r.Lines)
-                    .FirstOrDefaultAsync(r => r.MenuItemModifierId == modifier.MenuItemModifierId, cancellationToken);
-                if (modifierRecipe is not null)
-                    await ReverseAsync(db, modifierRecipe, item.Quantity * modifier.Quantity, order, cancellationToken);
-            }
+            if (stockItems.TryGetValue(inventoryItemId, out var stock))
+                stock.ReverseRecipeDeduction(quantity, order.Id, order.CashierId);
         }
 
         order.InventoryDeducted = false;
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    private static async Task ReverseAsync(IApplicationDbContext db, Recipe recipe, int multiplier, Order order, CancellationToken ct)
+    private static async Task<Dictionary<Guid, decimal>> BuildDemandAsync(IApplicationDbContext db, Order order, CancellationToken ct)
+    {
+        var demand = new Dictionary<Guid, decimal>();
+        foreach (var item in order.Items)
+        {
+            var recipe = await db.Recipes.Include(r => r.Lines)
+                .FirstOrDefaultAsync(r => r.MenuItemId == item.MenuItemId, ct);
+            if (recipe is not null)
+                AddDemand(demand, recipe, item.Quantity);
+            foreach (var modifier in item.Modifiers)
+            {
+                if (modifier.MenuItemModifierId is { } modifierId)
+                {
+                    var modifierRecipe = await db.Recipes.Include(r => r.Lines)
+                        .FirstOrDefaultAsync(r => r.MenuItemModifierId == modifierId, ct);
+                    if (modifierRecipe is not null)
+                        AddDemand(demand, modifierRecipe, item.Quantity * modifier.Quantity);
+                }
+                if (modifier.AddonId is { } addonId)
+                {
+                    var addonRecipe = await db.Recipes.Include(r => r.Lines)
+                        .FirstOrDefaultAsync(r => r.AddonId == addonId, ct);
+                    if (addonRecipe is not null)
+                        AddDemand(demand, addonRecipe, item.Quantity * modifier.Quantity);
+                }
+            }
+        }
+        return demand;
+    }
+
+    private static void AddDemand(Dictionary<Guid, decimal> demand, Recipe recipe, decimal multiplier)
     {
         foreach (var line in recipe.Lines)
-        {
-            var stock = await db.InventoryItems.FirstOrDefaultAsync(i => i.Id == line.InventoryItemId, ct);
-            stock?.ReverseRecipeDeduction(line.Quantity * multiplier, order.Id, order.CashierId);
-        }
+            demand[line.InventoryItemId] = demand.GetValueOrDefault(line.InventoryItemId) + line.Quantity * multiplier;
     }
 }

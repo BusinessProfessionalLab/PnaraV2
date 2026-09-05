@@ -18,6 +18,11 @@ const unitLabels: Record<UnitOfMeasure, string> = {
   Count: "عدد",
 };
 
+function makeRowKey() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return `row-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 type IngredientRow = {
   key: string;
   inventoryItemId: string;
@@ -132,7 +137,7 @@ export function RecipeEditor({
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" disabled={available.length === 0 || rows.some((row) => !row.inventoryItemId)}
             onClick={() => {
-              setRows((current) => [...current, { key: crypto.randomUUID(), inventoryItemId: "", quantity: "1", unit: "Gr" }]);
+              setRows((current) => [...current, { key: makeRowKey(), inventoryItemId: "", quantity: "1", unit: "Gr" }]);
               setDirty(true);
             }}>
             <Plus className="size-4" aria-hidden />افزودن ماده اولیه

@@ -177,13 +177,15 @@ export function InventoryHub() {
                       {i.sku}
                     </TableCell>
                     <TableCell className="tabular-nums">
-                      {i.currentStock}{" "}
+                      <span className="font-bold">{Math.max(0, i.currentStock)}</span>{" "}
                       <span className="text-xs text-muted-foreground">{UNIT_LABEL[i.unitOfMeasure] ?? i.unitOfMeasure}</span>
                     </TableCell>
-                    <TableCell className="hidden tabular-nums text-muted-foreground md:table-cell">{i.reorderPoint}</TableCell>
+                    <TableCell className="hidden tabular-nums text-muted-foreground md:table-cell">{i.reorderPoint} {UNIT_LABEL[i.unitOfMeasure] ?? i.unitOfMeasure}</TableCell>
                     <TableCell className="hidden tabular-nums md:table-cell">{formatToman(i.costPrice)}</TableCell>
                     <TableCell>
-                      {i.isLowStock ? (
+                      {i.currentStock <= 0 ? (
+                        <Badge variant="danger">Ù†Ø§Ù…ÙˆØ¬ÙˆØ¯</Badge>
+                      ) : i.isLowStock ? (
                         <Badge variant="danger">رو به اتمام</Badge>
                       ) : i.currentStock <= 0 ? (
                         <Badge variant="danger">ناموجود</Badge>

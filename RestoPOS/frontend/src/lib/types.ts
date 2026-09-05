@@ -206,6 +206,7 @@ export type InventoryItemDto = {
   averageCost: number;
   isActive: boolean;
   isLowStock: boolean;
+  stockStatus?: "Available" | "LowStock" | "OutOfStock";
 };
 
 export type InventoryTransactionDto = {

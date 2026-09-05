@@ -10,7 +10,8 @@ namespace RestoPOS.Application.Features.Inventory;
 
 public sealed record InventoryItemDto(
     Guid Id, string Name, string Sku, UnitOfMeasure UnitOfMeasure, decimal ReorderPoint, decimal SafetyStock,
-    decimal CurrentStock, decimal CostPrice, decimal AverageCost, bool IsActive, bool IsLowStock);
+    decimal CurrentStock, decimal CostPrice, decimal AverageCost, bool IsActive, bool IsLowStock,
+    string StockStatus = "Available");
 
 public sealed record InventoryTransactionDto(
     Guid Id, Guid InventoryItemId, string ItemName, InventoryTransactionType Type, decimal Quantity, decimal UnitCost,
@@ -70,6 +71,8 @@ public sealed class ReceiveStockCommandHandler(IApplicationDbContext db, ICurren
     {
         var item = await db.InventoryItems.FirstOrDefaultAsync(i => i.Id == request.InventoryItemId, cancellationToken)
                    ?? throw new NotFoundException(nameof(InventoryItem), request.InventoryItemId);
+        if (request.Quantity <= 0)
+            throw new DomainException("مقدار ورود کالا باید بیشتر از صفر باشد.");
         var tx = item.ApplyInbound(request.Quantity, request.UnitCost, current.UserId, request.Notes, request.BatchReference);
         await db.SaveChangesAsync(cancellationToken);
         return tx.Id;
@@ -83,6 +86,8 @@ public sealed class RecordWasteCommandHandler(IApplicationDbContext db, ICurrent
     {
         var item = await db.InventoryItems.FirstOrDefaultAsync(i => i.Id == request.InventoryItemId, cancellationToken)
                    ?? throw new NotFoundException(nameof(InventoryItem), request.InventoryItemId);
+        if (request.Quantity <= 0)
+            throw new DomainException("مقدار ضایعات باید بیشتر از صفر باشد.");
         var tx = item.ApplyWaste(request.Quantity, current.UserId, request.Notes);
         await db.SaveChangesAsync(cancellationToken);
         return tx.Id;
@@ -93,7 +98,8 @@ public sealed class GetInventoryQueryHandler(IApplicationDbContext db) : IReques
 {
     public async Task<IReadOnlyList<InventoryItemDto>> Handle(GetInventoryQuery request, CancellationToken cancellationToken) =>
         await db.InventoryItems.AsNoTracking().OrderBy(i => i.Name)
-            .Select(i => new InventoryItemDto(i.Id, i.Name, i.Sku, i.UnitOfMeasure, i.ReorderPoint, i.SafetyStock, i.CurrentStock, i.CostPrice, i.AverageCost, i.IsActive, i.CurrentStock <= i.ReorderPoint))
+            .Select(i => new InventoryItemDto(i.Id, i.Name, i.Sku, i.UnitOfMeasure, i.ReorderPoint, i.SafetyStock, i.CurrentStock, i.CostPrice, i.AverageCost, i.IsActive, i.CurrentStock > 0 && i.CurrentStock <= i.ReorderPoint,
+                i.CurrentStock <= 0 ? "OutOfStock" : i.CurrentStock <= i.ReorderPoint ? "LowStock" : "Available"))
             .ToListAsync(cancellationToken);
 }
 
@@ -103,7 +109,7 @@ public sealed class GetLowStockQueryHandler(IApplicationDbContext db) : IRequest
         await db.InventoryItems.AsNoTracking()
             .Where(i => i.IsActive && i.CurrentStock <= i.ReorderPoint)
             .OrderBy(i => i.CurrentStock)
-            .Select(i => new InventoryItemDto(i.Id, i.Name, i.Sku, i.UnitOfMeasure, i.ReorderPoint, i.SafetyStock, i.CurrentStock, i.CostPrice, i.AverageCost, i.IsActive, true))
+            .Select(i => new InventoryItemDto(i.Id, i.Name, i.Sku, i.UnitOfMeasure, i.ReorderPoint, i.SafetyStock, i.CurrentStock, i.CostPrice, i.AverageCost, i.IsActive, true, "LowStock"))
             .ToListAsync(cancellationToken);
 }
 

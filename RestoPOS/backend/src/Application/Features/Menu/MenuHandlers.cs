@@ -401,7 +401,6 @@ public sealed class UpsertRecipeCommandHandler(IApplicationDbContext db) : IRequ
                 throw new DomainException("یکی از مواد اولیه انتخاب‌شده در انبار وجود ندارد یا غیرفعال است.");
         }
         var recipe = await db.Recipes
-            .Include(r => r.Lines)
             .FirstOrDefaultAsync(r =>
                 (request.MenuItemId != null && r.MenuItemId == request.MenuItemId) ||
                 (request.MenuItemModifierId != null && r.MenuItemModifierId == request.MenuItemModifierId) ||
@@ -409,43 +408,34 @@ public sealed class UpsertRecipeCommandHandler(IApplicationDbContext db) : IRequ
 
         recipe ??= new Recipe { MenuItemId = request.MenuItemId, MenuItemModifierId = request.MenuItemModifierId, AddonId = request.AddonId };
         recipe.Name = request.Name;
-        var requested = request.Lines.ToDictionary(l => l.InventoryItemId);
-        var removedLines = new List<RecipeLine>();
-        foreach (var existing in recipe.Lines.ToList())
-        {
-            if (!requested.TryGetValue(existing.InventoryItemId, out var line))
-            {
-                removedLines.Add(existing);
-                continue;
-            }
-            existing.Quantity = line.Quantity;
-            existing.Unit = line.Unit;
-            requested.Remove(existing.InventoryItemId);
-        }
 
-        // Delete obsolete rows before inserting replacement rows. SQL Server can
-        // otherwise attempt the INSERT first and report a misleading concurrency
-        // failure when the unique (RecipeId, InventoryItemId) index is involved.
-        if (removedLines.Count > 0)
+        // Persist the recipe header separately, then replace all lines with
+        // set-based SQL. This avoids stale tracked RecipeLine entities and the
+        // misleading optimistic-concurrency exception produced by their DELETEs.
+        if (!await db.Recipes.AnyAsync(r => r.Id == recipe.Id, cancellationToken))
+            db.Recipes.Add(recipe);
+        await db.SaveChangesAsync(cancellationToken);
+
+        var oldLines = await db.RecipeLines
+            .Where(line => line.RecipeId == recipe.Id)
+            .ToListAsync(cancellationToken);
+        if (oldLines.Count > 0)
         {
-            db.RecipeLines.RemoveRange(removedLines);
+            db.RecipeLines.RemoveRange(oldLines);
             await db.SaveChangesAsync(cancellationToken);
-            foreach (var removed in removedLines)
-                recipe.Lines.Remove(removed);
         }
 
-        foreach (var line in requested.Values)
-            recipe.Lines.Add(new RecipeLine
+        if (request.Lines.Count > 0)
+        {
+            db.RecipeLines.AddRange(request.Lines.Select(line => new RecipeLine
             {
+                RecipeId = recipe.Id,
                 InventoryItemId = line.InventoryItemId,
                 Quantity = line.Quantity,
                 Unit = line.Unit
-            });
-
-        if (recipe.Id == Guid.Empty || !await db.Recipes.AnyAsync(r => r.Id == recipe.Id, cancellationToken))
-            db.Recipes.Add(recipe);
-
-        await db.SaveChangesAsync(cancellationToken);
+            }));
+            await db.SaveChangesAsync(cancellationToken);
+        }
         return recipe.Id;
     }
 

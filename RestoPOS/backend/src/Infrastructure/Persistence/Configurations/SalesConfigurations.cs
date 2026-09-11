@@ -19,13 +19,16 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(x => x.ModifiersTotal).HasColumnType(MoneyConfig.Rial);
         builder.Property(x => x.DiscountAmount).HasColumnType(MoneyConfig.Rial);
         builder.Property(x => x.DiscountPercent).HasColumnType("decimal(5,2)");
+        builder.Property(x => x.ServiceChargeAmount).HasColumnType(MoneyConfig.Rial);
         builder.Property(x => x.TaxRate).HasColumnType(MoneyConfig.Rate);
         builder.Property(x => x.TaxAmount).HasColumnType(MoneyConfig.Rial);
         builder.Property(x => x.GrandTotal).HasColumnType(MoneyConfig.Rial);
         builder.HasOne(x => x.Customer).WithMany(c => c.Orders).HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.DiningTable).WithMany().HasForeignKey(x => x.DiningTableId).OnDelete(DeleteBehavior.SetNull);
         builder.HasIndex(x => new { x.Status, x.CreatedAt });
         builder.HasIndex(x => x.CashierId);
         builder.HasIndex(x => x.PaidAt);
+        builder.HasIndex(x => x.DiningTableId);
         builder.Ignore(x => x.DomainEvents);
     }
 }
@@ -69,6 +72,7 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         builder.Property(x => x.TerminalId).HasMaxLength(32);
         builder.Property(x => x.CardMask).HasMaxLength(32);
         builder.Property(x => x.FailureReason).HasMaxLength(500);
+        builder.Property(x => x.Notes).HasMaxLength(500);
         builder.HasOne(x => x.Order).WithMany(o => o.Payments).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(x => x.PosDevice).WithMany().HasForeignKey(x => x.PosDeviceId).OnDelete(DeleteBehavior.SetNull);
         builder.HasIndex(x => x.TraceNumber);

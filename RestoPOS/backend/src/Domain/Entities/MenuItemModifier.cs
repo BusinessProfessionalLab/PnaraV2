@@ -6,6 +6,7 @@ namespace RestoPOS.Domain.Entities;
 public class MenuItemModifier : BaseEntity, ISoftDeletable
 {
     public Guid MenuItemId { get; set; }
+    public Guid? ModifierGroupId { get; set; }
     public string Name { get; set; } = default!;
     public decimal ExtraPrice { get; set; }
     public bool IsActive { get; set; } = true;
@@ -16,5 +17,6 @@ public class MenuItemModifier : BaseEntity, ISoftDeletable
     public Guid? DeletedBy { get; set; }
 
     public MenuItem MenuItem { get; set; } = default!;
+    public ModifierGroup? ModifierGroup { get; set; }
     public Recipe? Recipe { get; set; }
 }

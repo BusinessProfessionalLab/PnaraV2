@@ -9,7 +9,7 @@ public class RecipeLine : BaseEntity
     public Guid RecipeId { get; set; }
     public Guid InventoryItemId { get; set; }
     public decimal Quantity { get; set; }
-    public UnitOfMeasure Unit { get; set; }
+    public BaseUnit Unit { get; set; }
 
     public Recipe Recipe { get; set; } = default!;
     public InventoryItem? InventoryItem { get; set; }

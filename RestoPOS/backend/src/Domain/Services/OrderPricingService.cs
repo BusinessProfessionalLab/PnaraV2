@@ -40,11 +40,11 @@ public static class OrderPricingService
         order.ModifiersTotal = Round(modifiersNet);
 
         var afterPercent = (order.Subtotal + order.ModifiersTotal) * (1 - order.DiscountPercent / 100m);
-        var taxable = Math.Max(0, afterPercent - order.DiscountAmount);
+        var taxable = Math.Max(0, afterPercent - order.DiscountAmount + order.ServiceChargeAmount);
 
         decimal tax;
         if (extractedTax > 0)
-            tax = Round(extractedTax * (taxable / Math.Max(1, order.Subtotal + order.ModifiersTotal)));
+            tax = Round(extractedTax * (taxable / Math.Max(1, order.Subtotal + order.ModifiersTotal + order.ServiceChargeAmount)));
         else
             tax = Round(taxable * order.TaxRate);
 

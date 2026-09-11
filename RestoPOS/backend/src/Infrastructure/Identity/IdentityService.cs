@@ -114,6 +114,55 @@ public sealed class IdentityService(
         return result;
     }
 
+    public async Task<StaffRecord?> GetStaffByIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await users.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user is null)
+            return null;
+        var userRoles = await users.GetRolesAsync(user);
+        return new StaffRecord(user.Id, user.UserName ?? "", user.FullName, user.Email, user.PhoneNumber, user.PersonnelCode, user.IsActive, userRoles.ToList());
+    }
+
+    public async Task UpdateStaffAsync(Guid userId, string fullName, string? email, string? phone, string? personnelCode, bool isActive, CancellationToken cancellationToken = default)
+    {
+        var user = await users.FindByIdAsync(userId.ToString()) ?? throw new NotFoundException("Staff", userId);
+        user.FullName = fullName;
+        user.Email = email;
+        user.PhoneNumber = phone;
+        user.PersonnelCode = personnelCode;
+        user.IsActive = isActive;
+        var result = await users.UpdateAsync(user);
+        if (!result.Succeeded)
+            throw new DomainException(string.Join(" | ", result.Errors.Select(e => e.Description)));
+    }
+
+    public async Task ChangePasswordAsync(Guid userId, string newPassword, CancellationToken cancellationToken = default)
+    {
+        var user = await users.FindByIdAsync(userId.ToString()) ?? throw new NotFoundException("Staff", userId);
+        var token = await users.GeneratePasswordResetTokenAsync(user);
+        var result = await users.ResetPasswordAsync(user, token, newPassword);
+        if (!result.Succeeded)
+            throw new DomainException(string.Join(" | ", result.Errors.Select(e => e.Description)));
+    }
+
+    public async Task<IReadOnlyList<RoleRecord>> ListRolesAsync(CancellationToken cancellationToken = default)
+    {
+        var roleList = await roles.Roles.AsNoTracking().OrderBy(r => r.Name).ToListAsync(cancellationToken);
+        var result = new List<RoleRecord>();
+        foreach (var role in roleList)
+        {
+            var permissionCodes = await db.RolePermissions.AsNoTracking()
+                .Where(rp => rp.RoleId == role.Id)
+                .Select(rp => rp.Permission.Code)
+                .ToListAsync(cancellationToken);
+            result.Add(new RoleRecord(role.Id, role.Name ?? "", role.Description, permissionCodes));
+        }
+        return result;
+    }
+
+    public IReadOnlyList<PermissionCatalogItem> GetPermissionsCatalog() =>
+        Permissions.Catalog.Select(p => new PermissionCatalogItem(p.Code, p.DisplayNameFa, p.Module)).ToList();
+
     public async Task SetActiveAsync(Guid userId, bool isActive, CancellationToken cancellationToken = default)
     {
         var user = await users.FindByIdAsync(userId.ToString()) ?? throw new NotFoundException("Staff", userId);

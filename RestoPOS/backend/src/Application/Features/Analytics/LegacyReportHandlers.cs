@@ -6,27 +6,7 @@ using RestoPOS.Domain.Services;
 
 namespace RestoPOS.Application.Features.Analytics;
 
-public sealed record SalesByProductRow(Guid MenuItemId, string Title, Guid CategoryId, string CategoryName, int Quantity, decimal NetSales);
-public sealed record SalesByCategoryRow(Guid CategoryId, string CategoryName, int Quantity, decimal NetSales);
-public sealed record HourlySalesRow(int Hour, int OrderCount, decimal NetSales);
-public sealed record ProductPerformanceRow(Guid MenuItemId, string Title, int Quantity, decimal NetSales, string Band);
-public sealed record StaffPerformanceRow(Guid StaffId, string StaffName, int OrderCount, decimal NetSales, decimal AverageTicket);
-public sealed record StockAlertRow(Guid InventoryItemId, string Name, string Sku, decimal CurrentStock, decimal ReorderPoint, decimal SafetyStock, decimal Deficit);
-
-public sealed record GetSalesByProductQuery(DateTime FromUtc, DateTime ToUtc) : IRequest<IReadOnlyList<SalesByProductRow>>;
-public sealed record GetSalesByCategoryQuery(DateTime FromUtc, DateTime ToUtc) : IRequest<IReadOnlyList<SalesByCategoryRow>>;
-public sealed record GetHourlySalesQuery(DateTime FromUtc, DateTime ToUtc) : IRequest<IReadOnlyList<HourlySalesRow>>;
-public sealed record GetPeakHoursQuery(DateTime FromUtc, DateTime ToUtc) : IRequest<IReadOnlyList<HourlySalesRow>>;
-public sealed record GetStarVsUnderperformingQuery(DateTime FromUtc, DateTime ToUtc) : IRequest<IReadOnlyList<ProductPerformanceRow>>;
-public sealed record GetStaffPerformanceQuery(DateTime FromUtc, DateTime ToUtc) : IRequest<IReadOnlyList<StaffPerformanceRow>>;
-public sealed record GetStockAlertsQuery : IRequest<IReadOnlyList<StockAlertRow>>;
-
-internal static class AnalyticsScope
-{
-    public static IQueryable<Domain.Entities.Order> PaidOrders(IApplicationDbContext db, DateTime from, DateTime to) =>
-        db.Orders.AsNoTracking().Where(o => o.Status == OrderStatus.Paid && o.PaidAt >= from && o.PaidAt <= to);
-}
-
+/// <summary>Legacy report endpoints kept for existing Next.js admin UI.</summary>
 public sealed class GetSalesByProductQueryHandler(IApplicationDbContext db)
     : IRequestHandler<GetSalesByProductQuery, IReadOnlyList<SalesByProductRow>>
 {
@@ -60,11 +40,20 @@ public sealed class GetHourlySalesQueryHandler(IApplicationDbContext db)
 {
     public async Task<IReadOnlyList<HourlySalesRow>> Handle(GetHourlySalesQuery request, CancellationToken cancellationToken)
     {
-        var paid = await AnalyticsScope.PaidOrders(db, request.FromUtc, request.ToUtc).ToListAsync(cancellationToken);
-        return paid
-            .GroupBy(o => PersianDateTime.GetHour(o.PaidAt ?? o.CreatedAt))
-            .Select(g => new HourlySalesRow(g.Key, g.Count(), g.Sum(x => x.GrandTotal)))
-            .OrderBy(x => x.Hour)
+        var paid = await AnalyticsScope.PaidOrders(db, request.FromUtc, request.ToUtc)
+            .Select(o => new { PaidAt = o.PaidAt ?? o.CreatedAt, o.GrandTotal })
+            .ToListAsync(cancellationToken);
+
+        var byHour = paid
+            .GroupBy(o => PersianDateTime.GetHour(o.PaidAt))
+            .ToDictionary(g => g.Key, g => (Count: g.Count(), Sales: g.Sum(x => x.GrandTotal)));
+
+        return Enumerable.Range(0, 24)
+            .Select(h =>
+            {
+                byHour.TryGetValue(h, out var cell);
+                return new HourlySalesRow(h, cell.Count, cell.Sales);
+            })
             .ToList();
     }
 }
@@ -72,11 +61,10 @@ public sealed class GetHourlySalesQueryHandler(IApplicationDbContext db)
 public sealed class GetPeakHoursQueryHandler(IApplicationDbContext db)
     : IRequestHandler<GetPeakHoursQuery, IReadOnlyList<HourlySalesRow>>
 {
-    private readonly GetHourlySalesQueryHandler _inner = new(db);
-
     public async Task<IReadOnlyList<HourlySalesRow>> Handle(GetPeakHoursQuery request, CancellationToken cancellationToken)
     {
-        var hourly = await _inner.Handle(new GetHourlySalesQuery(request.FromUtc, request.ToUtc), cancellationToken);
+        var hourly = await new GetHourlySalesQueryHandler(db)
+            .Handle(new GetHourlySalesQuery(request.FromUtc, request.ToUtc), cancellationToken);
         return hourly.OrderByDescending(x => x.NetSales).Take(5).ToList();
     }
 }
@@ -128,13 +116,14 @@ public sealed class GetStaffPerformanceQueryHandler(IApplicationDbContext db, II
     }
 }
 
-public sealed class GetStockAlertsQueryHandler(IApplicationDbContext db) : IRequestHandler<GetStockAlertsQuery, IReadOnlyList<StockAlertRow>>
+public sealed class GetStockAlertsQueryHandler(IApplicationDbContext db)
+    : IRequestHandler<GetStockAlertsQuery, IReadOnlyList<StockAlertRow>>
 {
     public async Task<IReadOnlyList<StockAlertRow>> Handle(GetStockAlertsQuery request, CancellationToken cancellationToken)
     {
         return await db.InventoryItems.AsNoTracking()
-            .Where(i => i.IsActive && i.CurrentStock <= i.ReorderPoint)
-            .Select(i => new StockAlertRow(i.Id, i.Name, i.Sku, i.CurrentStock, i.ReorderPoint, i.SafetyStock, i.ReorderPoint - i.CurrentStock))
+            .Where(i => i.IsActive && i.CurrentStock <= i.MinimumAlertStock)
+            .Select(i => new StockAlertRow(i.Id, i.Name, i.Sku, i.CurrentStock, i.MinimumAlertStock, i.OptimalStock, i.MinimumAlertStock - i.CurrentStock))
             .OrderBy(x => x.CurrentStock)
             .ToListAsync(cancellationToken);
     }

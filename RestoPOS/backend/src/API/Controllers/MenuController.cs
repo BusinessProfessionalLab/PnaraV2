@@ -15,6 +15,10 @@ public sealed class MenuController(ISender sender) : ControllerBase
     public async Task<ActionResult<IReadOnlyList<CategoryDto>>> Categories([FromQuery] bool includeHidden, CancellationToken ct) =>
         Ok(await sender.Send(new GetCategoriesQuery(includeHidden), ct));
 
+    [HttpGet("categories/{id:guid}")]
+    public async Task<ActionResult<CategoryDto>> Category(Guid id, CancellationToken ct) =>
+        Ok(await sender.Send(new GetCategoryByIdQuery(id), ct));
+
     [HttpPost("categories")]
     [Authorize(Policy = Permissions.MenuManage)]
     public async Task<ActionResult<Guid>> CreateCategory(CreateCategoryCommand command, CancellationToken ct) =>
@@ -33,6 +37,14 @@ public sealed class MenuController(ISender sender) : ControllerBase
     public async Task<IActionResult> DeleteCategory(Guid id, CancellationToken ct)
     {
         await sender.Send(new DeleteCategoryCommand(id), ct);
+        return NoContent();
+    }
+
+    [HttpPut("categories/reorder")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<IActionResult> ReorderCategories(ReorderCategoriesCommand command, CancellationToken ct)
+    {
+        await sender.Send(command, ct);
         return NoContent();
     }
 
@@ -65,13 +77,81 @@ public sealed class MenuController(ISender sender) : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("items/{id:guid}/sold-out")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<IActionResult> ToggleSoldOut(Guid id, [FromBody] ToggleSoldOutRequest body, CancellationToken ct)
+    {
+        await sender.Send(new ToggleMenuItemSoldOutCommand(id, body.IsSoldOut), ct);
+        return NoContent();
+    }
+
     [HttpPost("modifiers")]
     [Authorize(Policy = Permissions.MenuManage)]
     public async Task<ActionResult<Guid>> CreateModifier(CreateModifierCommand command, CancellationToken ct) =>
         Ok(await sender.Send(command, ct));
 
+    [HttpPut("modifiers/{id:guid}")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<IActionResult> UpdateModifier(Guid id, UpdateModifierCommand command, CancellationToken ct)
+    {
+        await sender.Send(command with { Id = id }, ct);
+        return NoContent();
+    }
+
+    [HttpDelete("modifiers/{id:guid}")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<IActionResult> DeleteModifier(Guid id, CancellationToken ct)
+    {
+        await sender.Send(new DeleteModifierCommand(id), ct);
+        return NoContent();
+    }
+
+    [HttpGet("items/{menuItemId:guid}/modifier-groups")]
+    public async Task<ActionResult<IReadOnlyList<ModifierGroupDto>>> ListModifierGroups(Guid menuItemId, CancellationToken ct) =>
+        Ok(await sender.Send(new ListModifierGroupsByProductQuery(menuItemId), ct));
+
+    [HttpPost("modifier-groups")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<ActionResult<Guid>> CreateModifierGroup(CreateModifierGroupCommand command, CancellationToken ct) =>
+        Ok(await sender.Send(command, ct));
+
+    [HttpPut("modifier-groups/{id:guid}")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<IActionResult> UpdateModifierGroup(Guid id, UpdateModifierGroupCommand command, CancellationToken ct)
+    {
+        await sender.Send(command with { Id = id }, ct);
+        return NoContent();
+    }
+
+    [HttpDelete("modifier-groups/{id:guid}")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<IActionResult> DeleteModifierGroup(Guid id, CancellationToken ct)
+    {
+        await sender.Send(new DeleteModifierGroupCommand(id), ct);
+        return NoContent();
+    }
+
+    [HttpPost("modifier-groups/{groupId:guid}/options")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<ActionResult<Guid>> AddOptionToGroup(Guid groupId, AddOptionToGroupCommand command, CancellationToken ct) =>
+        Ok(await sender.Send(command with { ModifierGroupId = groupId }, ct));
+
     [HttpPut("recipes")]
     [Authorize(Policy = Permissions.MenuManage)]
     public async Task<ActionResult<Guid>> UpsertRecipe(UpsertRecipeCommand command, CancellationToken ct) =>
         Ok(await sender.Send(command, ct));
+
+    [HttpGet("items/{menuItemId:guid}/recipe")]
+    public async Task<ActionResult<RecipeDto?>> GetRecipe(Guid menuItemId, CancellationToken ct) =>
+        Ok(await sender.Send(new GetRecipeByMenuItemQuery(menuItemId), ct));
+
+    [HttpDelete("recipes/{id:guid}")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<IActionResult> DeleteRecipe(Guid id, CancellationToken ct)
+    {
+        await sender.Send(new DeleteRecipeCommand(id), ct);
+        return NoContent();
+    }
 }
+
+public sealed record ToggleSoldOutRequest(bool IsSoldOut);

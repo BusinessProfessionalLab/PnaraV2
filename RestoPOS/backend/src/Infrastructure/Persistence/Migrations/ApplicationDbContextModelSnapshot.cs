@@ -181,6 +181,51 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.ToTable("AuditLogs", (string)null);
                 });
 
+            modelBuilder.Entity("RestoPOS.Domain.Entities.CashDrawerMovement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("AmountRials")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("RecordedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ShiftId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShiftId", "OccurredAtUtc");
+
+                    b.ToTable("CashDrawerMovements", (string)null);
+                });
+
             modelBuilder.Entity("RestoPOS.Domain.Entities.CashierShift", b =>
                 {
                     b.Property<Guid>("Id")
@@ -367,17 +412,143 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.ToTable("Customers", (string)null);
                 });
 
+            modelBuilder.Entity("RestoPOS.Domain.Entities.DiningArea", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("DisplayPriority")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DisplayPriority");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.ToTable("DiningAreas", (string)null);
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.DiningTable", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CurrentOrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DiningAreaId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("DisplayPriority")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("CurrentOrderId");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("DiningAreaId", "DisplayPriority");
+
+                    b.ToTable("DiningTables", (string)null);
+                });
+
             modelBuilder.Entity("RestoPOS.Domain.Entities.InventoryItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal>("AverageCost")
-                        .HasColumnType("decimal(18,0)");
+                    b.Property<string>("Barcode")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
-                    b.Property<decimal>("CostPrice")
-                        .HasColumnType("decimal(18,0)");
+                    b.Property<int>("BaseUnit")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -386,7 +557,7 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("CurrentStock")
-                        .HasColumnType("decimal(18,3)");
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
@@ -400,24 +571,149 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<decimal>("LastPurchasePrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MinimumAlertStock")
+                        .HasColumnType("decimal(18,4)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<decimal>("ReorderPoint")
-                        .HasColumnType("decimal(18,3)");
+                    b.Property<decimal>("OptimalStock")
+                        .HasColumnType("decimal(18,4)");
 
-                    b.Property<decimal>("SafetyStock")
-                        .HasColumnType("decimal(18,3)");
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("Sku")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
-                    b.Property<int>("UnitOfMeasure")
+                    b.Property<int>("StorageLocation")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("WeightedAverageCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Barcode");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("Sku")
+                        .IsUnique();
+
+                    b.HasIndex("StorageLocation");
+
+                    b.ToTable("InventoryItems", (string)null);
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.InventoryTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("InventoryItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("Location")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal>("QuantityDelta")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<Guid?>("ReferenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("StockAfter")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("StockBefore")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("TransactionType")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("UnitCostRials")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("ReferenceId");
+
+                    b.HasIndex("TransactionType");
+
+                    b.HasIndex("InventoryItemId", "CreatedAtUtc");
+
+                    b.ToTable("InventoryTransactions", (string)null);
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.InventoryUnitConversion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("FactorToBase")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<Guid>("InventoryItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("TargetBaseUnit")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UnitName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -427,15 +723,51 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
-
-                    b.HasIndex("Sku")
+                    b.HasIndex("InventoryItemId", "UnitName")
                         .IsUnique();
 
-                    b.ToTable("InventoryItems", (string)null);
+                    b.ToTable("InventoryUnitConversions", (string)null);
                 });
 
-            modelBuilder.Entity("RestoPOS.Domain.Entities.InventoryTransaction", b =>
+            modelBuilder.Entity("RestoPOS.Domain.Entities.InventoryWaste", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("RecordedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("TotalLossRials")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OccurredAtUtc");
+
+                    b.ToTable("InventoryWastes", (string)null);
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.InventoryWasteItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -450,28 +782,24 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("InventoryItemId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime>("OccurredAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("Quantity")
-                        .HasColumnType("decimal(18,3)");
-
-                    b.Property<string>("Reference")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<Guid?>("StaffId")
+                    b.Property<Guid>("InventoryWasteId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("Type")
+                    b.Property<decimal>("LossRials")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("QuantityInBase")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("Reason")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("UnitCost")
-                        .HasColumnType("decimal(18,0)");
+                    b.Property<decimal>("UnitCostRials")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -481,9 +809,63 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("InventoryItemId", "OccurredAt");
+                    b.HasIndex("InventoryItemId");
 
-                    b.ToTable("InventoryTransactions", (string)null);
+                    b.HasIndex("InventoryWasteId");
+
+                    b.HasIndex("Reason");
+
+                    b.ToTable("InventoryWasteItems", (string)null);
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.LoyaltyPointLedger", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("BalanceAfter")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("PointsDelta")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("RecordedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId", "OccurredAtUtc");
+
+                    b.ToTable("LoyaltyPointLedgers", (string)null);
                 });
 
             modelBuilder.Entity("RestoPOS.Domain.Entities.MenuItem", b =>
@@ -525,6 +907,9 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSoldOut")
                         .HasColumnType("bit");
 
                     b.Property<int>("PrepTimeMinutes")
@@ -589,6 +974,9 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("MenuItemId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("ModifierGroupId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -609,7 +997,68 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("MenuItemId");
 
+                    b.HasIndex("ModifierGroupId");
+
                     b.ToTable("MenuItemModifiers", (string)null);
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.ModifierGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("DisplayPriority")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MaxSelections")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("MenuItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("MinSelections")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("MenuItemId", "DisplayPriority");
+
+                    b.ToTable("ModifierGroups", (string)null);
                 });
 
             modelBuilder.Entity("RestoPOS.Domain.Entities.Order", b =>
@@ -641,6 +1090,9 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("nvarchar(16)");
 
+                    b.Property<Guid?>("DiningTableId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<decimal>("DiscountAmount")
                         .HasColumnType("decimal(18,0)");
 
@@ -652,6 +1104,9 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
 
                     b.Property<bool>("InventoryDeducted")
                         .HasColumnType("bit");
+
+                    b.Property<Guid?>("MergedIntoOrderId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("ModifiersTotal")
                         .HasColumnType("decimal(18,0)");
@@ -673,6 +1128,9 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime?>("ReadyAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<decimal>("ServiceChargeAmount")
+                        .HasColumnType("decimal(18,0)");
 
                     b.Property<Guid?>("ShiftId")
                         .HasColumnType("uniqueidentifier");
@@ -707,6 +1165,8 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.HasIndex("CashierId");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("DiningTableId");
 
                     b.HasIndex("OrderNumber")
                         .IsUnique();
@@ -852,6 +1312,10 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FailureReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
@@ -1016,6 +1480,133 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.ToTable("PosDevices", (string)null);
                 });
 
+            modelBuilder.Entity("RestoPOS.Domain.Entities.PurchaseInvoice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ApprovedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("DiscountRials")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<decimal>("GrandTotalRials")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<DateTime>("InvoiceDateUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("PaymentStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("SubtotalRials")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("TaxRials")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("InvoiceNumber")
+                        .IsUnique();
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("PurchaseInvoices", (string)null);
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.PurchaseInvoiceItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("InventoryItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("LineDiscountRials")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<decimal>("LineTotalRials")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<string>("NamedPurchaseUnit")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("PurchaseInvoiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("PurchaseUnit")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("QuantityInBase")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("UnitPriceInBaseRials")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitPriceRials")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InventoryItemId");
+
+                    b.HasIndex("PurchaseInvoiceId");
+
+                    b.ToTable("PurchaseInvoiceItems", (string)null);
+                });
+
             modelBuilder.Entity("RestoPOS.Domain.Entities.Recipe", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1085,7 +1676,7 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Quantity")
-                        .HasColumnType("decimal(18,3)");
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<Guid>("RecipeId")
                         .HasColumnType("uniqueidentifier");
@@ -1124,6 +1715,169 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("RolePermissions", (string)null);
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.StockCount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ApprovedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("LocationFilter")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("StartedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("StartedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StartedAtUtc");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("StockCounts", (string)null);
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.StockCountItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("CostVarianceRials")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("InventoryItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("PhysicalCountQty")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("SnapshotUnitCostRials")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("StockCountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("SystemSnapshotQty")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InventoryItemId");
+
+                    b.HasIndex("StockCountId", "InventoryItemId")
+                        .IsUnique();
+
+                    b.ToTable("StockCountItems", (string)null);
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.StockTransfer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("FromLocation")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("InventoryItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal>("QuantityInBase")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime>("RequestedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("RequestedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ToLocation")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("TransferredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("TransferredByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InventoryItemId");
+
+                    b.HasIndex("RequestedAtUtc");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("StockTransfers", (string)null);
                 });
 
             modelBuilder.Entity("RestoPOS.Domain.Entities.StoreSettings", b =>
@@ -1196,6 +1950,65 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("StoreSettings", (string)null);
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.Supplier", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ContactPerson")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("CurrentBalanceRials")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("Suppliers", (string)null);
                 });
 
             modelBuilder.Entity("RestoPOS.Infrastructure.Identity.ApplicationRole", b =>
@@ -1372,6 +2185,17 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RestoPOS.Domain.Entities.CashDrawerMovement", b =>
+                {
+                    b.HasOne("RestoPOS.Domain.Entities.CashierShift", "Shift")
+                        .WithMany("Movements")
+                        .HasForeignKey("ShiftId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Shift");
+                });
+
             modelBuilder.Entity("RestoPOS.Domain.Entities.Category", b =>
                 {
                     b.HasOne("RestoPOS.Domain.Entities.Category", "Parent")
@@ -1382,13 +2206,74 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.Navigation("Parent");
                 });
 
+            modelBuilder.Entity("RestoPOS.Domain.Entities.DiningTable", b =>
+                {
+                    b.HasOne("RestoPOS.Domain.Entities.Order", "CurrentOrder")
+                        .WithMany()
+                        .HasForeignKey("CurrentOrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RestoPOS.Domain.Entities.DiningArea", "DiningArea")
+                        .WithMany("Tables")
+                        .HasForeignKey("DiningAreaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CurrentOrder");
+
+                    b.Navigation("DiningArea");
+                });
+
             modelBuilder.Entity("RestoPOS.Domain.Entities.InventoryTransaction", b =>
                 {
                     b.HasOne("RestoPOS.Domain.Entities.InventoryItem", "InventoryItem")
                         .WithMany("Transactions")
-                        .HasForeignKey("InventoryItemId");
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("InventoryItem");
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.InventoryUnitConversion", b =>
+                {
+                    b.HasOne("RestoPOS.Domain.Entities.InventoryItem", "InventoryItem")
+                        .WithMany("Conversions")
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InventoryItem");
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.InventoryWasteItem", b =>
+                {
+                    b.HasOne("RestoPOS.Domain.Entities.InventoryItem", "InventoryItem")
+                        .WithMany()
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RestoPOS.Domain.Entities.InventoryWaste", "InventoryWaste")
+                        .WithMany("Items")
+                        .HasForeignKey("InventoryWasteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InventoryItem");
+
+                    b.Navigation("InventoryWaste");
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.LoyaltyPointLedger", b =>
+                {
+                    b.HasOne("RestoPOS.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("RestoPOS.Domain.Entities.MenuItem", b =>
@@ -1410,6 +2295,24 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("RestoPOS.Domain.Entities.ModifierGroup", "ModifierGroup")
+                        .WithMany("Options")
+                        .HasForeignKey("ModifierGroupId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("MenuItem");
+
+                    b.Navigation("ModifierGroup");
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.ModifierGroup", b =>
+                {
+                    b.HasOne("RestoPOS.Domain.Entities.MenuItem", "MenuItem")
+                        .WithMany("ModifierGroups")
+                        .HasForeignKey("MenuItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("MenuItem");
                 });
 
@@ -1420,7 +2323,14 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("RestoPOS.Domain.Entities.DiningTable", "DiningTable")
+                        .WithMany()
+                        .HasForeignKey("DiningTableId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Customer");
+
+                    b.Navigation("DiningTable");
                 });
 
             modelBuilder.Entity("RestoPOS.Domain.Entities.OrderItem", b =>
@@ -1470,6 +2380,36 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.Navigation("PosDevice");
                 });
 
+            modelBuilder.Entity("RestoPOS.Domain.Entities.PurchaseInvoice", b =>
+                {
+                    b.HasOne("RestoPOS.Domain.Entities.Supplier", "Supplier")
+                        .WithMany("PurchaseInvoices")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.PurchaseInvoiceItem", b =>
+                {
+                    b.HasOne("RestoPOS.Domain.Entities.InventoryItem", "InventoryItem")
+                        .WithMany()
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RestoPOS.Domain.Entities.PurchaseInvoice", "PurchaseInvoice")
+                        .WithMany("Items")
+                        .HasForeignKey("PurchaseInvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InventoryItem");
+
+                    b.Navigation("PurchaseInvoice");
+                });
+
             modelBuilder.Entity("RestoPOS.Domain.Entities.Recipe", b =>
                 {
                     b.HasOne("RestoPOS.Domain.Entities.MenuItem", "MenuItem")
@@ -1514,6 +2454,41 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.Navigation("Permission");
                 });
 
+            modelBuilder.Entity("RestoPOS.Domain.Entities.StockCountItem", b =>
+                {
+                    b.HasOne("RestoPOS.Domain.Entities.InventoryItem", "InventoryItem")
+                        .WithMany()
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RestoPOS.Domain.Entities.StockCount", "StockCount")
+                        .WithMany("Items")
+                        .HasForeignKey("StockCountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InventoryItem");
+
+                    b.Navigation("StockCount");
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.StockTransfer", b =>
+                {
+                    b.HasOne("RestoPOS.Domain.Entities.InventoryItem", "InventoryItem")
+                        .WithMany()
+                        .HasForeignKey("InventoryItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("InventoryItem");
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.CashierShift", b =>
+                {
+                    b.Navigation("Movements");
+                });
+
             modelBuilder.Entity("RestoPOS.Domain.Entities.Category", b =>
                 {
                     b.Navigation("Children");
@@ -1526,15 +2501,29 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.Navigation("Orders");
                 });
 
+            modelBuilder.Entity("RestoPOS.Domain.Entities.DiningArea", b =>
+                {
+                    b.Navigation("Tables");
+                });
+
             modelBuilder.Entity("RestoPOS.Domain.Entities.InventoryItem", b =>
                 {
+                    b.Navigation("Conversions");
+
                     b.Navigation("RecipeLines");
 
                     b.Navigation("Transactions");
                 });
 
+            modelBuilder.Entity("RestoPOS.Domain.Entities.InventoryWaste", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("RestoPOS.Domain.Entities.MenuItem", b =>
                 {
+                    b.Navigation("ModifierGroups");
+
                     b.Navigation("Modifiers");
 
                     b.Navigation("Recipe");
@@ -1543,6 +2532,11 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("RestoPOS.Domain.Entities.MenuItemModifier", b =>
                 {
                     b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.ModifierGroup", b =>
+                {
+                    b.Navigation("Options");
                 });
 
             modelBuilder.Entity("RestoPOS.Domain.Entities.Order", b =>
@@ -1562,9 +2556,24 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.Navigation("RolePermissions");
                 });
 
+            modelBuilder.Entity("RestoPOS.Domain.Entities.PurchaseInvoice", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("RestoPOS.Domain.Entities.Recipe", b =>
                 {
                     b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.StockCount", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("RestoPOS.Domain.Entities.Supplier", b =>
+                {
+                    b.Navigation("PurchaseInvoices");
                 });
 #pragma warning restore 612, 618
         }

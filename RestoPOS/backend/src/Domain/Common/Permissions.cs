@@ -15,14 +15,21 @@ public static class Permissions
     public const string PaymentsSettle = "Payments.Settle";
     public const string InventoryManage = "Inventory.Manage";
     public const string InventoryView = "Inventory.View";
+    public const string InventoryAudit = "Inventory.Audit";
     public const string ReportsViewSales = "Reports.ViewSales";
+    public const string ReportsViewFinancial = "Reports.ViewFinancial";
     public const string ReportsViewStaff = "Reports.ViewStaff";
     public const string SettingsUpdate = "Settings.Update";
     public const string SettingsView = "Settings.View";
     public const string StaffManage = "Staff.Manage";
     public const string ShiftsManage = "Shifts.Manage";
     public const string CustomersView = "Customers.View";
+    public const string CustomersManage = "Customers.Manage";
     public const string KitchenDisplay = "Kitchen.Display";
+    public const string TablesManage = "Tables.Manage";
+    public const string TablesView = "Tables.View";
+    public const string PaymentsRefund = "Payments.Refund";
+    public const string PosDevicesManage = "PosDevices.Manage";
 
     public static IReadOnlyList<(string Code, string DisplayNameFa, string Module)> Catalog { get; } =
     [
@@ -34,15 +41,22 @@ public static class Permissions
         (OrdersCancel, "لغو سفارش", "Orders"),
         (OrdersView, "مشاهده سفارش‌ها", "Orders"),
         (PaymentsSettle, "تسویه پرداخت", "Payments"),
+        (PaymentsRefund, "استرداد / ابطال پرداخت", "Payments"),
+        (PosDevicesManage, "مدیریت کارتخوان‌ها", "Payments"),
         (InventoryManage, "مدیریت انبار", "Inventory"),
         (InventoryView, "مشاهده موجودی", "Inventory"),
+        (InventoryAudit, "انبارگردانی و حسابرسی موجودی", "Inventory"),
         (ReportsViewSales, "گزارش فروش", "Reports"),
+        (ReportsViewFinancial, "گزارش مالی و تسویه", "Reports"),
         (ReportsViewStaff, "گزارش عملکرد پرسنل", "Reports"),
         (SettingsUpdate, "ویرایش تنظیمات فروشگاه", "Settings"),
-        (SettingsView, "مشاهده تنظیمات", "Settings"),
+        (SettingsView, "مشاهده تنظیمات فروشگاه", "Settings"),
         (StaffManage, "مدیریت پرسنل و نقش‌ها", "Staff"),
         (ShiftsManage, "مدیریت شیفت صندوق", "Shifts"),
-        (CustomersView, "باشگاه مشتریان", "Customers"),
-        (KitchenDisplay, "نمایشگر آشپزخانه/بار", "Kitchen")
+        (CustomersView, "مشاهده باشگاه مشتریان", "Customers"),
+        (CustomersManage, "مدیریت باشگاه مشتریان", "Customers"),
+        (KitchenDisplay, "نمایشگر آشپزخانه/بار", "Kitchen"),
+        (TablesView, "مشاهده میزها و سالن", "Tables"),
+        (TablesManage, "مدیریت میزها و سالن", "Tables")
     ];
 }

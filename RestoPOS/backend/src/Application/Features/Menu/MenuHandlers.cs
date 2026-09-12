@@ -61,6 +61,12 @@ public sealed class DeleteCategoryCommandHandler(IApplicationDbContext db) : IRe
     {
         var entity = await db.Categories.FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken)
                      ?? throw new NotFoundException(nameof(Category), request.Id);
+
+        var hasActiveProducts = await db.MenuItems.AnyAsync(
+            m => m.CategoryId == request.Id && m.IsActive && !m.IsDeleted, cancellationToken);
+        if (hasActiveProducts)
+            throw new DomainException("حذف دسته‌بندی با محصولات فعال مجاز نیست.");
+
         if (entity.IsSystem)
             throw new DomainException("دسته سیستمی قابل حذف نیست.");
         entity.IsDeleted = true;
@@ -109,6 +115,38 @@ public sealed class GetCategoriesQueryHandler(IApplicationDbContext db) : IReque
         return await query.OrderBy(c => c.DisplayPriority).ThenBy(c => c.Name)
             .Select(c => new CategoryDto(c.Id, c.Name, c.NameEn, c.DisplayPriority, c.IsVisible, c.IconUrl, c.ImageUrl, c.ParentId, c.DiscountPercent, c.IsSystem))
             .ToListAsync(cancellationToken);
+    }
+}
+
+public sealed class GetCategoryByIdQueryHandler(IApplicationDbContext db) : IRequestHandler<GetCategoryByIdQuery, CategoryDto>
+{
+    public async Task<CategoryDto> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
+    {
+        var c = await db.Categories.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
+                ?? throw new NotFoundException(nameof(Category), request.Id);
+        return new CategoryDto(c.Id, c.Name, c.NameEn, c.DisplayPriority, c.IsVisible, c.IconUrl, c.ImageUrl, c.ParentId);
+    }
+}
+
+public sealed class ReorderCategoriesCommandValidator : AbstractValidator<ReorderCategoriesCommand>
+{
+    public ReorderCategoriesCommandValidator() => RuleFor(x => x.Items).NotEmpty();
+}
+
+public sealed class ReorderCategoriesCommandHandler(IApplicationDbContext db) : IRequestHandler<ReorderCategoriesCommand>
+{
+    public async Task Handle(ReorderCategoriesCommand request, CancellationToken cancellationToken)
+    {
+        var ids = request.Items.Select(i => i.Id).ToList();
+        var categories = await db.Categories.Where(c => ids.Contains(c.Id)).ToListAsync(cancellationToken);
+        if (categories.Count != ids.Count)
+            throw new NotFoundException(nameof(Category), "یک یا چند دسته‌بندی یافت نشد.");
+
+        var map = request.Items.ToDictionary(i => i.Id, i => i.DisplayPriority);
+        foreach (var category in categories)
+            category.DisplayPriority = map[category.Id];
+
+        await db.SaveChangesAsync(cancellationToken);
     }
 }
 
@@ -216,6 +254,17 @@ public sealed class DeleteMenuItemCommandHandler(IApplicationDbContext db) : IRe
     }
 }
 
+public sealed class ToggleMenuItemSoldOutCommandHandler(IApplicationDbContext db) : IRequestHandler<ToggleMenuItemSoldOutCommand>
+{
+    public async Task Handle(ToggleMenuItemSoldOutCommand request, CancellationToken cancellationToken)
+    {
+        var item = await db.MenuItems.FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken)
+                   ?? throw new NotFoundException(nameof(MenuItem), request.Id);
+        item.IsSoldOut = request.IsSoldOut;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+}
+
 public sealed class ReorderMenuItemsCommandHandler(IApplicationDbContext db) : IRequestHandler<ReorderMenuItemsCommand>
 {
     public async Task Handle(ReorderMenuItemsCommand request, CancellationToken cancellationToken)
@@ -252,9 +301,147 @@ public sealed class CreateModifierCommandHandler(IApplicationDbContext db) : IRe
         if (!await db.MenuItems.AnyAsync(m => m.Id == request.MenuItemId, cancellationToken))
             throw new NotFoundException(nameof(MenuItem), request.MenuItemId);
 
+        if (request.ModifierGroupId is Guid groupId)
+        {
+            var group = await db.ModifierGroups.FirstOrDefaultAsync(g => g.Id == groupId, cancellationToken)
+                        ?? throw new NotFoundException(nameof(ModifierGroup), groupId);
+            if (group.MenuItemId != request.MenuItemId)
+                throw new DomainException("گروه افزودنی متعلق به این محصول نیست.");
+        }
+
         var modifier = new MenuItemModifier
         {
             MenuItemId = request.MenuItemId,
+            ModifierGroupId = request.ModifierGroupId,
+            Name = request.Name,
+            ExtraPrice = decimal.Round(request.ExtraPrice, 0, MidpointRounding.AwayFromZero),
+            TicketStation = request.TicketStation,
+            DisplayPriority = request.DisplayPriority
+        };
+        db.MenuItemModifiers.Add(modifier);
+        await db.SaveChangesAsync(cancellationToken);
+        return modifier.Id;
+    }
+}
+
+public sealed class UpdateModifierCommandHandler(IApplicationDbContext db) : IRequestHandler<UpdateModifierCommand>
+{
+    public async Task Handle(UpdateModifierCommand request, CancellationToken cancellationToken)
+    {
+        var modifier = await db.MenuItemModifiers.FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken)
+                       ?? throw new NotFoundException(nameof(MenuItemModifier), request.Id);
+        modifier.Name = request.Name;
+        modifier.ExtraPrice = decimal.Round(request.ExtraPrice, 0, MidpointRounding.AwayFromZero);
+        modifier.TicketStation = request.TicketStation;
+        modifier.DisplayPriority = request.DisplayPriority;
+        modifier.IsActive = request.IsActive;
+        modifier.ModifierGroupId = request.ModifierGroupId;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+}
+
+public sealed class DeleteModifierCommandHandler(IApplicationDbContext db) : IRequestHandler<DeleteModifierCommand>
+{
+    public async Task Handle(DeleteModifierCommand request, CancellationToken cancellationToken)
+    {
+        var modifier = await db.MenuItemModifiers.FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken)
+                       ?? throw new NotFoundException(nameof(MenuItemModifier), request.Id);
+        modifier.IsDeleted = true;
+        modifier.IsActive = false;
+        modifier.DeletedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+}
+
+public sealed class CreateModifierGroupCommandValidator : AbstractValidator<CreateModifierGroupCommand>
+{
+    public CreateModifierGroupCommandValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(128);
+        RuleFor(x => x.MenuItemId).NotEmpty();
+        RuleFor(x => x.MinSelections).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.MaxSelections).GreaterThanOrEqualTo(x => x.MinSelections);
+    }
+}
+
+public sealed class CreateModifierGroupCommandHandler(IApplicationDbContext db) : IRequestHandler<CreateModifierGroupCommand, Guid>
+{
+    public async Task<Guid> Handle(CreateModifierGroupCommand request, CancellationToken cancellationToken)
+    {
+        if (!await db.MenuItems.AnyAsync(m => m.Id == request.MenuItemId, cancellationToken))
+            throw new NotFoundException(nameof(MenuItem), request.MenuItemId);
+
+        var group = new ModifierGroup
+        {
+            MenuItemId = request.MenuItemId,
+            Name = request.Name.Trim(),
+            MinSelections = request.MinSelections,
+            MaxSelections = request.MaxSelections,
+            IsRequired = request.IsRequired,
+            DisplayPriority = request.DisplayPriority
+        };
+        group.EnsureValid();
+        db.ModifierGroups.Add(group);
+        await db.SaveChangesAsync(cancellationToken);
+        return group.Id;
+    }
+}
+
+public sealed class UpdateModifierGroupCommandHandler(IApplicationDbContext db) : IRequestHandler<UpdateModifierGroupCommand>
+{
+    public async Task Handle(UpdateModifierGroupCommand request, CancellationToken cancellationToken)
+    {
+        var group = await db.ModifierGroups.FirstOrDefaultAsync(g => g.Id == request.Id, cancellationToken)
+                    ?? throw new NotFoundException(nameof(ModifierGroup), request.Id);
+        group.Name = request.Name.Trim();
+        group.MinSelections = request.MinSelections;
+        group.MaxSelections = request.MaxSelections;
+        group.IsRequired = request.IsRequired;
+        group.DisplayPriority = request.DisplayPriority;
+        group.IsActive = request.IsActive;
+        group.EnsureValid();
+        await db.SaveChangesAsync(cancellationToken);
+    }
+}
+
+public sealed class DeleteModifierGroupCommandHandler(IApplicationDbContext db) : IRequestHandler<DeleteModifierGroupCommand>
+{
+    public async Task Handle(DeleteModifierGroupCommand request, CancellationToken cancellationToken)
+    {
+        var group = await db.ModifierGroups.FirstOrDefaultAsync(g => g.Id == request.Id, cancellationToken)
+                    ?? throw new NotFoundException(nameof(ModifierGroup), request.Id);
+        group.IsDeleted = true;
+        group.IsActive = false;
+        group.DeletedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+}
+
+public sealed class ListModifierGroupsByProductQueryHandler(IApplicationDbContext db)
+    : IRequestHandler<ListModifierGroupsByProductQuery, IReadOnlyList<ModifierGroupDto>>
+{
+    public async Task<IReadOnlyList<ModifierGroupDto>> Handle(ListModifierGroupsByProductQuery request, CancellationToken cancellationToken)
+    {
+        var groups = await db.ModifierGroups.AsNoTracking()
+            .Include(g => g.Options)
+            .Where(g => g.MenuItemId == request.MenuItemId)
+            .OrderBy(g => g.DisplayPriority)
+            .ToListAsync(cancellationToken);
+        return groups.Select(MenuMapping.ToGroupDto).ToList();
+    }
+}
+
+public sealed class AddOptionToGroupCommandHandler(IApplicationDbContext db) : IRequestHandler<AddOptionToGroupCommand, Guid>
+{
+    public async Task<Guid> Handle(AddOptionToGroupCommand request, CancellationToken cancellationToken)
+    {
+        var group = await db.ModifierGroups.FirstOrDefaultAsync(g => g.Id == request.ModifierGroupId, cancellationToken)
+                    ?? throw new NotFoundException(nameof(ModifierGroup), request.ModifierGroupId);
+
+        var modifier = new MenuItemModifier
+        {
+            MenuItemId = group.MenuItemId,
+            ModifierGroupId = group.Id,
             Name = request.Name,
             ExtraPrice = decimal.Round(request.ExtraPrice, 0, MidpointRounding.AwayFromZero),
             TicketStation = request.TicketStation,
@@ -448,6 +635,29 @@ public sealed class UpsertRecipeCommandHandler(IApplicationDbContext db) : IRequ
     }
 }
 
+public sealed class GetRecipeByMenuItemQueryHandler(IApplicationDbContext db) : IRequestHandler<GetRecipeByMenuItemQuery, RecipeDto?>
+{
+    public async Task<RecipeDto?> Handle(GetRecipeByMenuItemQuery request, CancellationToken cancellationToken)
+    {
+        var recipe = await db.Recipes.AsNoTracking()
+            .Include(r => r.Lines)
+            .FirstOrDefaultAsync(r => r.MenuItemId == request.MenuItemId, cancellationToken);
+        return recipe is null ? null : MenuMapping.ToRecipeDto(recipe);
+    }
+}
+
+public sealed class DeleteRecipeCommandHandler(IApplicationDbContext db) : IRequestHandler<DeleteRecipeCommand>
+{
+    public async Task Handle(DeleteRecipeCommand request, CancellationToken cancellationToken)
+    {
+        var recipe = await db.Recipes.FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken)
+                     ?? throw new NotFoundException(nameof(Recipe), request.Id);
+        recipe.IsDeleted = true;
+        recipe.DeletedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+}
+
 public sealed class GetMenuQueryHandler(IApplicationDbContext db) : IRequestHandler<GetMenuQuery, IReadOnlyList<MenuItemDto>>
 {
     public async Task<IReadOnlyList<MenuItemDto>> Handle(GetMenuQuery request, CancellationToken cancellationToken)
@@ -455,6 +665,7 @@ public sealed class GetMenuQueryHandler(IApplicationDbContext db) : IRequestHand
         var query = db.MenuItems.AsNoTracking()
             .Include(m => m.Category)
             .Include(m => m.Modifiers)
+            .Include(m => m.ModifierGroups).ThenInclude(g => g.Options)
             .Include(m => m.Addons).ThenInclude(a => a.Addon)
             .Include(m => m.Recipe)!.ThenInclude(r => r!.Lines)
             .AsQueryable();
@@ -474,6 +685,7 @@ public sealed class GetMenuItemQueryHandler(IApplicationDbContext db) : IRequest
         var item = await db.MenuItems.AsNoTracking()
             .Include(m => m.Category)
             .Include(m => m.Modifiers)
+            .Include(m => m.ModifierGroups).ThenInclude(g => g.Options)
             .Include(m => m.Addons).ThenInclude(a => a.Addon)
             .Include(m => m.Recipe)!.ThenInclude(r => r!.Lines)
             .FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken)
@@ -485,6 +697,22 @@ public sealed class GetMenuItemQueryHandler(IApplicationDbContext db) : IRequest
 internal static class MenuMapping
 {
     public static MenuItemDto ToDto(MenuItem m) => new(
+        m.Id, m.Title, m.Description, m.BasePrice, m.TaxInclusive, m.ImageUrl, m.DisplayPriority,
+        m.CategoryId, m.Category.Name, m.IsActive, m.IsSoldOut, m.TicketStation, m.PrepTimeMinutes,
+        m.Modifiers.Where(x => !x.IsDeleted).OrderBy(x => x.DisplayPriority).Select(ToModifierDto).ToList(),
+        m.ModifierGroups.Where(g => !g.IsDeleted).OrderBy(g => g.DisplayPriority).Select(ToGroupDto).ToList(),
+        m.Recipe is null ? null : ToRecipeDto(m.Recipe));
+
+    public static ModifierGroupDto ToGroupDto(ModifierGroup g) => new(
+        g.Id, g.MenuItemId, g.Name, g.MinSelections, g.MaxSelections, g.IsRequired, g.DisplayPriority, g.IsActive,
+        g.Options.Where(o => !o.IsDeleted).OrderBy(o => o.DisplayPriority).Select(ToModifierDto).ToList());
+
+    public static ModifierDto ToModifierDto(MenuItemModifier x) =>
+        new(x.Id, x.MenuItemId, x.ModifierGroupId, x.Name, x.ExtraPrice, x.IsActive, x.TicketStation, x.DisplayPriority);
+
+    public static RecipeDto ToRecipeDto(Recipe r) =>
+        new(r.Id, r.MenuItemId, r.MenuItemModifierId, r.Name,
+            r.Lines.Select(l => new RecipeLineDto(l.InventoryItemId, l.Quantity, l.Unit)).ToList());
         m.Id, m.Title, m.NameEn, m.Description, m.BasePrice, m.TaxInclusive, m.ImageUrl, m.DisplayPriority,
         m.CategoryId, m.Category.Name, m.IsActive, m.TicketStation, m.PrepTimeMinutes,
         m.Modifiers.Where(x => !x.IsDeleted).OrderBy(x => x.DisplayPriority)

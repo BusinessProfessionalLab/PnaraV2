@@ -26,6 +26,8 @@ public static class DependencyInjection
         });
 
         services.AddValidatorsFromAssembly(assembly);
+        services.AddScoped<RestoPOS.Application.Features.Inventory.IInventoryStockService,
+            RestoPOS.Application.Features.Inventory.InventoryStockService>();
         return services;
     }
 }

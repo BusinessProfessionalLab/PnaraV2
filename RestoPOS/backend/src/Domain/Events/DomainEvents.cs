@@ -17,7 +17,7 @@ public sealed record OrderCancelledEvent(Guid OrderId, string OrderNumber, bool 
     public DateTime OccurredOnUtc { get; } = DateTime.UtcNow;
 }
 
-public sealed record InventoryLowStockEvent(Guid InventoryItemId, string Sku, string Name, decimal CurrentStock, decimal ReorderPoint) : IDomainEvent
+public sealed record InventoryLowStockEvent(Guid InventoryItemId, string Sku, string Name, decimal CurrentStock, decimal MinimumAlertStock) : IDomainEvent
 {
     public DateTime OccurredOnUtc { get; } = DateTime.UtcNow;
 }

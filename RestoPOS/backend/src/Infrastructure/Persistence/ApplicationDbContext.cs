@@ -25,6 +25,20 @@ public class ApplicationDbContext(
     public DbSet<RecipeLine> RecipeLines => Set<RecipeLine>();
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
     public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
+    public DbSet<InventoryUnitConversion> InventoryUnitConversions => Set<InventoryUnitConversion>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+    public DbSet<PurchaseInvoice> PurchaseInvoices => Set<PurchaseInvoice>();
+    public DbSet<PurchaseInvoiceItem> PurchaseInvoiceItems => Set<PurchaseInvoiceItem>();
+    public DbSet<InventoryWaste> InventoryWastes => Set<InventoryWaste>();
+    public DbSet<InventoryWasteItem> InventoryWasteItems => Set<InventoryWasteItem>();
+    public DbSet<StockCount> StockCounts => Set<StockCount>();
+    public DbSet<StockCountItem> StockCountItems => Set<StockCountItem>();
+    public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
+    public DbSet<ModifierGroup> ModifierGroups => Set<ModifierGroup>();
+    public DbSet<DiningArea> DiningAreas => Set<DiningArea>();
+    public DbSet<DiningTable> DiningTables => Set<DiningTable>();
+    public DbSet<CashDrawerMovement> CashDrawerMovements => Set<CashDrawerMovement>();
+    public DbSet<LoyaltyPointLedger> LoyaltyPointLedgers => Set<LoyaltyPointLedger>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<OrderItemModifier> OrderItemModifiers => Set<OrderItemModifier>();
@@ -128,6 +142,26 @@ public class ApplicationDbContext(
 
         if (logs.Count > 0)
             AuditLogs.AddRange(logs);
+    }
+
+    public async Task ExecuteResilientTransactionAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken = default)
+    {
+        var strategy = Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                await operation(cancellationToken);
+                await SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
     }
 
     private static Dictionary<string, object?> Original(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry) =>

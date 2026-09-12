@@ -60,14 +60,14 @@ public class OrderLifecycleTests
         {
             Name = "شیر",
             Sku = "MILK",
-            ReorderPoint = 100,
-            UnitOfMeasure = UnitOfMeasure.Ml
+            MinimumAlertStock = 100,
+            BaseUnit = BaseUnit.Milliliter
         };
         milk.ApplyInbound(50, 80, null, "open", "A");
         milk.ApplyInbound(50, 100, null, "buy", "B");
-        milk.AverageCost.Should().Be(90);
+        milk.WeightedAverageCost.Should().Be(90);
         milk.ApplyRecipeDeduction(20, Guid.NewGuid(), null);
-        milk.IsBelowReorderPoint.Should().BeTrue();
+        milk.IsBelowAlertStock.Should().BeTrue();
         milk.DomainEvents.Should().ContainSingle(e => e is RestoPOS.Domain.Events.InventoryLowStockEvent);
     }
 }

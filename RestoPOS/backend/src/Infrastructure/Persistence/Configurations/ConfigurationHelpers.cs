@@ -7,7 +7,9 @@ namespace RestoPOS.Infrastructure.Persistence.Configurations;
 internal static class MoneyConfig
 {
     public const string Rial = "decimal(18,0)";
+    public const string CostRial = "decimal(18,2)";
     public const string Quantity = "decimal(18,3)";
+    public const string StockQty = "decimal(18,4)";
     public const string Rate = "decimal(9,6)";
 }
 

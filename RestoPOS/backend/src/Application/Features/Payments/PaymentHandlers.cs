@@ -14,10 +14,22 @@ public sealed record PollPosPaymentQuery(Guid PaymentId) : IRequest<PaymentDto>;
 public sealed record ConfirmCashPaymentCommand(Guid OrderId, decimal Amount) : IRequest<OrderDto>;
 public sealed record RecordCardToCardCommand(Guid OrderId, decimal Amount, string ReferenceNumber) : IRequest<OrderDto>;
 public sealed record RecordOnlineGatewayCommand(Guid OrderId, decimal Amount, string ReferenceNumber) : IRequest<OrderDto>;
+public sealed record VoidPaymentCommand(Guid PaymentId, string? Reason) : IRequest<PaymentDto>;
+public sealed record RefundPaymentCommand(Guid PaymentId, decimal Amount, string? Reason, bool VoidOrder = false) : IRequest<PaymentDto>;
+public sealed record ListPaymentsByOrderQuery(Guid OrderId) : IRequest<IReadOnlyList<PaymentDto>>;
 
 public sealed class ConfirmCashPaymentCommandValidator : AbstractValidator<ConfirmCashPaymentCommand>
 {
     public ConfirmCashPaymentCommandValidator() => RuleFor(x => x.Amount).GreaterThan(0);
+}
+
+public sealed class RefundPaymentCommandValidator : AbstractValidator<RefundPaymentCommand>
+{
+    public RefundPaymentCommandValidator()
+    {
+        RuleFor(x => x.PaymentId).NotEmpty();
+        RuleFor(x => x.Amount).GreaterThan(0);
+    }
 }
 
 public sealed class InitiatePosPaymentCommandHandler(
@@ -189,5 +201,68 @@ public sealed class RecordOnlineGatewayCommandHandler(
         await db.SaveChangesAsync(cancellationToken);
         await InitiatePosPaymentCommandHandler.FinalizeAsync(db, notifier, printer, order, cancellationToken);
         return OrderMapping.ToDto(order);
+    }
+}
+
+public sealed class VoidPaymentCommandHandler(IApplicationDbContext db) : IRequestHandler<VoidPaymentCommand, PaymentDto>
+{
+    public async Task<PaymentDto> Handle(VoidPaymentCommand request, CancellationToken cancellationToken)
+    {
+        PaymentDto? result = null;
+        await db.ExecuteResilientTransactionAsync(async ct =>
+        {
+            var payment = await db.Payments.Include(p => p.Order)
+                .FirstOrDefaultAsync(p => p.Id == request.PaymentId, ct)
+                ?? throw new NotFoundException(nameof(Payment), request.PaymentId);
+
+            payment.MarkVoided(request.Reason);
+            payment.Notes = request.Reason;
+            result = new PaymentDto(payment.Id, payment.Channel, payment.Status, payment.Amount, payment.TraceNumber, payment.Rrn, payment.PaidAt);
+        }, cancellationToken);
+        return result!;
+    }
+}
+
+public sealed class RefundPaymentCommandHandler(IApplicationDbContext db) : IRequestHandler<RefundPaymentCommand, PaymentDto>
+{
+    public async Task<PaymentDto> Handle(RefundPaymentCommand request, CancellationToken cancellationToken)
+    {
+        PaymentDto? result = null;
+        await db.ExecuteResilientTransactionAsync(async ct =>
+        {
+            var payment = await db.Payments.Include(p => p.Order)
+                .FirstOrDefaultAsync(p => p.Id == request.PaymentId, ct)
+                ?? throw new NotFoundException(nameof(Payment), request.PaymentId);
+
+            var refund = payment.CreateRefund(request.Amount, request.Reason);
+            db.Payments.Add(refund);
+
+            var settledTotal = await db.Payments
+                .Where(p => p.OrderId == payment.OrderId && p.Status == PaymentStatus.Settled)
+                .SumAsync(p => (decimal?)p.Amount, ct) ?? 0;
+            // include the new refund that is not yet saved in query — adjust manually
+            var netAfter = settledTotal + refund.Amount;
+            if (request.VoidOrder || netAfter <= 0)
+                payment.Order.VoidAfterRefund();
+
+            result = new PaymentDto(refund.Id, refund.Channel, refund.Status, refund.Amount, refund.TraceNumber, refund.Rrn, refund.PaidAt);
+        }, cancellationToken);
+        return result!;
+    }
+}
+
+public sealed class ListPaymentsByOrderQueryHandler(IApplicationDbContext db)
+    : IRequestHandler<ListPaymentsByOrderQuery, IReadOnlyList<PaymentDto>>
+{
+    public async Task<IReadOnlyList<PaymentDto>> Handle(ListPaymentsByOrderQuery request, CancellationToken cancellationToken)
+    {
+        if (!await db.Orders.AnyAsync(o => o.Id == request.OrderId, cancellationToken))
+            throw new NotFoundException(nameof(Order), request.OrderId);
+
+        return await db.Payments.AsNoTracking()
+            .Where(p => p.OrderId == request.OrderId)
+            .OrderByDescending(p => p.CreatedAt)
+            .Select(p => new PaymentDto(p.Id, p.Channel, p.Status, p.Amount, p.TraceNumber, p.Rrn, p.PaidAt))
+            .ToListAsync(cancellationToken);
     }
 }

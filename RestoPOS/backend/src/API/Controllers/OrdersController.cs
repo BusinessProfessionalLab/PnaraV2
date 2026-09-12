@@ -1,8 +1,10 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RestoPOS.Application.Common.Models;
 using RestoPOS.Application.Features.Orders;
 using RestoPOS.Domain.Common;
+using RestoPOS.Domain.Enums;
 
 namespace RestoPOS.API.Controllers;
 
@@ -15,6 +17,17 @@ public sealed class OrdersController(ISender sender) : ControllerBase
     [Authorize(Policy = Permissions.OrdersView)]
     public async Task<ActionResult<IReadOnlyList<OrderDto>>> Active(CancellationToken ct) =>
         Ok(await sender.Send(new GetActiveOrdersQuery(), ct));
+
+    [HttpGet("history")]
+    [Authorize(Policy = Permissions.OrdersView)]
+    public async Task<ActionResult<PaginatedList<OrderDto>>> History(
+        [FromQuery] DateTime? fromUtc,
+        [FromQuery] DateTime? toUtc,
+        [FromQuery] OrderStatus? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken ct = default) =>
+        Ok(await sender.Send(new GetOrderHistoryQuery(fromUtc, toUtc, status, page, pageSize), ct));
 
     [HttpGet("drafts")]
     [Authorize(Policy = Permissions.OrdersView)]
@@ -45,6 +58,26 @@ public sealed class OrdersController(ISender sender) : ControllerBase
     [Authorize(Policy = Permissions.OrdersCreate)]
     public async Task<ActionResult<OrderDto>> Discount(Guid orderId, ApplyDiscountCommand command, CancellationToken ct) =>
         Ok(await sender.Send(command with { OrderId = orderId }, ct));
+
+    [HttpPost("{orderId:guid}/service-charge")]
+    [Authorize(Policy = Permissions.OrdersCreate)]
+    public async Task<ActionResult<OrderDto>> ServiceCharge(Guid orderId, ApplyServiceChargeCommand command, CancellationToken ct) =>
+        Ok(await sender.Send(command with { OrderId = orderId }, ct));
+
+    [HttpPut("{orderId:guid}/notes")]
+    [Authorize(Policy = Permissions.OrdersCreate)]
+    public async Task<ActionResult<OrderDto>> Notes(Guid orderId, UpdateOrderNotesCommand command, CancellationToken ct) =>
+        Ok(await sender.Send(command with { OrderId = orderId }, ct));
+
+    [HttpPost("{orderId:guid}/split")]
+    [Authorize(Policy = Permissions.OrdersCreate)]
+    public async Task<ActionResult<OrderDto>> Split(Guid orderId, SplitBillCommand command, CancellationToken ct) =>
+        Ok(await sender.Send(command with { OrderId = orderId }, ct));
+
+    [HttpPost("merge")]
+    [Authorize(Policy = Permissions.OrdersCreate)]
+    public async Task<ActionResult<OrderDto>> Merge(MergeBillsCommand command, CancellationToken ct) =>
+        Ok(await sender.Send(command, ct));
 
     [HttpPost("{orderId:guid}/submit")]
     [Authorize(Policy = Permissions.OrdersSubmit)]

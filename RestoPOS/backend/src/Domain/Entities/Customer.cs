@@ -1,4 +1,6 @@
 using RestoPOS.Domain.Common;
+using RestoPOS.Domain.Enums;
+using RestoPOS.Domain.Exceptions;
 
 namespace RestoPOS.Domain.Entities;
 
@@ -23,6 +25,25 @@ public class Customer : BaseEntity, ISoftDeletable
         TotalSpent += grandTotal;
         LoyaltyPoints += pointsEarned;
         LastVisitAt = DateTime.UtcNow;
+    }
+
+    public LoyaltyPointLedger AdjustPoints(int delta, LoyaltyLedgerType type, Guid? orderId, string? notes, Guid? userId)
+    {
+        var next = LoyaltyPoints + delta;
+        if (next < 0)
+            throw new DomainException("موجودی امتیاز کافی نیست.");
+        LoyaltyPoints = next;
+        return new LoyaltyPointLedger
+        {
+            CustomerId = Id,
+            Type = type,
+            PointsDelta = delta,
+            BalanceAfter = LoyaltyPoints,
+            OrderId = orderId,
+            Notes = notes,
+            RecordedByUserId = userId,
+            OccurredAtUtc = DateTime.UtcNow
+        };
     }
 
     public static Customer Create(string phone, string? fullName)

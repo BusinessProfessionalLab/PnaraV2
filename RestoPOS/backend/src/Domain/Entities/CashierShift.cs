@@ -18,6 +18,8 @@ public class CashierShift : BaseEntity, ISoftDeletable
     public DateTime? DeletedAt { get; set; }
     public Guid? DeletedBy { get; set; }
 
+    public ICollection<CashDrawerMovement> Movements { get; set; } = [];
+
     public void Close(decimal closingCash, decimal expectedCash, string? notes)
     {
         if (Status != ShiftStatus.Open)

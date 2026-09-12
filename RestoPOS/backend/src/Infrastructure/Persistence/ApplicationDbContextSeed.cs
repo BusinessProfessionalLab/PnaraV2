@@ -96,10 +96,34 @@ public static class ApplicationDbContextSeed
             var bakery = new Category { Name = "نان و کیک", NameEn = "Bakery", DisplayPriority = 2, IconUrl = "icons/bakery.svg", IsVisible = true };
             db.Categories.AddRange(coffee, bakery);
 
-            var beans = new InventoryItem { Name = "دانه اسپرسو", Sku = "INV-BEAN-001", UnitOfMeasure = UnitOfMeasure.Gr, ReorderPoint = 1000, SafetyStock = 500, CostPrice = 4500, AverageCost = 4500 };
-            var milk = new InventoryItem { Name = "شیر پرچرب", Sku = "INV-MILK-001", UnitOfMeasure = UnitOfMeasure.Ml, ReorderPoint = 5000, SafetyStock = 2000, CostPrice = 80, AverageCost = 80 };
-            beans.ApplyInbound(10000, 4500, null, "موجودی اول دوره", "OPENING");
-            milk.ApplyInbound(20000, 80, null, "موجودی اول دوره", "OPENING");
+            var beans = new InventoryItem
+            {
+                Name = "دانه اسپرسو",
+                Sku = "INV-BEAN-001",
+                BaseUnit = BaseUnit.Gram,
+                MinimumAlertStock = 1000,
+                OptimalStock = 5000,
+                LastPurchasePrice = 4500,
+                WeightedAverageCost = 4500,
+                StorageLocation = StorageLocation.DryStorage,
+                Category = "قهوه"
+            };
+            var milk = new InventoryItem
+            {
+                Name = "شیر پرچرب",
+                Sku = "INV-MILK-001",
+                BaseUnit = BaseUnit.Milliliter,
+                MinimumAlertStock = 5000,
+                OptimalStock = 20000,
+                LastPurchasePrice = 80,
+                WeightedAverageCost = 80,
+                StorageLocation = StorageLocation.ColdRoom,
+                Category = "لبنیات"
+            };
+            beans.ApplyOpeningBalance(10000, 4500, null);
+            milk.ApplyOpeningBalance(20000, 80, null);
+            beans.AddConversion("Kg", 1000m);
+            milk.AddConversion("Liter", 1000m);
             db.InventoryItems.AddRange(beans, milk);
 
             var latte = new MenuItem
@@ -121,8 +145,8 @@ public static class ApplicationDbContextSeed
                 Name = "BOM لاته",
                 Lines =
                 [
-                    new RecipeLine { InventoryItem = beans, Quantity = 18, Unit = UnitOfMeasure.Gr },
-                    new RecipeLine { InventoryItem = milk, Quantity = 180, Unit = UnitOfMeasure.Ml }
+                    new RecipeLine { InventoryItem = beans, Quantity = 18, Unit = BaseUnit.Gram },
+                    new RecipeLine { InventoryItem = milk, Quantity = 180, Unit = BaseUnit.Milliliter }
                 ]
             };
             db.MenuItems.Add(latte);

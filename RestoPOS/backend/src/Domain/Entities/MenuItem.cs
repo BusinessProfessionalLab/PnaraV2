@@ -15,6 +15,7 @@ public class MenuItem : BaseEntity, ISoftDeletable
     public decimal DiscountPercent { get; set; }
     public Guid CategoryId { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool IsSoldOut { get; set; }
     public TicketStation TicketStation { get; set; } = TicketStation.Kitchen;
     public int PrepTimeMinutes { get; set; }
     public bool IsDeleted { get; set; }
@@ -24,5 +25,6 @@ public class MenuItem : BaseEntity, ISoftDeletable
     public Category Category { get; set; } = default!;
     public ICollection<MenuItemModifier> Modifiers { get; set; } = [];
     public ICollection<MenuItemAddon> Addons { get; set; } = [];
+    public ICollection<ModifierGroup> ModifierGroups { get; set; } = [];
     public Recipe? Recipe { get; set; }
 }

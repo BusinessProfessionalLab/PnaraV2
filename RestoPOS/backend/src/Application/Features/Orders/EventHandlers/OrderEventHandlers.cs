@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RestoPOS.Application.Common.Interfaces;
 using RestoPOS.Application.Common.Models;
+using RestoPOS.Application.Features.Inventory;
 using RestoPOS.Domain.Entities;
 using RestoPOS.Domain.Enums;
 using RestoPOS.Domain.Events;
@@ -11,17 +12,21 @@ using RestoPOS.Domain.Services;
 
 namespace RestoPOS.Application.Features.Orders.EventHandlers;
 
-public sealed class OrderSubmittedInventoryHandler(IApplicationDbContext db, ILogger<OrderSubmittedInventoryHandler> logger)
+public sealed class OrderSubmittedInventoryHandler(IInventoryStockService inventoryStock, IApplicationDbContext db, ILogger<OrderSubmittedInventoryHandler> logger)
     : INotificationHandler<DomainEventNotification<OrderSubmittedEvent>>
 {
     public async Task Handle(DomainEventNotification<OrderSubmittedEvent> notification, CancellationToken cancellationToken)
     {
         var order = await db.Orders
-            .Include(o => o.Items).ThenInclude(i => i.Modifiers)
+            .AsNoTracking()
             .FirstOrDefaultAsync(o => o.Id == notification.DomainEvent.OrderId, cancellationToken);
         if (order is null || order.InventoryDeducted)
             return;
 
+        await inventoryStock.DeductRecipeStockForOrderAsync(order, cancellationToken);
+        logger.LogInformation("Inventory deduction requested for order {OrderNumber}", order.OrderNumber);
+    }
+}
         var demand = await BuildDemandAsync(db, order, cancellationToken);
         var stockItems = await db.InventoryItems
             .Where(i => demand.Keys.Contains(i.Id))
@@ -119,7 +124,7 @@ public sealed class OrderPaidLoyaltyHandler(IApplicationDbContext db)
     }
 }
 
-public sealed class OrderCancelledInventoryHandler(IApplicationDbContext db)
+public sealed class OrderCancelledInventoryHandler(IInventoryStockService inventoryStock, IApplicationDbContext db)
     : INotificationHandler<DomainEventNotification<OrderCancelledEvent>>
 {
     public async Task Handle(DomainEventNotification<OrderCancelledEvent> notification, CancellationToken cancellationToken)
@@ -128,11 +133,12 @@ public sealed class OrderCancelledInventoryHandler(IApplicationDbContext db)
             return;
 
         var order = await db.Orders
-            .Include(o => o.Items).ThenInclude(i => i.Modifiers)
+            .AsNoTracking()
             .FirstOrDefaultAsync(o => o.Id == notification.DomainEvent.OrderId, cancellationToken);
         if (order is null || !order.InventoryDeducted)
             return;
 
+        await inventoryStock.RestoreOrderStockAsync(order, cancellationToken);
         var demand = await BuildDemandAsync(db, order, cancellationToken);
         var stockItems = await db.InventoryItems
             .Where(i => demand.Keys.Contains(i.Id))

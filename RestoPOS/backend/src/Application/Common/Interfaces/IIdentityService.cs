@@ -22,6 +22,9 @@ public sealed record StaffRecord(
     bool IsActive,
     IReadOnlyList<string> Roles);
 
+public sealed record RoleRecord(Guid Id, string Name, string? Description, IReadOnlyList<string> Permissions);
+public sealed record PermissionCatalogItem(string Code, string DisplayNameFa, string Module);
+
 public interface IIdentityService
 {
     Task<AuthResult> LoginAsync(string userName, string password, CancellationToken cancellationToken = default);
@@ -31,6 +34,11 @@ public interface IIdentityService
     Task<Guid> CreateRoleAsync(string name, string? description, IEnumerable<string> permissionCodes, CancellationToken cancellationToken = default);
     Task UpdateRolePermissionsAsync(Guid roleId, IEnumerable<string> permissionCodes, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StaffRecord>> ListStaffAsync(CancellationToken cancellationToken = default);
+    Task<StaffRecord?> GetStaffByIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task UpdateStaffAsync(Guid userId, string fullName, string? email, string? phone, string? personnelCode, bool isActive, CancellationToken cancellationToken = default);
+    Task ChangePasswordAsync(Guid userId, string newPassword, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<RoleRecord>> ListRolesAsync(CancellationToken cancellationToken = default);
+    IReadOnlyList<PermissionCatalogItem> GetPermissionsCatalog();
     Task SetActiveAsync(Guid userId, bool isActive, CancellationToken cancellationToken = default);
     Task<string?> GetStaffDisplayNameAsync(Guid userId, CancellationToken cancellationToken = default);
 }

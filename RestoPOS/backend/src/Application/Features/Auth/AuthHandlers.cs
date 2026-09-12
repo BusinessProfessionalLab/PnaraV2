@@ -89,3 +89,62 @@ public sealed class GetStaffListQueryHandler(IIdentityService identity) : IReque
         return staff.Select(s => new StaffDto(s.Id, s.UserName, s.FullName, s.Email, s.PhoneNumber, s.PersonnelCode, s.IsActive, s.Roles)).ToList();
     }
 }
+
+public sealed class GetStaffByIdQueryHandler(IIdentityService identity) : IRequestHandler<GetStaffByIdQuery, StaffDto>
+{
+    public async Task<StaffDto> Handle(GetStaffByIdQuery request, CancellationToken cancellationToken)
+    {
+        var staff = await identity.GetStaffByIdAsync(request.StaffId, cancellationToken)
+                    ?? throw new NotFoundException("Staff", request.StaffId);
+        return new StaffDto(staff.Id, staff.UserName, staff.FullName, staff.Email, staff.PhoneNumber, staff.PersonnelCode, staff.IsActive, staff.Roles);
+    }
+}
+
+public sealed class UpdateStaffCommandValidator : AbstractValidator<UpdateStaffCommand>
+{
+    public UpdateStaffCommandValidator() => RuleFor(x => x.FullName).NotEmpty();
+}
+
+public sealed class UpdateStaffCommandHandler(IIdentityService identity) : IRequestHandler<UpdateStaffCommand>
+{
+    public Task Handle(UpdateStaffCommand request, CancellationToken cancellationToken) =>
+        identity.UpdateStaffAsync(request.StaffId, request.FullName, request.Email, request.PhoneNumber, request.PersonnelCode, request.IsActive, cancellationToken);
+}
+
+public sealed class DeactivateStaffCommandHandler(IIdentityService identity) : IRequestHandler<DeactivateStaffCommand>
+{
+    public Task Handle(DeactivateStaffCommand request, CancellationToken cancellationToken) =>
+        identity.SetActiveAsync(request.StaffId, false, cancellationToken);
+}
+
+public sealed class ChangePasswordCommandValidator : AbstractValidator<ChangePasswordCommand>
+{
+    public ChangePasswordCommandValidator() => RuleFor(x => x.NewPassword).NotEmpty().MinimumLength(8);
+}
+
+public sealed class ChangePasswordCommandHandler(IIdentityService identity) : IRequestHandler<ChangePasswordCommand>
+{
+    public Task Handle(ChangePasswordCommand request, CancellationToken cancellationToken) =>
+        identity.ChangePasswordAsync(request.StaffId, request.NewPassword, cancellationToken);
+}
+
+public sealed class ListRolesQueryHandler(IIdentityService identity) : IRequestHandler<ListRolesQuery, IReadOnlyList<RoleDto>>
+{
+    public async Task<IReadOnlyList<RoleDto>> Handle(ListRolesQuery request, CancellationToken cancellationToken)
+    {
+        var roles = await identity.ListRolesAsync(cancellationToken);
+        return roles.Select(r => new RoleDto(r.Id, r.Name, r.Description, r.Permissions)).ToList();
+    }
+}
+
+public sealed class GetPermissionCatalogQueryHandler(IIdentityService identity)
+    : IRequestHandler<GetPermissionCatalogQuery, IReadOnlyList<PermissionCatalogDto>>
+{
+    public Task<IReadOnlyList<PermissionCatalogDto>> Handle(GetPermissionCatalogQuery request, CancellationToken cancellationToken)
+    {
+        var catalog = identity.GetPermissionsCatalog()
+            .Select(p => new PermissionCatalogDto(p.Code, p.DisplayNameFa, p.Module))
+            .ToList();
+        return Task.FromResult<IReadOnlyList<PermissionCatalogDto>>(catalog);
+    }
+}

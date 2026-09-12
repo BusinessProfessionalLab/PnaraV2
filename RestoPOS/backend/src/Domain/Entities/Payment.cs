@@ -1,5 +1,6 @@
 using RestoPOS.Domain.Common;
 using RestoPOS.Domain.Enums;
+using RestoPOS.Domain.Exceptions;
 
 namespace RestoPOS.Domain.Entities;
 
@@ -38,4 +39,37 @@ public class Payment : BaseEntity
         Status = PaymentStatus.Failed;
         FailureReason = reason;
     }
+
+    public void MarkVoided(string? reason)
+    {
+        if (Status != PaymentStatus.Settled)
+            throw new DomainException("فقط پرداخت تسویه‌شده قابل ابطال است.");
+        Status = PaymentStatus.Cancelled;
+        FailureReason = reason ?? "ابطال پرداخت";
+    }
+
+    public Payment CreateRefund(decimal amount, string? reason)
+    {
+        if (Status != PaymentStatus.Settled)
+            throw new DomainException("فقط پرداخت تسویه‌شده قابل استرداد است.");
+        if (amount <= 0 || amount > Amount)
+            throw new DomainException("مبلغ استرداد نامعتبر است.");
+
+        return new Payment
+        {
+            OrderId = OrderId,
+            Channel = Channel,
+            Amount = -decimal.Round(amount, 0, MidpointRounding.AwayFromZero),
+            Status = PaymentStatus.Settled,
+            Psp = Psp,
+            PosDeviceId = PosDeviceId,
+            TerminalId = TerminalId,
+            PaidAt = DateTime.UtcNow,
+            ReferenceNumber = $"REFUND-{Id:N}",
+            FailureReason = reason,
+            Notes = $"استرداد از پرداخت {Id}"
+        };
+    }
+
+    public string? Notes { get; set; }
 }

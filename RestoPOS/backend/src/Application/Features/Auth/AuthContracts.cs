@@ -31,6 +31,18 @@ public sealed record CreateRoleCommand(string Name, string? Description, IReadOn
 public sealed record UpdateRolePermissionsCommand(Guid RoleId, IReadOnlyList<string> Permissions) : MediatR.IRequest;
 
 public sealed record GetStaffListQuery : MediatR.IRequest<IReadOnlyList<StaffDto>>;
+public sealed record GetStaffByIdQuery(Guid StaffId) : MediatR.IRequest<StaffDto>;
+public sealed record UpdateStaffCommand(
+    Guid StaffId,
+    string FullName,
+    string? Email,
+    string? PhoneNumber,
+    string? PersonnelCode,
+    bool IsActive) : MediatR.IRequest;
+public sealed record DeactivateStaffCommand(Guid StaffId) : MediatR.IRequest;
+public sealed record ChangePasswordCommand(Guid StaffId, string NewPassword) : MediatR.IRequest;
+public sealed record ListRolesQuery : MediatR.IRequest<IReadOnlyList<RoleDto>>;
+public sealed record GetPermissionCatalogQuery : MediatR.IRequest<IReadOnlyList<PermissionCatalogDto>>;
 
 public sealed record StaffDto(
     Guid Id,
@@ -41,3 +53,6 @@ public sealed record StaffDto(
     string? PersonnelCode,
     bool IsActive,
     IReadOnlyList<string> Roles);
+
+public sealed record RoleDto(Guid Id, string Name, string? Description, IReadOnlyList<string> Permissions);
+public sealed record PermissionCatalogDto(string Code, string DisplayNameFa, string Module);

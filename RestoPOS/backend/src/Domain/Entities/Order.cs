@@ -20,10 +20,13 @@ public class Order : BaseEntity
     public decimal ModifiersTotal { get; set; }
     public decimal DiscountAmount { get; set; }
     public decimal DiscountPercent { get; set; }
+    public decimal ServiceChargeAmount { get; set; }
     public decimal TaxRate { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal GrandTotal { get; set; }
     public string? Notes { get; set; }
+    public Guid? DiningTableId { get; set; }
+    public Guid? MergedIntoOrderId { get; set; }
     public DateTime? SubmittedAt { get; set; }
     public DateTime? ReadyAt { get; set; }
     public DateTime? PaidAt { get; set; }
@@ -32,8 +35,34 @@ public class Order : BaseEntity
     public bool InventoryDeducted { get; set; }
 
     public Customer? Customer { get; set; }
+    public DiningTable? DiningTable { get; set; }
     public ICollection<OrderItem> Items { get; set; } = [];
     public ICollection<Payment> Payments { get; set; } = [];
+
+    public void ApplyServiceCharge(decimal amount)
+    {
+        EnsureDraft();
+        if (amount < 0)
+            throw new DomainException("حق سرویس نمی‌تواند منفی باشد.");
+        ServiceChargeAmount = decimal.Round(amount, 0, MidpointRounding.AwayFromZero);
+    }
+
+    public void UpdateNotes(string? notes)
+    {
+        if (Status is OrderStatus.Paid or OrderStatus.Cancelled)
+            throw new DomainException("یادداشت سفارش تسویه‌شده/لغو‌شده قابل ویرایش نیست.");
+        Notes = notes;
+    }
+
+    public void VoidAfterRefund()
+    {
+        if (Status != OrderStatus.Paid)
+            throw new DomainException("فقط سفارش تسویه‌شده قابل ابطال پس از استرداد است.");
+        Status = OrderStatus.Cancelled;
+        CancelledAt = DateTime.UtcNow;
+        CancelReason = "استرداد پرداخت";
+        AddDomainEvent(new OrderCancelledEvent(Id, OrderNumber, InventoryDeducted));
+    }
 
     public static Order CreateDraft(
         string orderNumber,

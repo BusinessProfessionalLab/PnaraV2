@@ -1,7 +1,16 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { priceCart } from "./currency";
-import type { MenuItemDto, ModifierDto, OrderDto, OrderType } from "./types";
+import type { MenuItemDto, OrderDto, OrderType } from "./types";
+
+/** A chosen add-on/modifier for one cart line (quantity included). */
+export type CartModifierInput = {
+  id: string;
+  name: string;
+  extraPrice: number;
+  quantity: number;
+  addonId?: string;
+};
 
 export type CartLine = {
   menuItemId: string;
@@ -13,7 +22,7 @@ export type CartLine = {
   ticketStation: string;
   notes: string;
   categoryId: string;
-  modifiers: { id: string; name: string; extraPrice: number; quantity: number; addonId?: string }[];
+  modifiers: CartModifierInput[];
 };
 
 type CartState = {
@@ -30,8 +39,13 @@ type CartState = {
   dirty: boolean;
   setMeta: (patch: Partial<Pick<CartState, "orderType" | "tableNumber" | "customerPhone" | "notes" | "discountPercent" | "discountAmount" | "vatRate">>) => void;
   setVatRate: (vatRate: number) => void;
-  addLine: (item: MenuItemDto, quantity: number, modifiers: ModifierDto[], notes?: string) => void;
-  updateLine: (lineIndex: number, quantity: number, modifiers: ModifierDto[], notes: string) => void;
+  addLine: (item: MenuItemDto, quantity: number, modifiers: CartModifierInput[], notes?: string) => void;
+  updateLine: (
+    lineIndex: number,
+    quantity: number,
+    modifiers: CartModifierInput[],
+    notes: string,
+  ) => void;
   updateQty: (lineIndex: number, quantity: number) => void;
   removeLine: (lineIndex: number) => void;
   clear: () => void;
@@ -59,20 +73,21 @@ export const useCartStore = create<CartState>()(
       addLine: (item, quantity, modifiers, notes = "") => {
         const line: CartLine = {
           menuItemId: item.id,
-          title: item.title,
+          title: item.title ?? "",
           unitPrice: item.basePrice,
           taxInclusive: item.taxInclusive,
-          discountPercent: item.discountPercent > 0 ? item.discountPercent : item.categoryDiscountPercent ?? 0,
+          // Line discounts are no longer configured per product/category; the
+          // order-level discount is applied through /orders/{id}/discount.
+          discountPercent: 0,
           quantity,
           ticketStation: item.ticketStation,
           notes,
           categoryId: item.categoryId,
           modifiers: modifiers.map((m) => ({
             id: m.id,
-            name: m.name,
+            name: m.name ?? "",
             extraPrice: m.extraPrice,
-            quantity: m.quantity ?? 1,
-            addonId: m.addonId,
+            quantity: 1,
           })),
         };
         set((s) => {
@@ -96,10 +111,9 @@ export const useCartStore = create<CartState>()(
                   notes,
                   modifiers: modifiers.map((m) => ({
                     id: m.id,
-                    name: m.name,
+                    name: m.name ?? "",
                     extraPrice: m.extraPrice,
-                    quantity: m.quantity ?? 1,
-                    addonId: m.addonId,
+                    quantity: 1,
                   })),
                 }
               : line,
@@ -137,26 +151,26 @@ export const useCartStore = create<CartState>()(
           discountPercent: order.discountPercent,
           discountAmount: order.discountAmount,
           vatRate: order.taxRate,
-          lines: order.items.map((item) => ({
+          lines: (order.items ?? []).map((item) => ({
             menuItemId: item.menuItemId,
-            title: item.title,
+            title: item.title ?? "",
             unitPrice: item.unitPrice,
             taxInclusive: true,
-            discountPercent: item.discountPercent ?? 0,
+            discountPercent: item.discountPercent,
             quantity: item.quantity,
             ticketStation: item.ticketStation,
             notes: item.notes ?? "",
             categoryId: "",
-            modifiers: item.modifiers.map((modifier) => ({
-              id: modifier.addonId ?? modifier.menuItemModifierId ?? "",
-              name: modifier.name,
+            modifiers: (item.modifiers ?? []).map((modifier) => ({
+              id: modifier.menuItemModifierId ?? modifier.addonId ?? "",
+              name: modifier.name ?? "",
               extraPrice: modifier.extraPrice,
               quantity: modifier.quantity,
               addonId: modifier.addonId ?? undefined,
             })),
           })),
           serverOrderId: order.id,
-          serverOrderNumber: order.orderNumber,
+          serverOrderNumber: order.orderNumber ?? "",
           dirty: false,
         }),
       totals: () => {

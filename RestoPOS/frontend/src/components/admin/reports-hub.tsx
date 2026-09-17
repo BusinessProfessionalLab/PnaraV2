@@ -230,7 +230,7 @@ export function ReportsHub() {
                   <Tooltip contentStyle={tooltipStyle} formatter={(v) => formatToman(Number(v))} cursor={{ fill: "var(--color-muted)" }} />
                   <Bar dataKey="netSales" radius={[6, 6, 0, 0]}>
                     {(perf.data ?? []).map((p, i) => (
-                      <Cell key={i} fill={BAND_COLOR[p.band] ?? BAND_COLOR.default} />
+                      <Cell key={i} fill={BAND_COLOR[p.band ?? ""] ?? BAND_COLOR.default} />
                     ))}
                   </Bar>
                 </BarChart>

@@ -43,13 +43,13 @@ export function SettingsHub() {
   useEffect(() => {
     if (!q.data) return;
     setForm({
-      storeName: q.data.storeName,
+      storeName: q.data.storeName ?? "",
       logoUrl: q.data.logoUrl ?? "",
       taxIdentificationNumber: q.data.taxIdentificationNumber ?? "",
       receiptHeader: q.data.receiptHeader ?? "",
       receiptFooter: q.data.receiptFooter ?? "",
-      primaryColor: q.data.primaryColor,
-      secondaryColor: q.data.secondaryColor,
+      primaryColor: q.data.primaryColor ?? INITIAL_FORM.primaryColor,
+      secondaryColor: q.data.secondaryColor ?? INITIAL_FORM.secondaryColor,
       vatRate: q.data.vatRate,
       loyaltyPointsPerMillionRial: q.data.loyaltyPointsPerMillionRial,
       thermalPrinterHost: q.data.thermalPrinterHost ?? "",
@@ -66,13 +66,19 @@ export function SettingsHub() {
 
   async function persist() {
     try {
+      // `currencyCode` is response-only and must not be sent back.
       await saveSettings.mutateAsync({
-        ...form,
+        storeName: form.storeName || null,
         logoUrl: form.logoUrl || null,
         taxIdentificationNumber: form.taxIdentificationNumber || null,
         receiptHeader: form.receiptHeader || null,
         receiptFooter: form.receiptFooter || null,
+        primaryColor: form.primaryColor,
+        secondaryColor: form.secondaryColor,
+        vatRate: form.vatRate,
+        loyaltyPointsPerMillionRial: form.loyaltyPointsPerMillionRial,
         thermalPrinterHost: form.thermalPrinterHost || null,
+        thermalPrinterPort: form.thermalPrinterPort,
       });
       toast.success("تنظیمات ذخیره شد");
     } catch (error) {

@@ -1,14 +1,13 @@
 "use client";
 
-import { ArrowLeft, Boxes, FolderTree, GripVertical, PackageOpen } from "lucide-react";
+import { ArrowLeft, FolderTree, GripVertical, PackageOpen } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { useAddons, useCategories, useMenuItems } from "@/queries/menu";
+import { useCategories, useMenuItems } from "@/queries/menu";
 
 export function MenuSections() {
   const categories = useCategories(true);
   const items = useMenuItems(false);
-  const addons = useAddons(false);
 
   const sections = [
     {
@@ -23,26 +22,19 @@ export function MenuSections() {
       title: "دسته‌بندی‌ها",
       description: "ساخت، ویرایش و حذف دسته‌بندی‌های منو",
       icon: FolderTree,
-      count: (categories.data ?? []).filter((c) => !c.isSystem).length,
+      count: (categories.data ?? []).length,
     },
     {
       href: "/admin/menu/products",
       title: "محصولات",
-      description: "محصولات، قیمت‌ها، اضافات و رسپی هر محصول",
+      description: "محصولات، قیمت‌ها، گروه‌های افزودنی و رسپی هر محصول",
       icon: PackageOpen,
       count: items.data?.length ?? null,
-    },
-    {
-      href: "/admin/menu/addons",
-      title: "افزودنی‌های مشترک",
-      description: "افزودنی‌هایی که یک‌بار ساخته می‌شوند و روی چند محصول استفاده می‌شوند",
-      icon: Boxes,
-      count: addons.data?.length ?? null,
     },
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {sections.map((section) => {
         const Icon = section.icon;
         return (

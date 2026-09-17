@@ -49,6 +49,7 @@ import {
 } from "@/queries/menu";
 import { errorMessage } from "@/api/errors";
 import { cn } from "@/lib/cn";
+import type { MenuItemDto } from "@/lib/types";
 
 type OrderMode = "categories" | "items";
 type OrderEntry = {
@@ -63,10 +64,7 @@ type OrderEntry = {
 export function DisplayOrderManager() {
   const categoriesQuery = useCategories(true);
   const itemsQuery = useMenuItems(false);
-  const categories = useMemo(
-    () => (categoriesQuery.data ?? []).filter((category) => !category.isSystem),
-    [categoriesQuery.data],
-  );
+  const categories = useMemo(() => categoriesQuery.data ?? [], [categoriesQuery.data]);
   const [mode, setMode] = useState<OrderMode>("categories");
   const [categoryId, setCategoryId] = useState("");
   const [orderedIds, setOrderedIds] = useState<string[]>([]);
@@ -82,7 +80,7 @@ export function DisplayOrderManager() {
     if (mode === "categories") {
       return categories.map((category) => ({
         id: category.id,
-        title: category.name,
+        title: category.name ?? "",
         subtitle: category.nameEn ?? undefined,
         imageUrl: category.imageUrl,
         muted: !category.isVisible,
@@ -93,8 +91,7 @@ export function DisplayOrderManager() {
       .filter((item) => item.categoryId === categoryId)
       .map((item) => ({
         id: item.id,
-        title: item.title,
-        subtitle: item.nameEn ?? undefined,
+        title: item.title ?? "",
         imageUrl: item.imageUrl,
         muted: !item.isActive,
         mutedLabel: !item.isActive ? "غیرفعال" : undefined,
@@ -122,7 +119,11 @@ export function DisplayOrderManager() {
       if (mode === "categories") {
         await reorderCategories.mutateAsync(orderedIds);
       } else {
-        await reorderMenuItems.mutateAsync({ categoryId, orderedIds });
+        // No bulk item endpoint: each product is re-saved with its new priority.
+        const items = orderedIds
+          .map((id) => (itemsQuery.data ?? []).find((item) => item.id === id))
+          .filter((item): item is MenuItemDto => Boolean(item));
+        await reorderMenuItems.mutateAsync(items);
       }
       setSavedIds(orderedIds);
       toast.success("ترتیب نمایش ذخیره شد");

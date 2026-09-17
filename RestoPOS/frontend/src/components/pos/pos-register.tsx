@@ -124,17 +124,17 @@ export function PosRegister() {
   const searchMatches = useMemo(() => {
     const items = menu.data ?? [];
     const term = q.trim();
-    const skus = inventory.data ?? [];
+    const skus = inventory.data?.items ?? [];
     return items.map((item) => {
       // Build a rich haystack: title, description, category, recipe SKUs
       const skuText =
         item.recipe?.lines
-          .map((l) => {
+          ?.map((l) => {
             const inv = skus.find((s) => s.id === l.inventoryItemId);
-            return inv ? `${inv.sku} ${inv.name}` : "";
+            return inv ? `${inv.sku ?? ""} ${inv.name ?? ""}` : "";
           })
           .join(" ") ?? "";
-      const hay = `${item.title} ${item.description ?? ""} ${item.categoryName} ${skuText}`;
+      const hay = `${item.title ?? ""} ${item.description ?? ""} ${item.categoryName ?? ""} ${skuText}`;
       const score = !term ? 1 : fuzzyScore(term, hay);
       return { item, score };
     });
@@ -228,8 +228,8 @@ export function PosRegister() {
   });
 
   function stockOf(item: MenuItemDto): "ok" | "low" | "out" {
-    if (!item.recipe?.lines.length) return "ok";
-    const inv = inventory.data ?? [];
+    if (!item.recipe?.lines?.length) return "ok";
+    const inv = inventory.data?.items ?? [];
     let worst: "ok" | "low" | "out" = "ok";
     for (const line of item.recipe.lines) {
       const raw = inv.find((i) => i.id === line.inventoryItemId);
@@ -463,7 +463,6 @@ export function PosRegister() {
               </span>
             </button>
             {(categories.data ?? [])
-              .filter((c) => !c.isSystem)
               .slice()
               .sort((a, b) => a.displayPriority - b.displayPriority)
               .map((c) => {
@@ -526,18 +525,7 @@ export function PosRegister() {
               </div>
             )}
             {filtered.map((item) => {
-              const stock = stockOf(item);
-              const discountPercent =
-                item.discountPercent > 0
-                  ? item.discountPercent
-                  : (item.categoryDiscountPercent ?? 0);
-              const discountedPrice =
-                item.basePrice -
-                Math.round(
-                  (item.basePrice *
-                    Math.min(100, Math.max(0, discountPercent))) /
-                    100,
-                );
+              const stock = item.isSoldOut ? "out" : stockOf(item);
               const isSelected = multiMode && selectedSet.has(item.id);
               return (
                 <motion.button
@@ -600,31 +588,16 @@ export function PosRegister() {
                     <div className="line-clamp-2 text-[15px] leading-6 font-bold break-words">
                       {item.title}
                     </div>
-                    {discountPercent > 0 ? (
-                      <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
-                        <div className="flex min-w-0 flex-col leading-none">
-                          <span className="text-xs font-medium text-muted-foreground line-through tabular-nums">
-                            {formatToman(item.basePrice)}
-                          </span>
-                          <span className="mt-1.5 truncate text-[15px] font-extrabold text-primary tabular-nums sm:text-base">
-                            {formatToman(discountedPrice)}
-                          </span>
-                        </div>
-                        <Badge
-                          variant="danger"
-                          title={`${discountPercent}٪ تخفیف`}
-                          className="shrink-0 px-2 py-1 text-[11px]"
-                        >
-                          {discountPercent}٪
+                    <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
+                      <span className="truncate text-[15px] font-extrabold text-primary tabular-nums sm:text-base">
+                        {formatToman(item.basePrice)}
+                      </span>
+                      {item.isSoldOut ? (
+                        <Badge variant="danger" className="shrink-0">
+                          تمام شد
                         </Badge>
-                      </div>
-                    ) : (
-                      <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/60 pt-2.5">
-                        <span className="truncate text-[15px] font-extrabold text-primary tabular-nums sm:text-base">
-                          {formatToman(item.basePrice)}
-                        </span>
-                      </div>
-                    )}
+                      ) : null}
+                    </div>
                   </div>
                 </motion.button>
               );
@@ -1032,7 +1005,7 @@ function CartPane({
                     </span>
                   ) : null}
                   <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                    {draft.items.length} آیتم
+                    {draft.items?.length ?? 0} آیتم
                   </span>
                   {draft.customerPhone ? (
                     <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
@@ -1040,13 +1013,13 @@ function CartPane({
                     </span>
                   ) : null}
                 </div>
-                {(draft.items.length > 0 || draft.notes) && (
+                {((draft.items?.length ?? 0) > 0 || draft.notes) && (
                   <p className="mt-2 truncate border-t border-border/70 pt-2 text-[11px] leading-5 text-muted-foreground">
-                    {draft.items
+                    {(draft.items ?? [])
                       .slice(0, 2)
                       .map((item) => `${item.title} × ${item.quantity}`)
                       .join(" · ")}
-                    {draft.items.length > 2 ? " · …" : ""}
+                    {(draft.items?.length ?? 0) > 2 ? " · …" : ""}
                     {draft.notes ? ` · ${draft.notes}` : ""}
                   </p>
                 )}

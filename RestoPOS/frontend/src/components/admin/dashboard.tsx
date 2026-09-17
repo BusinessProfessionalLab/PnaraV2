@@ -211,7 +211,7 @@ export function AdminDashboard() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-semibold">{a.name}</div>
                     <div className="text-[11px] text-muted-foreground">
-                      {a.sku} · نقطه سفارش {a.reorderPoint}
+                      {a.sku} · حداقل موجودی {a.minimumAlertStock}
                     </div>
                   </div>
                   <Badge variant="warning" className="tabular-nums">

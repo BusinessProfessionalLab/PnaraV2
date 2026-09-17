@@ -38,12 +38,7 @@ export function CategoryManager() {
         toast.success("دسته‌بندی ویرایش شد");
       } else {
         const nextPriority =
-          Math.max(
-            0,
-            ...(categories.data ?? [])
-              .filter((category) => !category.isSystem)
-              .map((category) => category.displayPriority),
-          ) + 1;
+          Math.max(0, ...(categories.data ?? []).map((category) => category.displayPriority)) + 1;
         await createCategory.mutateAsync({
           name,
           nameEn: null,
@@ -75,14 +70,14 @@ export function CategoryManager() {
 
   function startEdit(category: CategoryDto) {
     setEditing(category);
-    setName(category.name);
+    setName(category.name ?? "");
   }
   function resetForm() {
     setEditing(null);
     setName("");
   }
 
-  const list = (categories.data ?? []).filter((c) => !c.isSystem);
+  const list = categories.data ?? [];
 
   return (
     <Card className="overflow-hidden">

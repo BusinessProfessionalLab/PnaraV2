@@ -168,7 +168,7 @@ export function StaffHub() {
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-                    {s.roles.map((r) => (
+                    {(s.roles ?? []).map((r) => (
                       <span
                         key={r}
                         className="inline-flex items-center gap-1 rounded-lg bg-muted px-2 py-1 text-[11px] font-semibold text-muted-foreground"

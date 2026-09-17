@@ -12,8 +12,17 @@ export interface UsePosDevicesOptions {
 export function usePosDevices(options?: UsePosDevicesOptions) {
   return useQuery({
     queryKey: paymentKeys.devices,
-    queryFn: paymentsService.posDevices,
+    queryFn: () => paymentsService.posDevices(),
     enabled: options?.enabled,
+  });
+}
+
+/** Payment attempts recorded against one order. */
+export function useOrderPayments(orderId: string | null) {
+  return useQuery({
+    queryKey: paymentKeys.byOrder(orderId ?? "none"),
+    queryFn: () => paymentsService.byOrder(orderId as string),
+    enabled: Boolean(orderId),
   });
 }
 
@@ -31,6 +40,67 @@ export function usePayCash() {
   return useMutation({
     mutationFn: ({ orderId, amount }: { orderId: string; amount: number }) =>
       paymentsService.payCash(orderId, amount),
+    onSuccess: invalidateAfterSale(queryClient),
+  });
+}
+
+export function usePayCardToCard() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      orderId,
+      amount,
+      referenceNumber,
+    }: {
+      orderId: string;
+      amount: number;
+      referenceNumber: string | null;
+    }) => paymentsService.payCardToCard(orderId, amount, referenceNumber),
+    onSuccess: invalidateAfterSale(queryClient),
+  });
+}
+
+/** Manually recorded online-gateway settlement (back-office correction). */
+export function useRecordOnlinePayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      orderId,
+      amount,
+      referenceNumber,
+    }: {
+      orderId: string;
+      amount: number;
+      referenceNumber: string | null;
+    }) => paymentsService.recordOnline(orderId, amount, referenceNumber),
+    onSuccess: invalidateAfterSale(queryClient),
+  });
+}
+
+export function useVoidPayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ paymentId, reason }: { paymentId: string; reason?: string | null }) =>
+      paymentsService.voidPayment(paymentId, reason ?? null),
+    onSuccess: invalidateAfterSale(queryClient),
+  });
+}
+
+export function useRefundPayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      paymentId,
+      amount,
+      reason,
+      voidOrder,
+    }: {
+      paymentId: string;
+      amount: number;
+      reason?: string | null;
+      voidOrder?: boolean;
+    }) =>
+      paymentsService.refund(paymentId, amount, reason ?? null, voidOrder ?? false),
     onSuccess: invalidateAfterSale(queryClient),
   });
 }
@@ -71,22 +141,6 @@ export function useSettleWithPos() {
       }
       throw new Error("زمان انتظار کارت‌خوان به پایان رسید.");
     },
-    onSuccess: invalidateAfterSale(queryClient),
-  });
-}
-
-export function usePayCardToCard() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      orderId,
-      amount,
-      referenceNumber,
-    }: {
-      orderId: string;
-      amount: number;
-      referenceNumber: string;
-    }) => paymentsService.payCardToCard(orderId, amount, referenceNumber),
     onSuccess: invalidateAfterSale(queryClient),
   });
 }

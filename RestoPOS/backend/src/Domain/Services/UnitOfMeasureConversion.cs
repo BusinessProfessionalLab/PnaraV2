@@ -16,19 +16,19 @@ public static class UnitOfMeasureConversion
 
     private static string Dimension(UnitOfMeasure unit) => unit switch
     {
-        UnitOfMeasure.Kg or UnitOfMeasure.Gr => "mass",
-        UnitOfMeasure.Liter or UnitOfMeasure.Ml => "volume",
-        UnitOfMeasure.Count => "count",
+        UnitOfMeasure.Kilogram or UnitOfMeasure.Gram => "mass",
+        UnitOfMeasure.Liter or UnitOfMeasure.Milliliter => "volume",
+        UnitOfMeasure.Piece or UnitOfMeasure.Portion or UnitOfMeasure.Can => "count",
         _ => throw new DomainException("واحد اندازه‌گیری نامعتبر است.")
     };
 
     private static decimal FactorToBase(UnitOfMeasure unit) => unit switch
     {
-        UnitOfMeasure.Kg => 1000m,
-        UnitOfMeasure.Gr => 1m,
+        UnitOfMeasure.Kilogram => 1000m,
+        UnitOfMeasure.Gram => 1m,
         UnitOfMeasure.Liter => 1000m,
-        UnitOfMeasure.Ml => 1m,
-        UnitOfMeasure.Count => 1m,
+        UnitOfMeasure.Milliliter => 1m,
+        UnitOfMeasure.Piece or UnitOfMeasure.Portion or UnitOfMeasure.Can => 1m,
         _ => throw new DomainException("واحد اندازه‌گیری نامعتبر است.")
     };
 }

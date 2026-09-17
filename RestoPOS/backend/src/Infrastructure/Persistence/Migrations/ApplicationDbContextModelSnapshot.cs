@@ -2412,7 +2412,7 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.HasOne("RestoPOS.Domain.Entities.ModifierGroup", "ModifierGroup")
                         .WithMany("Options")
                         .HasForeignKey("ModifierGroupId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("MenuItem");
 

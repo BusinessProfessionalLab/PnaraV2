@@ -120,8 +120,8 @@ public sealed class GetProfitMarginReportQueryHandler(IApplicationDbContext db)
                 {
                     foreach (var mod in line.Modifiers)
                     {
-                        modifierCogs.TryGetValue(mod.MenuItemModifierId, out var modUnit);
-                        cogs += modUnit * mod.Quantity * line.Quantity;
+                        if (mod.MenuItemModifierId is { } modifierId && modifierCogs.TryGetValue(modifierId, out var modUnit))
+                            cogs += modUnit * mod.Quantity * line.Quantity;
                     }
                 }
 

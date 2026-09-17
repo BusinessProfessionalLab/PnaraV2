@@ -48,14 +48,6 @@ public sealed class MenuController(ISender sender) : ControllerBase
         return NoContent();
     }
 
-    [HttpPut("categories/order")]
-    [Authorize(Policy = Permissions.MenuManage)]
-    public async Task<IActionResult> ReorderCategories(ReorderCategoriesCommand command, CancellationToken ct)
-    {
-        await sender.Send(command, ct);
-        return NoContent();
-    }
-
     [HttpGet("items")]
     public async Task<ActionResult<IReadOnlyList<MenuItemDto>>> Items([FromQuery] bool activeOnly = true, CancellationToken ct = default) =>
         Ok(await sender.Send(new GetMenuQuery(activeOnly), ct));
@@ -93,14 +85,6 @@ public sealed class MenuController(ISender sender) : ControllerBase
         return NoContent();
     }
 
-    [HttpPut("items/order")]
-    [Authorize(Policy = Permissions.MenuManage)]
-    public async Task<IActionResult> ReorderItems(ReorderMenuItemsCommand command, CancellationToken ct)
-    {
-        await sender.Send(command, ct);
-        return NoContent();
-    }
-
     [HttpPost("modifiers")]
     [Authorize(Policy = Permissions.MenuManage)]
     public async Task<ActionResult<Guid>> CreateModifier(CreateModifierCommand command, CancellationToken ct) =>
@@ -131,62 +115,26 @@ public sealed class MenuController(ISender sender) : ControllerBase
     public async Task<ActionResult<Guid>> CreateModifierGroup(CreateModifierGroupCommand command, CancellationToken ct) =>
         Ok(await sender.Send(command, ct));
 
-    [HttpPut("modifiers/{id:guid}")]
+    [HttpPut("modifier-groups/{id:guid}")]
     [Authorize(Policy = Permissions.MenuManage)]
-    public async Task<IActionResult> UpdateModifier(Guid id, UpdateModifierCommand command, CancellationToken ct)
+    public async Task<IActionResult> UpdateModifierGroup(Guid id, UpdateModifierGroupCommand command, CancellationToken ct)
     {
         await sender.Send(command with { Id = id }, ct);
         return NoContent();
     }
 
-    [HttpDelete("modifiers/{id:guid}")]
+    [HttpDelete("modifier-groups/{id:guid}")]
     [Authorize(Policy = Permissions.MenuManage)]
-    public async Task<IActionResult> DeleteModifier(Guid id, CancellationToken ct)
+    public async Task<IActionResult> DeleteModifierGroup(Guid id, CancellationToken ct)
     {
-        await sender.Send(new DeleteModifierCommand(id), ct);
+        await sender.Send(new DeleteModifierGroupCommand(id), ct);
         return NoContent();
     }
 
-    [HttpGet("addons")]
-    public async Task<ActionResult<IReadOnlyList<AddonDto>>> GetAddons([FromQuery] bool activeOnly = true, CancellationToken ct = default) =>
-        Ok(await sender.Send(new GetAddonsQuery(activeOnly), ct));
-
-    [HttpPost("addons")]
+    [HttpPost("modifier-groups/{groupId:guid}/options")]
     [Authorize(Policy = Permissions.MenuManage)]
-    public async Task<ActionResult<Guid>> CreateAddon(CreateAddonCommand command, CancellationToken ct) =>
-        Ok(await sender.Send(command, ct));
-
-    [HttpPut("addons/{id:guid}")]
-    [Authorize(Policy = Permissions.MenuManage)]
-    public async Task<IActionResult> UpdateAddon(Guid id, UpdateAddonCommand command, CancellationToken ct)
-    {
-        await sender.Send(command with { Id = id }, ct);
-        return NoContent();
-    }
-
-    [HttpDelete("addons/{id:guid}")]
-    [Authorize(Policy = Permissions.MenuManage)]
-    public async Task<IActionResult> DeleteAddon(Guid id, CancellationToken ct)
-    {
-        await sender.Send(new DeleteAddonCommand(id), ct);
-        return NoContent();
-    }
-
-    [HttpPost("items/{menuItemId:guid}/addons/{addonId:guid}")]
-    [Authorize(Policy = Permissions.MenuManage)]
-    public async Task<IActionResult> AttachAddon(Guid menuItemId, Guid addonId, CancellationToken ct)
-    {
-        await sender.Send(new AttachAddonCommand(menuItemId, addonId), ct);
-        return NoContent();
-    }
-
-    [HttpDelete("items/{menuItemId:guid}/addons/{addonId:guid}")]
-    [Authorize(Policy = Permissions.MenuManage)]
-    public async Task<IActionResult> DetachAddon(Guid menuItemId, Guid addonId, CancellationToken ct)
-    {
-        await sender.Send(new DetachAddonCommand(menuItemId, addonId), ct);
-        return NoContent();
-    }
+    public async Task<ActionResult<Guid>> AddOptionToGroup(Guid groupId, AddOptionToGroupCommand command, CancellationToken ct) =>
+        Ok(await sender.Send(command with { ModifierGroupId = groupId }, ct));
 
     [HttpPut("recipes")]
     [Authorize(Policy = Permissions.MenuManage)]

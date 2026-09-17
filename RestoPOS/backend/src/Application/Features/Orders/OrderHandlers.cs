@@ -60,32 +60,6 @@ public sealed class CreateDraftOrderCommandHandler(
                         ?? throw new NotFoundException(nameof(DiningTable), tableId);
             order.TableNumber ??= table.Code;
         }
-        foreach (var itemRequest in request.Items ?? [])
-        {
-            if (itemRequest.Quantity <= 0)
-                throw new DomainException("تعداد آیتم باید حداقل ۱ باشد.");
-
-            var menuItem = await db.MenuItems.Include(m => m.Modifiers).Include(m => m.Category)
-                .FirstOrDefaultAsync(m => m.Id == itemRequest.MenuItemId, cancellationToken)
-                ?? throw new NotFoundException(nameof(MenuItem), itemRequest.MenuItemId);
-
-            var line = order.AddItem(menuItem, itemRequest.Quantity, itemRequest.Notes);
-            foreach (var modifierRequest in itemRequest.Modifiers ?? [])
-            {
-                if (modifierRequest.AddonId is { } addonId)
-                {
-                    var addon = await db.Addons.FirstOrDefaultAsync(a => a.Id == addonId, cancellationToken) ?? throw new NotFoundException(nameof(Addon), addonId);
-                    line.AddAddon(addon, modifierRequest.Quantity);
-                }
-                else
-                {
-                    var modifier = menuItem.Modifiers.FirstOrDefault(m => m.Id == modifierRequest.MenuItemModifierId)
-                        ?? throw new NotFoundException(nameof(MenuItemModifier), modifierRequest.MenuItemModifierId);
-                    line.AddModifier(modifier, modifierRequest.Quantity);
-                }
-            }
-        }
-        order.Recalculate();
         db.Orders.Add(order);
         await db.SaveChangesAsync(cancellationToken);
         return OrderMapping.ToDto(order);
@@ -107,7 +81,7 @@ public sealed class AddOrderItemCommandHandler(IApplicationDbContext db) : IRequ
     public async Task<OrderDto> Handle(AddOrderItemCommand request, CancellationToken cancellationToken)
     {
         var order = await OrderLoader.Load(db, request.OrderId, cancellationToken);
-        var menuItem = await db.MenuItems.Include(m => m.Modifiers).Include(m => m.Category)
+        var menuItem = await db.MenuItems.Include(m => m.Modifiers)
             .FirstOrDefaultAsync(m => m.Id == request.MenuItemId, cancellationToken)
             ?? throw new NotFoundException(nameof(MenuItem), request.MenuItemId);
 
@@ -116,16 +90,21 @@ public sealed class AddOrderItemCommandHandler(IApplicationDbContext db) : IRequ
         {
             if (modifierReq.AddonId is { } addonId)
             {
-                var addon = await db.Addons.FirstOrDefaultAsync(a => a.Id == addonId, cancellationToken) ?? throw new NotFoundException(nameof(Addon), addonId);
+                var addon = await db.Addons.FirstOrDefaultAsync(a => a.Id == addonId, cancellationToken)
+                    ?? throw new NotFoundException(nameof(Addon), addonId);
                 if (!await db.MenuItemAddons.AnyAsync(x => x.MenuItemId == menuItem.Id && x.AddonId == addonId, cancellationToken))
-                    throw new DomainException("این افزودنی به محصول متصل نیست.");
+                    throw new DomainException("This add-on is not attached to the menu item.");
                 line.AddAddon(addon, modifierReq.Quantity);
+            }
+            else if (modifierReq.MenuItemModifierId is { } modifierId)
+            {
+                var modifier = menuItem.Modifiers.FirstOrDefault(m => m.Id == modifierId)
+                               ?? throw new NotFoundException(nameof(MenuItemModifier), modifierId);
+                line.AddModifier(modifier, modifierReq.Quantity);
             }
             else
             {
-                var modifier = menuItem.Modifiers.FirstOrDefault(m => m.Id == modifierReq.MenuItemModifierId)
-                               ?? throw new NotFoundException(nameof(MenuItemModifier), modifierReq.MenuItemModifierId);
-                line.AddModifier(modifier, modifierReq.Quantity);
+                throw new DomainException("A modifier or add-on must be specified.");
             }
         }
 
@@ -411,21 +390,5 @@ public sealed class GetOrderHistoryQueryHandler(IApplicationDbContext db)
             PageSize = request.PageSize,
             TotalCount = total
         };
-    }
-}
-
-}
-
-public sealed class GetDraftOrdersQueryHandler(IApplicationDbContext db) : IRequestHandler<GetDraftOrdersQuery, IReadOnlyList<OrderDto>>
-{
-    public async Task<IReadOnlyList<OrderDto>> Handle(GetDraftOrdersQuery request, CancellationToken cancellationToken)
-    {
-        var orders = await db.Orders
-            .Include(o => o.Items).ThenInclude(i => i.Modifiers)
-            .Include(o => o.Payments)
-            .Where(o => o.Status == OrderStatus.Draft)
-            .OrderByDescending(o => o.CreatedAt)
-            .ToListAsync(cancellationToken);
-        return orders.Select(OrderMapping.ToDto).ToList();
     }
 }

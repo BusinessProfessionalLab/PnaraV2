@@ -269,7 +269,7 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                 column: "ModifierGroupId",
                 principalTable: "ModifierGroups",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.SetNull);
+                onDelete: ReferentialAction.NoAction);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_Orders_DiningTables_DiningTableId",

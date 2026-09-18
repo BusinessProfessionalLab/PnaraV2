@@ -29,6 +29,7 @@ async function syncCartToServerInternal(): Promise<OrderDto> {
   const draftPayload = {
     orderType: snapshot.orderType,
     tableNumber: snapshot.tableNumber || null,
+    diningTableId: snapshot.diningTableId || null,
     customerPhone: snapshot.customerPhone || null,
     notes: snapshot.notes || null,
     items: snapshot.lines.map((line) => ({

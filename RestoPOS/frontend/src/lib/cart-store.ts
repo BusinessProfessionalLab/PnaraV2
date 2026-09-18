@@ -19,6 +19,7 @@ export type CartLine = {
 type CartState = {
   orderType: OrderType;
   tableNumber: string;
+  diningTableId: string | null;
   customerPhone: string;
   notes: string;
   discountPercent: number;
@@ -28,7 +29,21 @@ type CartState = {
   serverOrderId: string | null;
   serverOrderNumber: string | null;
   dirty: boolean;
-  setMeta: (patch: Partial<Pick<CartState, "orderType" | "tableNumber" | "customerPhone" | "notes" | "discountPercent" | "discountAmount" | "vatRate">>) => void;
+  setMeta: (
+    patch: Partial<
+      Pick<
+        CartState,
+        | "orderType"
+        | "tableNumber"
+        | "diningTableId"
+        | "customerPhone"
+        | "notes"
+        | "discountPercent"
+        | "discountAmount"
+        | "vatRate"
+      >
+    >,
+  ) => void;
   setVatRate: (vatRate: number) => void;
   addLine: (item: MenuItemDto, quantity: number, modifiers: ModifierDto[], notes?: string) => void;
   updateLine: (lineIndex: number, quantity: number, modifiers: ModifierDto[], notes: string) => void;
@@ -40,11 +55,35 @@ type CartState = {
   totals: () => ReturnType<typeof priceCart>;
 };
 
+function id() {
+  const g = typeof globalThis === "undefined" ? undefined : (globalThis as { crypto?: Crypto }).crypto;
+
+  if (g?.randomUUID) {
+    return g.randomUUID();
+  }
+
+  if (g?.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    g.getRandomValues(bytes);
+
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    const hex = Array.from(bytes)
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       orderType: "DineIn",
       tableNumber: "",
+      diningTableId: null,
       customerPhone: "",
       notes: "",
       discountPercent: 0,
@@ -122,6 +161,7 @@ export const useCartStore = create<CartState>()(
           serverOrderId: null,
           serverOrderNumber: null,
           notes: "",
+          diningTableId: null,
           discountAmount: 0,
           discountPercent: 0,
           dirty: false,

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Armchair,
   BarChart3,
   Boxes,
   ClipboardList,
@@ -20,6 +21,7 @@ const links = [
   { href: "/admin", label: "داشبورد", icon: Store },
   { href: "/admin/menu", label: "منو و رسپی", icon: UtensilsCrossed },
   { href: "/admin/inventory", label: "انبار", icon: Boxes },
+  { href: "/admin/tables", label: "میزها", icon: Armchair },
   { href: "/admin/customers", label: "باشگاه مشتریان", icon: Users },
   { href: "/admin/reports", label: "گزارش‌ها", icon: BarChart3 },
   { href: "/admin/staff", label: "پرسنل", icon: ClipboardList },
@@ -38,7 +40,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
         <nav className="space-y-1">
           {links.map((l) => {
-            const active = path === l.href;
+            const active = path === l.href || (l.href !== "/admin" && path.startsWith(l.href));
             const Icon = l.icon;
             return (
               <Link

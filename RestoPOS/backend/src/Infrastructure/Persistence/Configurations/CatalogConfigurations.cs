@@ -81,7 +81,7 @@ public class MenuItemModifierConfiguration : IEntityTypeConfiguration<MenuItemMo
         builder.Property(x => x.Name).HasMaxLength(128).IsRequired();
         builder.Property(x => x.ExtraPrice).HasColumnType(MoneyConfig.Rial);
         builder.HasOne(x => x.MenuItem).WithMany(m => m.Modifiers).HasForeignKey(x => x.MenuItemId);
-        builder.HasOne(x => x.ModifierGroup).WithMany(g => g.Options).HasForeignKey(x => x.ModifierGroupId).OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(x => x.ModifierGroup).WithMany(g => g.Options).HasForeignKey(x => x.ModifierGroupId).OnDelete(DeleteBehavior.NoAction);
         builder.HasOne(x => x.Recipe).WithOne(r => r.MenuItemModifier).HasForeignKey<Recipe>(r => r.MenuItemModifierId);
     }
 }

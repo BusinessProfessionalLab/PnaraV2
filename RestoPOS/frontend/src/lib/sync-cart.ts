@@ -14,6 +14,7 @@ export async function syncCartToServer(): Promise<OrderDto> {
   const draftPayload = {
     orderType: snapshot.orderType,
     tableNumber: snapshot.tableNumber || null,
+    diningTableId: snapshot.diningTableId || null,
     customerPhone: snapshot.customerPhone || null,
     notes: snapshot.notes || null,
   };

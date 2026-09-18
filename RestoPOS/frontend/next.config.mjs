@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const API = process.env.API_PROXY_TARGET || "http://localhost:5088";
+const API = process.env.API_PROXY_TARGET || "http://127.0.0.1:5088";
 
 const nextConfig = {
   reactStrictMode: true,

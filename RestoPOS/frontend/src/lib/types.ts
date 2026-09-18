@@ -3,15 +3,50 @@ export type OrderStatus = "Draft" | "Submitted" | "InPreparation" | "Ready" | "P
 export type TicketStation = "CustomerReceipt" | "Kitchen" | "Bar" | "KitchenAndBar";
 export type PaymentChannel = "Cash" | "LocalPC_POS" | "CardToCard" | "OnlineGateway";
 export type PaymentStatus = "Pending" | "Authorized" | "Settled" | "Failed" | "Cancelled";
-export type UnitOfMeasure = "Kg" | "Gr" | "Liter" | "Ml" | "Count";
+export type BaseUnit = "Gram" | "Milliliter" | "Piece" | "Portion" | "Can" | "Kilogram" | "Liter";
+/** @deprecated prefer BaseUnit */
+export type UnitOfMeasure = BaseUnit | "Kg" | "Gr" | "Liter" | "Ml" | "Count";
+export type StorageLocation = "CentralStorage" | "KitchenLine" | "Bar" | "ColdRoom" | "DryStorage";
 export type InventoryTransactionType =
-  | "InboundPurchase"
-  | "Waste"
+  | "Purchase"
   | "RecipeDeduction"
+  | "OrderCancelReturn"
+  | "Waste"
+  | "StockCountAdjustment"
+  | "InternalTransfer"
+  | "OpeningBalance"
+  | "ManualAdjustment"
+  | "InboundPurchase"
   | "ReverseDeduction"
   | "Adjustment";
 export type PosProtocol = "Lan" | "Com" | "Serial";
 export type IranianPsp = "Unknown" | "AsanPardakht" | "SamanKish" | "BehpardakhtMellat";
+export type TimePeriodPreset = "Today" | "Yesterday" | "ThisMonth" | "LastMonth" | "CustomRange";
+export type TimelineInterval = "Hourly" | "Daily" | "Weekly";
+export type WasteReason = "Expired" | "PreparationDefect" | "Spoilage" | "StaffMeal" | "SpillBreakage";
+export type StockCountStatus = "Draft" | "InProgress" | "Completed" | "Approved";
+export type StockTransferStatus = "Requested" | "Transferred" | "Cancelled";
+export type PurchaseInvoiceStatus = "Draft" | "Approved" | "Cancelled";
+export type PurchasePaymentStatus = "Unpaid" | "Partial" | "Paid";
+export type TableStatus = "Available" | "Occupied" | "Reserved" | "Cleaning";
+export type ShiftStatus = "Open" | "Closed";
+export type ReportPaymentMethod = "Cash" | "PosTerminal" | "CardToCard" | "WalletCredit" | "Online";
+
+export type ApiResult<T = unknown> = {
+  succeeded: boolean;
+  value?: T | null;
+  errors?: string[];
+};
+
+export type PaginatedList<T> = {
+  items: T[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+};
+
+export type MoneyAmountDto = { rials: number; tomans: number };
 
 export type AuthResponse = {
   accessToken: string;
@@ -35,6 +70,9 @@ export type StaffDto = {
   roles: string[];
 };
 
+export type RoleDto = { id: string; name: string; description?: string | null; permissions: string[] };
+export type PermissionCatalogItem = { code: string; displayNameFa: string; module: string };
+
 export type CategoryDto = {
   id: string;
   name: string;
@@ -49,7 +87,7 @@ export type CategoryDto = {
 export type RecipeLineDto = {
   inventoryItemId: string;
   quantity: number;
-  unit: UnitOfMeasure;
+  unit: BaseUnit | UnitOfMeasure;
 };
 
 export type RecipeDto = {
@@ -63,11 +101,24 @@ export type RecipeDto = {
 export type ModifierDto = {
   id: string;
   menuItemId: string;
+  modifierGroupId?: string | null;
   name: string;
   extraPrice: number;
   isActive: boolean;
   ticketStation: TicketStation;
   displayPriority: number;
+};
+
+export type ModifierGroupDto = {
+  id: string;
+  menuItemId: string;
+  name: string;
+  minSelections: number;
+  maxSelections: number;
+  isRequired: boolean;
+  displayPriority: number;
+  isActive: boolean;
+  options: ModifierDto[];
 };
 
 export type MenuItemDto = {
@@ -81,9 +132,11 @@ export type MenuItemDto = {
   categoryId: string;
   categoryName: string;
   isActive: boolean;
+  isSoldOut?: boolean;
   ticketStation: TicketStation;
   prepTimeMinutes: number;
   modifiers: ModifierDto[];
+  modifierGroups?: ModifierGroupDto[];
   recipe?: RecipeDto | null;
 };
 
@@ -131,10 +184,12 @@ export type OrderDto = {
   modifiersTotal: number;
   discountAmount: number;
   discountPercent: number;
+  serviceChargeAmount?: number;
   taxRate: number;
   taxAmount: number;
   grandTotal: number;
   notes?: string | null;
+  diningTableId?: string | null;
   createdAt: string;
   createdAtShamsi: string;
   submittedAt?: string | null;
@@ -173,30 +228,206 @@ export type CustomerDto = {
   lastVisitShamsi: string;
 };
 
-export type InventoryItemDto = {
+export type UnitConversionDto = {
+  id: string;
+  unitName: string;
+  targetBaseUnit: BaseUnit;
+  factorToBase: number;
+};
+
+export type InventoryItemListDto = {
   id: string;
   name: string;
   sku: string;
-  unitOfMeasure: UnitOfMeasure;
-  reorderPoint: number;
-  safetyStock: number;
+  barcode?: string | null;
+  category?: string | null;
+  baseUnit: BaseUnit;
   currentStock: number;
-  costPrice: number;
-  averageCost: number;
+  minimumAlertStock: number;
+  optimalStock: number;
+  weightedAverageCostRials: number;
+  weightedAverageCostToman: number;
+  lastPurchasePriceRials: number;
+  lastPurchasePriceToman: number;
+  storageLocation: StorageLocation;
   isActive: boolean;
   isLowStock: boolean;
+  valuationRials: number;
+  valuationToman: number;
 };
 
-export type InventoryTransactionDto = {
+/** Back-compat alias used by older UI fields */
+export type InventoryItemDto = InventoryItemListDto & {
+  unitOfMeasure?: BaseUnit | UnitOfMeasure;
+  reorderPoint?: number;
+  safetyStock?: number;
+  costPrice?: number;
+  averageCost?: number;
+};
+
+export type InventoryItemDetailDto = InventoryItemListDto & {
+  conversions: UnitConversionDto[];
+};
+
+export type InventoryTransactionListDto = {
   id: string;
   inventoryItemId: string;
   itemName: string;
-  type: InventoryTransactionType;
-  quantity: number;
-  unitCost: number;
-  reference?: string | null;
+  sku: string;
+  transactionType: InventoryTransactionType;
+  referenceId?: string | null;
+  quantityDelta: number;
+  stockBefore: number;
+  stockAfter: number;
+  unitCostRials: number;
+  unitCostToman: number;
+  userId?: string | null;
+  createdAtUtc: string;
   notes?: string | null;
-  occurredAt: string;
+};
+
+export type InventoryTransactionDto = InventoryTransactionListDto & {
+  type?: InventoryTransactionType;
+  quantity?: number;
+  unitCost?: number;
+  occurredAt?: string;
+};
+
+export type SupplierDto = {
+  id: string;
+  name: string;
+  phone?: string | null;
+  contactPerson?: string | null;
+  currentBalanceRials: number;
+  address?: string | null;
+  isActive: boolean;
+};
+
+export type PurchaseInvoiceListDto = {
+  id: string;
+  invoiceNumber: string;
+  supplierId: string;
+  supplierName: string;
+  invoiceDateUtc: string;
+  grandTotalRials: number;
+  grandTotalToman: number;
+  paymentStatus: PurchasePaymentStatus;
+  status: PurchaseInvoiceStatus;
+};
+
+export type PurchaseInvoiceDetailDto = PurchaseInvoiceListDto & {
+  subtotalRials: number;
+  taxRials: number;
+  discountRials: number;
+  notes?: string | null;
+  approvedAtUtc?: string | null;
+  items: {
+    id: string;
+    inventoryItemId: string;
+    itemName: string;
+    sku: string;
+    quantity: number;
+    quantityInBase: number;
+    purchaseUnit: BaseUnit;
+    namedPurchaseUnit?: string | null;
+    unitPriceRials: number;
+    unitPriceInBaseRials: number;
+    lineDiscountRials: number;
+    lineTotalRials: number;
+    lineTotalToman: number;
+  }[];
+};
+
+export type WasteReportRowDto = {
+  wasteId: string;
+  wasteItemId: string;
+  inventoryItemId: string;
+  itemName: string;
+  sku: string;
+  reason: WasteReason;
+  quantityInBase: number;
+  unitCostRials: number;
+  lossRials: number;
+  lossToman: number;
+  occurredAtUtc: string;
+  notes?: string | null;
+};
+
+export type WasteDetailDto = {
+  id: string;
+  occurredAtUtc: string;
+  totalLossRials: number;
+  notes?: string | null;
+  items: WasteReportRowDto[];
+};
+
+export type StockCountListDto = {
+  id: string;
+  title: string;
+  status: StockCountStatus;
+  startedAtUtc: string;
+  completedAtUtc?: string | null;
+  approvedAtUtc?: string | null;
+};
+
+export type StockCountDetailDto = {
+  id: string;
+  title: string;
+  status: StockCountStatus;
+  locationFilter?: StorageLocation | null;
+  startedAtUtc: string;
+  completedAtUtc?: string | null;
+  approvedAtUtc?: string | null;
+  notes?: string | null;
+  totalCostVarianceRials: number;
+  totalCostVarianceToman: number;
+  items: {
+    id: string;
+    inventoryItemId: string;
+    itemName: string;
+    sku: string;
+    systemSnapshotQty: number;
+    physicalCountQty?: number | null;
+    discrepancyQty: number;
+    costVarianceRials: number;
+    costVarianceToman: number;
+    snapshotUnitCostRials: number;
+  }[];
+};
+
+export type StockTransferDto = {
+  id: string;
+  inventoryItemId: string;
+  itemName?: string;
+  fromLocation: StorageLocation;
+  toLocation: StorageLocation;
+  quantityInBase: number;
+  status: StockTransferStatus;
+  requestedAtUtc: string;
+  transferredAtUtc?: string | null;
+  notes?: string | null;
+};
+
+export type CardexRowDto = {
+  id: string;
+  transactionType: InventoryTransactionType;
+  referenceId?: string | null;
+  quantityDelta: number;
+  stockBefore: number;
+  stockAfter: number;
+  unitCostRials: number;
+  unitCostToman: number;
+  userId?: string | null;
+  createdAtUtc: string;
+  notes?: string | null;
+  location?: StorageLocation | null;
+};
+
+export type InventoryValuationDto = {
+  grandTotalRials: number;
+  grandTotalToman: number;
+  byLocation: { groupKey: string; groupLabel: string; totalStock: number; totalValueRials: number; totalValueToman: number; itemCount: number }[];
+  byCategory: { groupKey: string; groupLabel: string; totalStock: number; totalValueRials: number; totalValueToman: number; itemCount: number }[];
 };
 
 export type PosDeviceDto = {
@@ -206,7 +437,10 @@ export type PosDeviceDto = {
   psp: IranianPsp;
   ipAddress?: string | null;
   port?: number | null;
+  comPort?: string | null;
+  baudRate?: number | null;
   terminalId: string;
+  merchantId?: string;
   isActive: boolean;
 };
 
@@ -217,7 +451,38 @@ export type ShiftDto = {
   closedAt?: string | null;
   openingCash: number;
   closingCash?: number | null;
-  status: "Open" | "Closed";
+  status: ShiftStatus;
+  notes?: string | null;
+};
+
+export type CashDrawerMovementDto = {
+  id: string;
+  shiftId: string;
+  type: "CashDrop" | "PaidOut";
+  amountRials: number;
+  reason: string;
+  occurredAtUtc: string;
+};
+
+export type DiningAreaDto = {
+  id: string;
+  name: string;
+  description?: string | null;
+  displayPriority: number;
+  isActive: boolean;
+};
+
+export type DiningTableDto = {
+  id: string;
+  diningAreaId: string;
+  diningAreaName?: string;
+  code: string;
+  name?: string | null;
+  capacity: number;
+  status: TableStatus;
+  currentOrderId?: string | null;
+  displayPriority: number;
+  isActive: boolean;
 };
 
 export type SalesByProductRow = {
@@ -254,7 +519,135 @@ export type StockAlertRow = {
   name: string;
   sku: string;
   currentStock: number;
-  reorderPoint: number;
-  safetyStock: number;
+  reorderPoint?: number;
+  safetyStock?: number;
+  minimumAlertStock?: number;
+  optimalStock?: number;
   deficit: number;
+};
+
+export type DashboardSummaryDto = {
+  periodLabelFa: string;
+  fromUtc: string;
+  toUtc: string;
+  grossSales: MoneyAmountDto;
+  netSales: MoneyAmountDto;
+  totalDiscounts: MoneyAmountDto;
+  totalVat: MoneyAmountDto;
+  averageTicketSize: MoneyAmountDto;
+  totalOrders: number;
+  paidOrdersCount: number;
+  pendingOrdersCount: number;
+  cancelledOrdersCount: number;
+  comparisonWithPreviousPeriod: {
+    grossSalesChangePercent: number;
+    netSalesChangePercent: number;
+    ordersChangePercent: number;
+    averageTicketChangePercent: number;
+  };
+};
+
+export type SalesTimelineDto = {
+  interval: TimelineInterval;
+  periodLabelFa: string;
+  points: {
+    bucketStartUtc: string;
+    label: string;
+    labelFa: string;
+    netSales: MoneyAmountDto;
+    grossSales: MoneyAmountDto;
+    orderCount: number;
+    previousNetSales?: MoneyAmountDto | null;
+  }[];
+};
+
+export type HourlyHeatmapRowDto = {
+  dayOfWeek: number;
+  dayOfWeekFa: string;
+  hour: number;
+  orderCount: number;
+  netSales: MoneyAmountDto;
+  densityScore: number;
+};
+
+export type PaymentBreakdownReportDto = {
+  periodLabelFa: string;
+  totalSettled: MoneyAmountDto;
+  totalPaymentCount: number;
+  methods: {
+    method: ReportPaymentMethod;
+    methodLabelFa: string;
+    paymentCount: number;
+    amount: MoneyAmountDto;
+    percentageShare: number;
+  }[];
+};
+
+export type TerminalReconciliationDto = {
+  terminalId?: string | null;
+  psp: IranianPsp;
+  pspLabel: string;
+  transactionCount: number;
+  amount: MoneyAmountDto;
+  averageTicket: MoneyAmountDto;
+};
+
+export type MenuItemPerformanceReportDto = {
+  periodLabelFa: string;
+  topSellingItems: {
+    rank: number;
+    menuItemId: string;
+    title: string;
+    categoryName: string;
+    quantity: number;
+    revenue: MoneyAmountDto;
+    estimatedCogs: MoneyAmountDto;
+    grossProfit: MoneyAmountDto;
+    grossMarginPercent: number;
+    band: string;
+  }[];
+  lowestSellingItems: MenuItemPerformanceReportDto["topSellingItems"];
+};
+
+export type CategorySalesDetailDto = {
+  categoryId: string;
+  categoryName: string;
+  quantity: number;
+  revenue: MoneyAmountDto;
+  sharePercent: number;
+  items: { menuItemId: string; title: string; quantity: number; revenue: MoneyAmountDto; categorySharePercent: number }[];
+};
+
+export type ShiftSummaryReportDto = {
+  shiftId: string;
+  cashierId: string;
+  cashierName: string;
+  openedAtUtc: string;
+  closedAtUtc?: string | null;
+  status: ShiftStatus;
+  openingCash: MoneyAmountDto;
+  closingCash?: MoneyAmountDto | null;
+  expectedCash?: MoneyAmountDto | null;
+  cashVariance?: MoneyAmountDto | null;
+  grossSales: MoneyAmountDto;
+  netSales: MoneyAmountDto;
+  paidOrderCount: number;
+};
+
+export type ProfitMarginReportDto = {
+  periodLabelFa: string;
+  totalRevenue: MoneyAmountDto;
+  totalCogs: MoneyAmountDto;
+  grossProfit: MoneyAmountDto;
+  grossMarginPercent: number;
+  lines: {
+    menuItemId: string;
+    title: string;
+    categoryName: string;
+    quantitySold: number;
+    revenue: MoneyAmountDto;
+    cogs: MoneyAmountDto;
+    grossProfit: MoneyAmountDto;
+    grossMarginPercent: number;
+  }[];
 };

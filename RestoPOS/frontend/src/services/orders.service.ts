@@ -17,6 +17,7 @@ export interface DraftOrderItem {
 export interface CreateDraftRequest {
   orderType: OrderType;
   tableNumber: string | null;
+  diningTableId?: string | null;
   customerPhone: string | null;
   notes: string | null;
   items: DraftOrderItem[];

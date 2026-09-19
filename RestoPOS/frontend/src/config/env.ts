@@ -6,5 +6,6 @@
  *   hard-coded dev backend so the app keeps working without an env file.
  */
 export const env = {
-  apiBaseUrl: (process.env.NEXT_PUBLIC_API_URL ?? "http://192.168.100.249:5000").replace(/\/+$/, ""),
+  // Empty base → same-origin `/api/*` so Next.js rewrites reach the local API.
+  apiBaseUrl: (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, ""),
 } as const;

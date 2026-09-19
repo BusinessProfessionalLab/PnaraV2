@@ -81,37 +81,35 @@ function refreshSession(): Promise<boolean> {
 /* --------------------------- error handling -------------------------- */
 
 function describeError(error: AxiosError): { status: number; message: string; payload?: unknown; code?: string } {
-  const { response } = error;
+  // Avoid axios.isCancel type-predicate narrowing AxiosError → never.
+  if ((axios.isCancel as (v: unknown) => boolean)(error)) {
+    return { status: 0, message: error.message || "cancelled", code: "ERR_CANCELED" };
+  }
+  const response = error.response;
   const status = response?.status ?? 0;
   const payload = response?.data;
   const extracted = extractText(payload);
   const fallback =
-    (response?.statusText || error.message || "") && status > 0
-      ? response?.statusText ?? error.message
-      : error.message;
+    status > 0 ? response?.statusText ?? error.message : error.message;
 
-  // Cancellations and timeouts are not server errors — keep them out of the
-  // ApiError model so aborted queries fail silently.
-  if (axios.isCancel(error)) {
-    return { status: 0, message: error.message || "cancelled", code: "ERR_CANCELED" };
-  }
   return {
     status,
     message: extracted || fallback,
     payload,
-    code: error.code,
+    code: typeof error.code === "string" ? error.code : undefined,
   };
 }
 
 apiClient.interceptors.response.use(
   (response) => response,
-  async (error: AxiosError) => {
+  async (error: unknown) => {
     // Silent pass-through for cancelled requests (query signals).
-    if (axios.isCancel(error)) return Promise.reject(error);
+    if ((axios.isCancel as (v: unknown) => boolean)(error)) return Promise.reject(error);
 
+    const axError = error as AxiosError;
     // One 401 → refresh → replay the original request.
-    if (error.response?.status === 401 && error.config && !error.config._retry) {
-      const config = error.config as InternalAxiosRequestConfig;
+    if (axError.response?.status === 401 && axError.config && !(axError.config as InternalAxiosRequestConfig)._retry) {
+      const config = axError.config as InternalAxiosRequestConfig;
       config._retry = true;
       const refreshed = await refreshSession();
       if (refreshed) {
@@ -121,7 +119,7 @@ apiClient.interceptors.response.use(
       }
     }
 
-    const { status, message, payload, code } = describeError(error);
+    const { status, message, payload, code } = describeError(axError);
     return Promise.reject(new ApiError(status, message, payload, code));
   },
 );

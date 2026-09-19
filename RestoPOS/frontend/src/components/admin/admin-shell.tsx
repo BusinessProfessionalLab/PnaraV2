@@ -3,6 +3,7 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 
 import {
+  Armchair,
   BarChart3,
   Boxes,
   ClipboardList,
@@ -39,6 +40,7 @@ const NAV: NavSection[] = [
       { href: "/admin/menu", label: "منو و رسپی", icon: UtensilsCrossed },
       { href: "/admin/discounts", label: "تخفیف‌ها", icon: Tag },
       { href: "/admin/inventory", label: "انبار", icon: Boxes },
+      { href: "/admin/tables", label: "میزها", icon: Armchair },
     ],
   },
   {

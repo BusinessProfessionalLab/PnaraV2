@@ -11,10 +11,16 @@ import type { InventoryItemDto, MenuItemDto, RecipeLineDto, UnitOfMeasure } from
 import { useUpsertRecipe } from "@/queries/menu";
 
 const unitLabels: Record<UnitOfMeasure, string> = {
+  Gram: "گرم",
   Gr: "گرم",
+  Kilogram: "کیلوگرم",
   Kg: "کیلوگرم",
+  Milliliter: "میلی‌لیتر",
   Ml: "میلی‌لیتر",
   Liter: "لیتر",
+  Piece: "عدد",
+  Portion: "پرس",
+  Can: "قوطی",
   Count: "عدد",
 };
 

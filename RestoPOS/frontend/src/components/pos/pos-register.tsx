@@ -58,6 +58,7 @@ import { useCartStore } from "@/lib/cart-store";
 import { formatToman } from "@/lib/currency";
 import { toShamsiClock, toShamsiDate, weekdayFa } from "@/lib/jalali";
 import { syncCartToServer } from "@/lib/sync-cart";
+import { api } from "@/lib/api";
 import type { MenuItemDto, OrderDto } from "@/lib/types";
 import { fuzzyScore } from "@/lib/fuzzy-search";
 import { CheckoutModal } from "./checkout-modal";
@@ -1079,7 +1080,9 @@ function CartPane({
                   onValueChange={(v) =>
                     cart.setMeta({
                       orderType: v as typeof cart.orderType,
-                      ...(v === "DineIn" ? {} : { tableNumber: "" }),
+                      ...(v === "DineIn"
+                        ? {}
+                        : { tableNumber: "", diningTableId: null }),
                     })
                   }
                 >
@@ -1095,7 +1098,9 @@ function CartPane({
                     <SelectItem value="Bar">سالن</SelectItem>
                   </SelectContent>
                 </Select>
-                {cart.orderType !== "DineIn" ? (
+                {cart.orderType === "DineIn" ? (
+                  <DiningTableSelect />
+                ) : (
                   <Input
                     aria-label="شماره میز"
                     placeholder="میز"
@@ -1103,10 +1108,10 @@ function CartPane({
                     className="h-9 w-16 shrink-0 text-center sm:w-20"
                     value={cart.tableNumber}
                     onChange={(e) =>
-                      cart.setMeta({ tableNumber: e.target.value })
+                      cart.setMeta({ tableNumber: e.target.value, diningTableId: null })
                     }
                   />
-                ) : null}
+                )}
               </div>
               <div className="pos-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
           {cart.lines.length === 0 ? (
@@ -1404,5 +1409,38 @@ function MenuItemImage({
         </div>
       )}
     </div>
+  );
+}
+
+function DiningTableSelect() {
+  const cart = useCartStore();
+  const tables = useQuery({
+    queryKey: ["dining-tables-active"],
+    queryFn: () => api.diningTables(true),
+  });
+  return (
+    <Select
+      value={cart.diningTableId ?? ""}
+      onValueChange={(id) => {
+        const table = (tables.data ?? []).find((t) => t.id === id);
+        cart.setMeta({
+          diningTableId: id || null,
+          tableNumber: table?.code || table?.name || "",
+        });
+      }}
+    >
+      <SelectTrigger aria-label="انتخاب میز" className="h-9 min-w-0 flex-1">
+        <SelectValue placeholder="انتخاب میز" />
+      </SelectTrigger>
+      <SelectContent>
+        {(tables.data ?? []).map((t) => (
+          <SelectItem key={t.id} value={t.id}>
+            {t.code}
+            {t.name ? ` · ${t.name}` : ""}
+            {t.diningAreaName ? ` (${t.diningAreaName})` : ""}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

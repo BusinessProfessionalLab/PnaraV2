@@ -1,6 +1,5 @@
 "use client";
 
-
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -10,15 +9,22 @@ import {
   Printer,
   Save,
   Store,
+  CreditCard,
+  Trash2,
 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Label, Textarea } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSettings, useUpdateSettings } from "@/queries/settings";
 import { errorMessage } from "@/api/errors";
 import { applyTheme, readableForegroundOn } from "@/lib/theme";
+import { paymentsService } from "@/services/payments.service";
+import type { IranianPsp, PosProtocol } from "@/lib/types";
 
 const INITIAL_FORM = {
   storeName: "",
@@ -36,6 +42,23 @@ const INITIAL_FORM = {
 type FormState = typeof INITIAL_FORM;
 
 export function SettingsHub() {
+  return (
+    <Tabs defaultValue="store" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="store">فروشگاه</TabsTrigger>
+        <TabsTrigger value="pos">کارتخوان‌ها</TabsTrigger>
+      </TabsList>
+      <TabsContent value="store">
+        <StoreSettingsPanel />
+      </TabsContent>
+      <TabsContent value="pos">
+        <PosDevicesPanel />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function StoreSettingsPanel() {
   const q = useSettings();
   const saveSettings = useUpdateSettings();
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
@@ -83,127 +106,56 @@ export function SettingsHub() {
   if (q.isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid gap-4 lg:grid-cols-3">
-          <Skeleton className="h-96 lg:col-span-2" />
-          <Skeleton className="h-96" />
-        </div>
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <PageHeader
         title="تنظیمات فروشگاه"
-        description="اطلاعات شناسنامه فیش، ظاهر برند، مالیات و چاپ حرارتی"
+        description="برندینگ، فیش و پرینتر"
         actions={
-          <Button loading={saveSettings.isPending} onClick={persist}>
+          <Button onClick={persist} disabled={saveSettings.isPending} loading={saveSettings.isPending}>
             <Save className="size-4" aria-hidden />
-            ذخیره تنظیمات
+            ذخیره
           </Button>
         }
       />
 
-      <div className="grid items-start gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
-          {/* Store identity */}
-          <Card className="overflow-hidden">
-            <div className="flex items-center gap-2 border-b border-border/70 px-5 py-4">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-primary-soft text-primary">
-                <Store className="size-4" aria-hidden />
-              </div>
-              <h2 className="text-[15px] font-bold">شناسنامه فروشگاه</h2>
-            </div>
-            <div className="grid gap-4 p-5 sm:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
+        <div className="space-y-4">
+          <Card className="p-5">
+            <h2 className="mb-4 flex items-center gap-2 text-[15px] font-bold">
+              <Store className="size-4 text-muted-foreground" aria-hidden />
+              هویت فروشگاه
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2">
               <Field label="نام فروشگاه">
-                <Input value={form.storeName} onChange={(e) => set("storeName", e.target.value)} placeholder="مثلاً کافه آرام" />
+                <Input value={form.storeName} onChange={(e) => set("storeName", e.target.value)} />
               </Field>
-              <Field label="شناسه مالیاتی" hint="در سربرگ فیش چاپ می‌شود">
-                <Input dir="ltr" className="text-start" value={form.taxIdentificationNumber} onChange={(e) => set("taxIdentificationNumber", e.target.value)} placeholder="اقتصادی / ملی" />
+              <Field label="لوگو URL">
+                <Input value={form.logoUrl} onChange={(e) => set("logoUrl", e.target.value)} dir="ltr" />
               </Field>
-              <Field label="آدرس لوگو" hint="آدرس عکس یا لینک اینترنتی">
-                <div className="relative">
-                  <Input dir="ltr" className="ps-10 text-start" value={form.logoUrl} onChange={(e) => set("logoUrl", e.target.value)} placeholder="https://…" />
-                  <ImageIcon className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-                </div>
+              <Field label="شناسه مالیاتی">
+                <Input value={form.taxIdentificationNumber} onChange={(e) => set("taxIdentificationNumber", e.target.value)} />
               </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="نرخ ارزش افزوده" hint="۰ تا ۱">
-                  <Input type="number" step="0.01" min={0} max={1} dir="ltr" className="text-end" value={form.vatRate} onChange={(e) => set("vatRate", Number(e.target.value) || 0)} />
-                </Field>
-                <Field label="امتیاز / میلیون ریال">
-                  <Input type="number" inputMode="numeric" dir="ltr" className="text-end" value={form.loyaltyPointsPerMillionRial} onChange={(e) => set("loyaltyPointsPerMillionRial", Number(e.target.value) || 0)} />
-                </Field>
-              </div>
-            </div>
-          </Card>
-
-          {/* Brand colors */}
-          <Card className="overflow-hidden">
-            <div className="flex items-center gap-2 border-b border-border/70 px-5 py-4">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-primary-soft text-primary">
-                <Palette className="size-4" aria-hidden />
-              </div>
-              <div>
-                <h2 className="text-[15px] font-bold">رنگ برند</h2>
-                <p className="text-xs text-muted-foreground">هم‌زمان در صندوق، نمایشگرها و پنل مدیریت اعمال می‌شود</p>
-              </div>
-            </div>
-            <div className="space-y-4 p-5">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <ColorField label="رنگ اصلی (دکمه و نشانگرها)" value={form.primaryColor} onChange={(v) => set("primaryColor", v)} />
-                <ColorField label="رنگ ثانویه (سندهای چاپی)" value={form.secondaryColor} onChange={(v) => set("secondaryColor", v)} />
-              </div>
-
-              {/* Theme preview */}
-              <div className="overflow-hidden rounded-2xl border border-border">
-                <div className="flex items-center gap-2 border-b border-border/60 bg-card px-4 py-2.5">
-                  <div className="flex size-5 items-center justify-center rounded-md bg-primary-soft text-primary">
-                    <Store className="size-3" aria-hidden />
-                  </div>
-                  <span className="text-[13px] font-bold">{form.storeName || "نام فروشگاه"}</span>
-                  <span className="ms-auto flex h-2 w-2 rounded-full bg-success" aria-hidden />
-                </div>
-                <div className="flex items-center gap-3 bg-muted/50 px-4 py-3">
-                  <span className="text-xs text-muted-foreground">دکمه اصلی صندوق:</span>
-                  <span
-                    className="rounded-lg px-3.5 py-1.5 text-xs font-bold"
-                    style={{ backgroundColor: form.primaryColor, color: readableForegroundOn(form.primaryColor) }}
-                  >
-                    ثبت سفارش
-                  </span>
-                  <span className="rounded-lg border border-border bg-card px-3.5 py-1.5 text-xs font-semibold">
-                    دکمه فرعی
-                  </span>
-                </div>
-                <div
-                  className="px-4 py-3 text-xs leading-5"
-                  style={{ color: form.secondaryColor, backgroundColor: "#f7f8fa" }}
-                >
-                  نمونه فیش حرارتی · سربرگ و هویت فروشگاه
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* Receipt / thermal printer */}
-          <Card className="overflow-hidden">
-            <div className="flex items-center gap-2 border-b border-border/70 px-5 py-4">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-primary-soft text-primary">
-                <Printer className="size-4" aria-hidden />
-              </div>
-              <div>
-                <h2 className="text-[15px] font-bold">فیش حرارتی</h2>
-                <p className="text-xs text-muted-foreground">سربرگ، پاورقی و آدرس پرینتر</p>
-              </div>
-            </div>
-            <div className="grid gap-4 p-5 sm:grid-cols-2">
               <Field label="آدرس پرینتر حرارتی">
-                <Input dir="ltr" className="text-start" value={form.thermalPrinterHost} onChange={(e) => set("thermalPrinterHost", e.target.value)} placeholder="192.168.1.20" />
+                <Input value={form.thermalPrinterHost} onChange={(e) => set("thermalPrinterHost", e.target.value)} dir="ltr" />
               </Field>
-              <Field label="پورت">
-                <Input type="number" inputMode="numeric" dir="ltr" className="text-end" value={form.thermalPrinterPort} onChange={(e) => set("thermalPrinterPort", Number(e.target.value) || 0)} />
+              <ColorField label="رنگ اصلی" value={form.primaryColor} onChange={(v) => set("primaryColor", v)} />
+              <ColorField label="رنگ ثانویه" value={form.secondaryColor} onChange={(v) => set("secondaryColor", v)} />
+              <Field label="نرخ ارزش افزوده (۰ تا ۱)">
+                <Input type="number" step="0.01" value={form.vatRate} onChange={(e) => set("vatRate", Number(e.target.value))} />
+              </Field>
+              <Field label="امتیاز به ازای هر میلیون ریال">
+                <Input
+                  type="number"
+                  value={form.loyaltyPointsPerMillionRial}
+                  onChange={(e) => set("loyaltyPointsPerMillionRial", Number(e.target.value))}
+                />
               </Field>
               <div className="sm:col-span-2">
                 <Field label="سربرگ فیش">
@@ -217,9 +169,39 @@ export function SettingsHub() {
               </div>
             </div>
           </Card>
+
+          <Card
+            className="overflow-hidden p-6 text-white"
+            style={{ background: form.secondaryColor, color: readableForegroundOn(form.secondaryColor) }}
+          >
+            <div className="flex items-center gap-2 text-sm opacity-70">
+              <Palette className="size-4" aria-hidden />
+              پیش‌نمایش تم
+            </div>
+            <div className="mt-1 text-2xl font-black">{form.storeName || "نام فروشگاه"}</div>
+            <button
+              type="button"
+              className="mt-3 rounded-xl px-4 py-2 font-bold"
+              style={{ background: form.primaryColor, color: readableForegroundOn(form.primaryColor) }}
+            >
+              دکمه نمونه
+            </button>
+            {form.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={form.logoUrl} alt="" className="mt-4 h-12 object-contain" />
+            ) : (
+              <div className="mt-4 flex items-center gap-2 text-xs opacity-60">
+                <ImageIcon className="size-4" aria-hidden />
+                بدون لوگو
+              </div>
+            )}
+            <div className="mt-3 flex items-center gap-2 text-xs opacity-60">
+              <Printer className="size-4" aria-hidden />
+              {form.thermalPrinterHost || "پرینتر تنظیم نشده"}
+            </div>
+          </Card>
         </div>
 
-        {/* Side summary */}
         <div className="space-y-4 lg:sticky lg:top-6">
           <Card className="overflow-hidden">
             <div className="border-b border-border/70 px-5 py-4">
@@ -260,6 +242,125 @@ export function SettingsHub() {
           </Card>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PosDevicesPanel() {
+  const qc = useQueryClient();
+  const devices = useQuery({ queryKey: ["pos-devices-admin"], queryFn: paymentsService.listPosDevicesAdmin });
+  const [name, setName] = useState("");
+  const [terminalId, setTerminalId] = useState("");
+  const [merchantId, setMerchantId] = useState("");
+  const [protocol, setProtocol] = useState<PosProtocol>("Lan");
+  const [psp, setPsp] = useState<IranianPsp>("Unknown");
+  const [ip, setIp] = useState("");
+  const [port, setPort] = useState("8080");
+
+  const createMut = useMutation({
+    mutationFn: () =>
+      paymentsService.createPosDevice({
+        name,
+        protocol,
+        psp,
+        ipAddress: ip || null,
+        port: port ? Number(port) : null,
+        comPort: null,
+        baudRate: null,
+        terminalId,
+        merchantId: merchantId || "",
+        isActive: true,
+      }),
+    onSuccess: () => {
+      toast.success("کارتخوان اضافه شد");
+      qc.invalidateQueries({ queryKey: ["pos-devices-admin"] });
+      setName("");
+      setTerminalId("");
+      setMerchantId("");
+      setIp("");
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => paymentsService.deletePosDevice(id),
+    onSuccess: () => {
+      toast.success("حذف شد");
+      qc.invalidateQueries({ queryKey: ["pos-devices-admin"] });
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+
+  const testMut = useMutation({
+    mutationFn: (id: string) => paymentsService.testPosDevice(id),
+    onSuccess: (res) => toast.success(typeof res === "string" ? res : res?.message || "اتصال موفق"),
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+
+  return (
+    <div className="space-y-4">
+      <PageHeader title="کارتخوان‌ها" description="مدیریت ترمینال‌های POS و تست اتصال" />
+      <Card className="space-y-3 p-5">
+        <h2 className="flex items-center gap-2 font-bold">
+          <CreditCard className="size-4" aria-hidden />
+          افزودن دستگاه
+        </h2>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <Input placeholder="نام" value={name} onChange={(e) => setName(e.target.value)} />
+          <Input placeholder="Terminal ID" value={terminalId} onChange={(e) => setTerminalId(e.target.value)} dir="ltr" />
+          <Input placeholder="Merchant ID" value={merchantId} onChange={(e) => setMerchantId(e.target.value)} dir="ltr" />
+          <Select value={protocol} onValueChange={(v) => setProtocol(v as PosProtocol)}>
+            <SelectTrigger>
+              <SelectValue placeholder="پروتکل" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Lan">Lan</SelectItem>
+              <SelectItem value="Com">Com</SelectItem>
+              <SelectItem value="Serial">Serial</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={psp} onValueChange={(v) => setPsp(v as IranianPsp)}>
+            <SelectTrigger>
+              <SelectValue placeholder="PSP" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Unknown">Unknown</SelectItem>
+              <SelectItem value="AsanPardakht">AsanPardakht</SelectItem>
+              <SelectItem value="SamanKish">SamanKish</SelectItem>
+              <SelectItem value="BehpardakhtMellat">BehpardakhtMellat</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input placeholder="IP" value={ip} onChange={(e) => setIp(e.target.value)} dir="ltr" />
+          <Input placeholder="Port" value={port} onChange={(e) => setPort(e.target.value)} dir="ltr" />
+        </div>
+        <Button onClick={() => createMut.mutate()} disabled={createMut.isPending || !name || !terminalId}>
+          ثبت کارتخوان
+        </Button>
+      </Card>
+      <Card className="p-5">
+        <ul className="space-y-2">
+          {(devices.data ?? []).map((d) => (
+            <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3">
+              <div>
+                <div className="font-bold">{d.name}</div>
+                <div className="text-xs text-muted-foreground" dir="ltr">
+                  {d.protocol} · {d.psp} · {d.terminalId}
+                  {d.ipAddress ? ` · ${d.ipAddress}:${d.port ?? ""}` : ""}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => testMut.mutate(d.id)}>
+                  تست
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => deleteMut.mutate(d.id)}>
+                  <Trash2 className="size-4" aria-hidden />
+                </Button>
+              </div>
+            </li>
+          ))}
+          {!devices.data?.length ? <li className="text-sm text-muted-foreground">دستگاهی ثبت نشده</li> : null}
+        </ul>
+      </Card>
     </div>
   );
 }

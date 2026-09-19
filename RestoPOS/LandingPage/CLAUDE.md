@@ -4,7 +4,7 @@ Working context and conventions for AI coding assistants editing this project.
 
 ## Project
 
-The marketing website for **ToastIran POS (توست‌ایران)** — a touch POS, inventory
+The marketing website for **Pnara (پینارا)** — a touch POS, inventory
 and reporting system for cafés and restaurants in Iran.
 
 It is a static-first Astro site. It is **not** the product: the application lives
@@ -170,7 +170,7 @@ content on the site, so:
 Environment variables:
 
 ```env
-PUBLIC_SITE_URL=https://toastiran.ir
+PUBLIC_SITE_URL=https://pnara.ir
 PUBLIC_GA4_ID=
 PUBLIC_UMAMI_ID=
 ```

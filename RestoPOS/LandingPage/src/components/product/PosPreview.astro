@@ -52,7 +52,7 @@ const vatTotal = Math.round(taxable * 0.1);
 const grandTotal = taxable + vatTotal;
 ---
 
-<div class="grid grid-cols-1 md:grid-cols-[1fr_320px] lg:grid-cols-[1fr_340px]">
+<div class="grid grid-cols-1 md:grid-cols-[320px_1fr] lg:grid-cols-[340px_1fr]">
   <!-- ── Product picker ─────────────────────────────────────────────── -->
   <div class="flex flex-col min-w-0 border-b md:border-b-0 md:border-s border-neutral-200/70 dark:border-neutral-700/60">
     <!-- Register toolbar -->
@@ -147,7 +147,9 @@ const grandTotal = taxable + vatTotal;
   </div>
 
   <!-- ── Receipt panel ──────────────────────────────────────────────── -->
-  <aside class="hidden md:flex flex-col bg-bg-primary/40 dark:bg-neutral-900/40">
+  <!-- First track of the RTL grid, so the receipt sits on the right; the
+       order utility pulls this later-in-DOM aside into that first slot. -->
+  <aside class="hidden md:order-first md:flex flex-col bg-bg-primary/40 dark:bg-neutral-900/40">
     <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-neutral-200/70 dark:border-neutral-700/60">
       <span class="inline-flex items-center gap-2 text-[12px] font-bold text-neutral-800 dark:text-neutral-100">
         <ShoppingBasket class="w-4 h-4 text-primary" aria-hidden="true" />

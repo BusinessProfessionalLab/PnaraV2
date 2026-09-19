@@ -1,11 +1,11 @@
-# PRD — توست‌ایران landing page
+# PRD — پینارا landing page
 
 > Describes the site as it is implemented. For what the product does, read
 > `../../frontend`, `../../backend` and `../../docs/SYSTEM_DOCUMENTATION.md`.
 
 ## Purpose
 
-Convince an Iranian café owner that ToastIran POS solves the operational problems
+Convince an Iranian café owner that Pnara solves the operational problems
 they lose money on, and get them to request a demo.
 
 The site has to answer, in order: what this is, who it is for, what problem it
@@ -25,7 +25,7 @@ to do next.
 
 | Field | Value |
 | --- | --- |
-| Product | تُوست‌ایران (ToastIran POS) |
+| Product | پینارا (Pnara) |
 | Category | Touch POS + inventory + reporting for cafés and restaurants |
 | Core promise | Every order deducts its ingredients and shows real profit |
 | Differentiators | Recipe-driven auto-deduction · Rial storage / Toman display · Jalali dates · Iranian PC-POS card readers and ESC/POS printers · runs on your own server |
@@ -130,6 +130,6 @@ stuffing.
 
 - Copy in the mockups is Persian, matching the product; consider whether a
   Persian-language OG card is wanted (the current card is text-free by design).
-- `hello@toastiran.ir` and the default domain are placeholders — set the real
+- `hello@pnara.ir` and the default domain are placeholders — set the real
   contact address and `PUBLIC_SITE_URL` before launch.
 - The contact form is UI-only; it needs an email service or API endpoint.

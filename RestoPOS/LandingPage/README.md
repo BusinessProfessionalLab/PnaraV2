@@ -1,6 +1,6 @@
-# توست‌ایران — Landing Page
+# پینارا — Landing Page
 
-The marketing site for **ToastIran POS (توست‌ایران)**, a touch POS, inventory and
+The marketing site for **Pnara (پینارا)**, a touch POS, inventory and
 reporting system for cafés and restaurants in Iran.
 
 Static site built with Astro 6, Tailwind CSS v4 and MDX. Persian, right-to-left,

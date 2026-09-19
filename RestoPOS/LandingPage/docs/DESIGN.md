@@ -1,4 +1,4 @@
-# توست‌ایران — Design System
+# پینارا — Design System
 
 This document describes the visual system implemented in the landing page.
 
@@ -21,7 +21,7 @@ The site is **Persian and right-to-left**, matching the product itself.
 - All type is set in **Vazirmatn** — the same typeface the application uses.
 - Instrument Serif (the template's display face) has no Arabic-script coverage
   and is **not** used. `--font-brand` maps to Vazirmatn.
-- Latin-only surfaces (the `TOASTIRAN POS` wordmark, SKUs, protocol names) use
+- Latin-only surfaces (the `PNARA` wordmark, SKUs, protocol names) use
   `--font-latin` (Inter) through the `.font-latin` utility.
 
 ### RTL Rules

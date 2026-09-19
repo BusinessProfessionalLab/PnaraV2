@@ -1,5 +1,5 @@
 /* Import Google Fonts.
-   ToastIran POS ships a Persian (fa-IR) interface, so the whole landing page is
+   Pnara ships a Persian (fa-IR) interface, so the whole landing page is
    set in Vazirmatn — the same typeface the product itself uses. Inter stays as a
    fallback for any Latin glyph Vazirmatn does not cover (brand name, code, SKUs). */
 @import url("https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&display=swap");

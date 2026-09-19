@@ -28,10 +28,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Badge, Input, Label, Textarea } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api, ApiError } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -62,7 +58,6 @@ import { useCartStore } from "@/lib/cart-store";
 import { formatToman } from "@/lib/currency";
 import { toShamsiClock, toShamsiDate, weekdayFa } from "@/lib/jalali";
 import { syncCartToServer } from "@/lib/sync-cart";
-import type { CustomerDto, MenuItemDto, OrderDto } from "@/lib/types";
 import type { MenuItemDto, OrderDto } from "@/lib/types";
 import { fuzzyScore } from "@/lib/fuzzy-search";
 import { CheckoutModal } from "./checkout-modal";
@@ -94,11 +89,6 @@ export function PosRegister() {
   const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("cart");
   const [checkout, setCheckout] = useState(false);
-  const [serviceChargeToman, setServiceChargeToman] = useState("");
-  const [mergeSourceId, setMergeSourceId] = useState("");
-  const [splitItemIds, setSplitItemIds] = useState<string[]>([]);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [serverOrder, setServerOrder] = useState<OrderDto | null>(null);
   const [cartSheetOpen, setCartSheetOpen] = useState(false);
   // Multi-add mode: pick several products at once and append them together.
   const [multiMode, setMultiMode] = useState(false);
@@ -123,16 +113,6 @@ export function PosRegister() {
     if (next !== current) window.history.replaceState(null, "", next);
   }, [q]);
 
-  const categories = useQuery({ queryKey: ["categories"], queryFn: () => api.categories(false) });
-  const menu = useQuery({ queryKey: ["menu"], queryFn: () => api.menuItems(true) });
-  const inventory = useQuery({ queryKey: ["inventory"], queryFn: api.inventory });
-  const settings = useQuery({ queryKey: ["settings"], queryFn: api.settings });
-  const shift = useQuery({ queryKey: ["shift"], queryFn: api.currentShift });
-  const diningTables = useQuery({
-    queryKey: ["dining-tables", "active"],
-    queryFn: () => api.diningTables(true),
-    enabled: cart.orderType === "DineIn",
-  });
   const health = useHealth();
   const categories = useCategories(false);
   const menu = useMenuItems(true);
@@ -195,10 +175,6 @@ export function PosRegister() {
   const draftMut = useMutation({
     mutationFn: syncCartToServer,
     onSuccess: (order) => {
-      toast.success(`پیش‌نویس ${order.orderNumber} ذخیره شد`);
-      setServerOrder(order);
-    },
-    onSuccess: (order) => {
       qc.invalidateQueries({ queryKey: orderKeys.unpaid });
       cart.clear();
       toast.success(`پیش‌نویس ${order.orderNumber} ذخیره شد`);
@@ -206,15 +182,6 @@ export function PosRegister() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const discardMut = useMutation({
-    mutationFn: async () => {
-      if (cart.serverOrderId) await api.discardDraft(cart.serverOrderId);
-      cart.clear();
-      setServerOrder(null);
-    },
-    onSuccess: () => toast.message("فاکتور نیمه‌کاره حذف شد"),
-    onError: (e: Error) => toast.error(e.message),
-  });
   async function loadDraftOrder(orderId: string) {
     try {
       const order = await getOrder.mutateAsync(orderId);
@@ -256,101 +223,9 @@ export function PosRegister() {
     onSuccess: (order) => {
       toast.success(`ارسال شد: ${order.orderNumber}`);
       cart.clear();
-      setServerOrder(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
-
-  const orderHistory = useQuery({
-    queryKey: ["pos-order-history"],
-    queryFn: () => api.orderHistory({ page: 1, pageSize: 15 }),
-    enabled: historyOpen,
-  });
-
-  const refreshServerOrder = async (orderId: string) => {
-    const order = await api.getOrder(orderId);
-    setServerOrder(order);
-    cart.hydrateServer(order.id, order.orderNumber);
-    if (order.notes) cart.setMeta({ notes: order.notes });
-    return order;
-  };
-
-  const serviceChargeMut = useMutation({
-    mutationFn: async () => {
-      const toman = Number(serviceChargeToman);
-      if (!toman || toman < 0) throw new Error("مبلغ خدمت نامعتبر است.");
-      const order = cart.serverOrderId ? await api.getOrder(cart.serverOrderId) : await syncCartToServer();
-      return api.applyServiceCharge(order.id, toman * 10);
-    },
-    onSuccess: (order) => {
-      toast.success("حق سرویس اعمال شد");
-      setServerOrder(order);
-      cart.hydrateServer(order.id, order.orderNumber);
-      setServiceChargeToman("");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const notesMut = useMutation({
-    mutationFn: async () => {
-      const order = cart.serverOrderId ? await api.getOrder(cart.serverOrderId) : await syncCartToServer();
-      return api.updateOrderNotes(order.id, cart.notes || null);
-    },
-    onSuccess: (order) => {
-      toast.success("یادداشت سفارش ذخیره شد");
-      setServerOrder(order);
-      cart.hydrateServer(order.id, order.orderNumber);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const splitMut = useMutation({
-    mutationFn: async () => {
-      if (!cart.serverOrderId) throw new Error("ابتدا سفارش را ثبت موقت کنید.");
-      if (!splitItemIds.length) throw new Error("حداقل یک آیتم برای تفکیک انتخاب کنید.");
-      return api.splitOrder(cart.serverOrderId, splitItemIds);
-    },
-    onSuccess: (order) => {
-      toast.success(`سفارش جدید: ${order.orderNumber}`);
-      setSplitItemIds([]);
-      void refreshServerOrder(cart.serverOrderId!);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const mergeMut = useMutation({
-    mutationFn: async () => {
-      if (!cart.serverOrderId) throw new Error("سفارش مقصد روی صندوق نیست.");
-      if (!mergeSourceId.trim()) throw new Error("شناسه سفارش مبدأ را وارد کنید.");
-      return api.mergeOrders(cart.serverOrderId, mergeSourceId.trim());
-    },
-    onSuccess: (order) => {
-      toast.success("سفارش‌ها ادغام شدند");
-      setMergeSourceId("");
-      setServerOrder(order);
-      cart.hydrateServer(order.id, order.orderNumber);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  useEffect(() => {
-    if (!cart.serverOrderId) {
-      setServerOrder(null);
-      return;
-    }
-    let cancelled = false;
-    api
-      .getOrder(cart.serverOrderId)
-      .then((o) => {
-        if (!cancelled) setServerOrder(o);
-      })
-      .catch(() => {
-        if (!cancelled) setServerOrder(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [cart.serverOrderId]);
 
   function stockOf(item: MenuItemDto): "ok" | "low" | "out" {
     if (!item.recipe?.lines.length) return "ok";
@@ -433,59 +308,6 @@ export function PosRegister() {
               aria-hidden
             />
           </div>
-        </div>
-        <Select value={cart.orderType} onValueChange={(v) => cart.setMeta({ orderType: v as typeof cart.orderType })}>
-          <SelectTrigger className="h-10 w-36 bg-white/10 text-white">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="DineIn">حضوری</SelectItem>
-            <SelectItem value="Takeaway">بیرون‌بر</SelectItem>
-            <SelectItem value="Bar">بار</SelectItem>
-          </SelectContent>
-        </Select>
-        {cart.orderType === "DineIn" ? (
-          <Select
-            value={cart.diningTableId ?? "none"}
-            onValueChange={(v) => {
-              if (v === "none") {
-                cart.setMeta({ diningTableId: null, tableNumber: "" });
-                return;
-              }
-              const table = (diningTables.data ?? []).find((t) => t.id === v);
-              cart.setMeta({
-                diningTableId: v,
-                tableNumber: table ? table.name || table.code : "",
-              });
-            }}
-          >
-            <SelectTrigger className="h-10 w-44 bg-white/10 text-white">
-              <SelectValue placeholder="انتخاب میز" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">بدون میز</SelectItem>
-              {(diningTables.data ?? []).map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  {t.code}
-                  {t.name ? ` — ${t.name}` : ""}
-                  {t.diningAreaName ? ` (${t.diningAreaName})` : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <Input
-            placeholder="شماره میز"
-            className="h-10 w-28 bg-white/10 text-white placeholder:text-white/60"
-            value={cart.tableNumber}
-            onChange={(e) => cart.setMeta({ tableNumber: e.target.value, diningTableId: null })}
-          />
-        )}
-        <div className="ms-auto flex items-center gap-3 text-center">
-          <div>
-            <div className="font-mono text-lg font-black leading-none">{toShamsiClock(clock)}</div>
-            <div className="text-[11px] opacity-70">
-              {weekdayFa(clock)} {toShamsiDate(clock)}
           <div className="hidden min-w-0 sm:block">
             <div className="truncate text-sm font-bold leading-5">
               {settings.data?.storeName ?? "ToastIran POS"}
@@ -1323,156 +1145,6 @@ function CartPane({
                           </Badge>
                         ))}
                       </div>
-                    </div>
-                    <button onClick={() => cart.removeLine(line.clientId)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </button>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Button size="icon" variant="outline" onClick={() => cart.updateQty(line.clientId, line.quantity - 1)}>
-                        −
-                      </Button>
-                      <span className="w-6 text-center font-black">{line.quantity}</span>
-                      <Button size="icon" variant="outline" onClick={() => cart.updateQty(line.clientId, line.quantity + 1)}>
-                        +
-                      </Button>
-                    </div>
-                    <span className="font-bold">{formatToman(line.unitPrice * line.quantity + line.modifiers.reduce((s, m) => s + m.extraPrice * m.quantity, 0) * line.quantity)}</span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          <div className="space-y-2 border-t bg-white p-4">
-            <Tot k="جمع جزء" v={formatToman(totals.subtotal)} />
-            <Tot k="افزودنی" v={formatToman(totals.modifiersTotal)} />
-            <div className="flex gap-2">
-              <Input
-                type="number"
-                placeholder="% تخفیف"
-                value={cart.discountPercent || ""}
-                onChange={(e) => cart.setMeta({ discountPercent: Number(e.target.value) || 0 })}
-              />
-              <Input
-                type="number"
-                placeholder="مبلغ تخفیف (ریال)"
-                value={cart.discountAmount || ""}
-                onChange={(e) => cart.setMeta({ discountAmount: Number(e.target.value) || 0 })}
-              />
-            </div>
-            <Tot k={`ارزش افزوده (${Math.round(cart.vatRate * 100)}٪)`} v={formatToman(totals.taxAmount)} />
-            {serverOrder?.serviceChargeAmount ? (
-              <Tot k="حق سرویس (سرور)" v={formatToman(serverOrder.serviceChargeAmount)} />
-            ) : null}
-            <Tot k="قابل پرداخت" v={formatToman(serverOrder?.grandTotal ?? totals.grandTotal)} big />
-
-            <div className="space-y-2 rounded-xl border bg-muted/40 p-3 text-sm">
-              <div className="font-bold">اضافات سفارش</div>
-              <div>
-                <Label>حق سرویس (تومان)</Label>
-                <div className="mt-1 flex gap-2">
-                  <Input
-                    type="number"
-                    value={serviceChargeToman}
-                    onChange={(e) => setServiceChargeToman(e.target.value)}
-                    placeholder="مثلاً ۵۰۰۰"
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={serviceChargeMut.isPending || (!cart.lines.length && !cart.serverOrderId)}
-                    onClick={() => serviceChargeMut.mutate()}
-                  >
-                    اعمال
-                  </Button>
-                </div>
-              </div>
-              <div>
-                <Label>یادداشت سفارش</Label>
-                <Textarea
-                  className="mt-1 min-h-16"
-                  value={cart.notes}
-                  onChange={(e) => cart.setMeta({ notes: e.target.value })}
-                  placeholder="توضیحات برای آشپزخانه / مشتری"
-                />
-                <Button
-                  className="mt-2"
-                  size="sm"
-                  variant="outline"
-                  disabled={notesMut.isPending || (!cart.lines.length && !cart.serverOrderId)}
-                  onClick={() => notesMut.mutate()}
-                >
-                  ذخیره یادداشت
-                </Button>
-              </div>
-              {serverOrder?.items?.length ? (
-                <div>
-                  <Label>تفکیک سفارش (انتخاب آیتم‌ها)</Label>
-                  <div className="mt-1 max-h-28 space-y-1 overflow-y-auto">
-                    {serverOrder.items.map((item) => (
-                      <label key={item.id} className="flex items-center gap-2 text-xs">
-                        <input
-                          type="checkbox"
-                          checked={splitItemIds.includes(item.id)}
-                          onChange={(e) =>
-                            setSplitItemIds((prev) =>
-                              e.target.checked ? [...prev, item.id] : prev.filter((id) => id !== item.id),
-                            )
-                          }
-                        />
-                        {item.title} × {item.quantity}
-                      </label>
-                    ))}
-                  </div>
-                  <Button
-                    className="mt-2"
-                    size="sm"
-                    variant="secondary"
-                    disabled={!splitItemIds.length || splitMut.isPending}
-                    onClick={() => splitMut.mutate()}
-                  >
-                    تفکیک
-                  </Button>
-                </div>
-              ) : null}
-              <div>
-                <Label>ادغام با سفارش مبدأ (شناسه)</Label>
-                <div className="mt-1 flex gap-2">
-                  <Input value={mergeSourceId} onChange={(e) => setMergeSourceId(e.target.value)} placeholder="GUID سفارش منبع" />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={!cart.serverOrderId || mergeMut.isPending}
-                    onClick={() => mergeMut.mutate()}
-                  >
-                    ادغام
-                  </Button>
-                </div>
-              </div>
-              <Button size="sm" variant="ghost" className="w-full" onClick={() => setHistoryOpen(true)}>
-                تاریخچه سفارش‌ها
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              <Button variant="outline" disabled={!cart.lines.length || draftMut.isPending} onClick={() => draftMut.mutate()}>
-                ثبت موقت
-              </Button>
-              <Button variant="destructive" disabled={!cart.lines.length && !cart.serverOrderId} onClick={() => discardMut.mutate()}>
-                حذف نیمه‌کاره
-              </Button>
-              <Button variant="secondary" disabled={!cart.lines.length || sendMut.isPending} onClick={() => sendMut.mutate()}>
-                ارسال به بار/آشپزخانه
-              </Button>
-              <Button disabled={!cart.lines.length} onClick={() => setCheckout(true)}>
-                <CreditCard className="h-4 w-4" />
-                تسویه و پرداخت
-              </Button>
-            </div>
-          </div>
-        </aside>
-      </div>
                     ) : null}
                   </div>
                   <button
@@ -1661,28 +1333,6 @@ function MobileCartSheet({
         onClick={onClose}
         aria-hidden
       />
-      <CheckoutModal open={checkout} onOpenChange={setCheckout} amount={serverOrder?.grandTotal ?? totals.grandTotal} />
-
-      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
-        <DialogContent>
-          <DialogTitle>تاریخچه سفارش‌ها</DialogTitle>
-          <div className="mt-3 max-h-[60vh] space-y-2 overflow-y-auto text-sm">
-            {(orderHistory.data?.items ?? []).map((o) => (
-              <div key={o.id} className="flex items-center justify-between border-b py-2">
-                <div>
-                  <div className="font-bold">{o.orderNumber}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {o.createdAtShamsi} · {o.status}
-                  </div>
-                  <div className="font-mono text-[10px] text-muted-foreground">{o.id}</div>
-                </div>
-                <div className="text-left font-bold">{formatToman(o.grandTotal)}</div>
-              </div>
-            ))}
-            {orderHistory.isLoading ? <p className="text-muted-foreground">در حال بارگذاری...</p> : null}
-          </div>
-        </DialogContent>
-      </Dialog>
       <div className="animate-sheet relative flex max-h-[88dvh] min-h-0 flex-col overflow-hidden rounded-t-2xl border border-border bg-card shadow-xl pb-[env(safe-area-inset-bottom)]">
         <div className="relative flex h-11 shrink-0 items-center justify-center border-b border-border/60">
           <span className="h-1.5 w-10 rounded-full bg-border" aria-hidden />

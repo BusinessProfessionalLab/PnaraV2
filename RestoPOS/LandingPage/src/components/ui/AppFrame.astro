@@ -1,0 +1,89 @@
+---
+/**
+ * Screen frame for application mockups.
+ *
+ * Same visual language as `BrowserFrame.astro` (rounded 2xl, single restrained
+ * border, soft shadow, chrome bar) but shaped like the product's own window:
+ * a status bar with the store/app label on the start edge and a live indicator,
+ * instead of a fake browser address bar. Used for POS / KDS / admin previews.
+ */
+interface Props {
+  /** Label shown in the chrome bar — the screen's name inside the product. */
+  label?: string;
+  /** Small Latin hint on the end edge, e.g. `/pos`. */
+  route?: string;
+  /** Renders the pulsing "connected" dot used by POS and KDS. */
+  live?: boolean;
+  className?: string;
+}
+
+const { label = "", route = "", live = false, className = "" } = Astro.props;
+---
+
+<div
+  class={`relative rounded-2xl overflow-hidden border shadow-lg bg-bg-secondary dark:bg-bg-secondary-dark border-primary/10 dark:border-neutral-700 ${className}`}
+>
+  <!-- Screen chrome -->
+  <div
+    class="flex items-center gap-2 px-3 sm:px-4 py-2.5 border-b border-neutral-200/50 dark:border-neutral-700/50 bg-neutral-50 dark:bg-neutral-800/50"
+  >
+    <div class="flex gap-1.5" aria-hidden="true">
+      <div class="w-3 h-3 rounded-full bg-red-400"></div>
+      <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+      <div class="w-3 h-3 rounded-full bg-green-400"></div>
+    </div>
+
+    <div class="flex-1 flex justify-center min-w-0">
+      <div
+        class="px-3 py-1 rounded-md text-[11px] font-medium bg-neutral-200/50 dark:bg-neutral-700/50 text-neutral-500 dark:text-neutral-400 truncate"
+      >
+        {label}
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 shrink-0">
+      {
+        live && (
+          <span class="hidden sm:inline-flex items-center gap-1.5">
+            <span class="app-ping relative w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span class="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">متصل</span>
+          </span>
+        )
+      }
+      {route && <span class="font-latin text-[10px] text-neutral-400 dark:text-neutral-500" dir="ltr">{route}</span>}
+    </div>
+  </div>
+
+  <!-- Screen body -->
+  <div class="relative">
+    <slot />
+  </div>
+</div>
+
+<style>
+  .app-ping::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: currentColor;
+    color: rgb(16, 185, 129);
+    animation: app-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  @keyframes app-ping {
+    0% {
+      transform: scale(1);
+      opacity: 0.7;
+    }
+    80%,
+    100% {
+      transform: scale(3);
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .app-ping::before {
+      animation: none;
+    }
+  }
+</style>

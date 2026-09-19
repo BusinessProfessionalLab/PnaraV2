@@ -1,236 +1,176 @@
 # CLAUDE.md
 
-This file gives AI coding assistants the working context and conventions needed when editing this repository.
+Working context and conventions for AI coding assistants editing this project.
 
 ## Project
 
-RicoFast is a static-first SaaS website template built with Astro, Tailwind CSS v4, MDX, and a reusable component system.
+The marketing website for **ToastIran POS (توست‌ایران)** — a touch POS, inventory
+and reporting system for cafés and restaurants in Iran.
 
-It is a front-end template, not a full backend SaaS product. The project includes marketing pages, MDX blog/changelog content, demo pricing, demo auth screens, a demo contact form, SEO setup, dark mode, and a documented design system.
+It is a static-first Astro site. It is **not** the product: the application lives
+in `../frontend` (Next.js) and `../backend` (ASP.NET Core + SQL Server). Those
+directories are the source of truth for what the product does — this repo
+describes it.
 
 Primary docs:
 
-- `docs/PRD.md` - current implemented product scope.
-- `docs/PLAN.md` - concise project overview.
-- `docs/DESIGN.md` - design tokens and UI rules.
-- `docs/plan/` - page-level notes.
-- `README.md` and `README-zh.md` - user-facing setup docs.
+- `docs/PRD.md` — what this site contains and why.
+- `docs/DESIGN.md` — design tokens, Persian/RTL rules, component inventory.
+
+## Non-Negotiable: Accuracy
+
+Every product claim on this site must be traceable to real code in `frontend/` or
+`backend/`. Before writing product copy:
+
+1. Find the implementation (controller, handler, entity, React component).
+2. Only describe behaviour that exists.
+3. Never invent pricing tiers, testimonials, customer logos, metrics or
+   roadmap features.
+
+If a feature is absent, either leave it out or state the limit explicitly (the
+`/about` page has a "what is not included" section for exactly this reason).
+Single-store is a good example: the product has one `StoreSettings`, so the site
+never claims multi-branch.
+
+## Language
+
+The site is **Persian, RTL** (`<html lang="fa" dir="rtl">`), set in **Vazirmatn**.
+
+- Never use `left`/`right`/`ml-*`/`pr-*` for directional intent. Use `start`/`end`,
+  `ms-*`/`me-*`, `ps-*`/`pe-*`, `text-start`/`text-end`.
+- Directional icons (chevrons, arrows) point the RTL way.
+- Persian display headings use `.font-brand` at weight 700.
+- Keep body leading loose (`leading-7` or looser).
+- Latin-only strings use `.font-latin`.
 
 ## Current Stack
 
 | Layer | Choice |
 | --- | --- |
-| Framework | Astro 5.15 |
+| Framework | Astro 6.4 |
 | Styling | Tailwind CSS v4 with `@theme` tokens |
 | Content | MDX, `@astrojs/mdx`, Astro Content Layer |
 | Icons | `@lucide/astro` |
-| Motion | AOS, CSS animation, `motion` dependency |
-| SEO | `@astrojs/sitemap`, `@astrojs/rss`, custom meta components |
+| Motion | AOS + `motion` |
+| SEO | `@astrojs/sitemap`, custom meta components |
 | Type checking | TypeScript, `astro check` |
-| Lint/format | Biome |
-| Images | Static assets, `sharp` |
+| Raster assets | `sharp` via `scripts/generate-brand-assets.mjs` |
 
-The dev server is configured for port `5200` in `astro.config.mjs`.
+Dev server runs on port `5200` (`astro.config.mjs`).
+
+> **Icon note:** `@lucide/astro` 1.17 dropped the legacy aliases. Use `CirclePlay`,
+> `CircleCheckBig`, `TriangleAlert`, `ChartColumn` — **not** `PlayCircle`,
+> `CheckCircle2`, `AlertTriangle`, `BarChart3`. Confirm an icon exists in
+> `node_modules/@lucide/astro/src/icons/<kebab-name>.ts` before importing it.
 
 ## Commands
 
 ```bash
 pnpm install
-pnpm dev
-pnpm build
+pnpm dev             # dev server on http://localhost:5200
+pnpm build           # astro check && astro build
 pnpm preview
-pnpm check
-pnpm astro
+pnpm brand:assets    # regenerate public/og.png + public/favicon.png
 ```
 
-`pnpm build` runs `astro check && astro build`.
+`pnpm build` must stay green — it runs `astro check` first.
 
 ## Repository Layout
 
 ```text
 src/
-  assets/js/main.js        Header behavior, dark mode, mobile menu, AOS init
-  collections/             JSON data for menu, social links, tech stack
+  assets/js/main.js      Dark mode, sticky header, mobile menu, AOS init
+  collections/menu.json  Header navigation (single source of truth)
   components/
-    cards/                 BlogCard, TechStackCard
-    elements/              PageHeader, SectionHeader, SeparatorLine
-    home/                  HeroSection
-    sections/              Header, Footer, Pricing, FAQ, BlogSection
-    ui/                    Button, Badge, Logo, BrowserFrame, PricingToggle, etc.
-    widgets/               Toc, Pagination, ToTop, TrackGa, OptimizedImage, etc.
-  config/site.js           Site identity, metadata, social URLs, email
-  content/
-    post/                  Blog MDX entries
-    changelog/             Changelog MDX entries
-  layouts/                 Layout, PageLayout, PostLayout, Meta
-  pages/                   Astro routes
-  styles/                  Global tokens, article styles, AOS overrides
-  content.config.js        Content Layer schemas
-public/
-  assets/                  Template images and icons
-  rico/                    Rico/RicoUI support assets
-  favicon.png
-  og.jpg
-  robots.txt
-docs/
-  PRD.md
-  PLAN.md
-  DESIGN.md
-  plan/
+    elements/            SectionHeader, PageHeader, SeparatorLine
+    home/                HeroSection
+    product/             Application mockups — POS, KDS, reports, inventory
+    sections/            Header, Footer, FAQ
+    ui/                  Button, Badge, Logo, AppFrame, BrowserFrame, AnimatedText…
+    widgets/             ToTop, TrackGa, OptimizedImage
+  config/site.js         Brand, metadata, product facts
+  content/changelog/     Release notes (MDX)
+  layouts/               Layout, PageLayout, Meta
+  lib/fa.ts              Persian number/date/currency formatting helpers
+  pages/                 Routes
+  styles/                Design tokens and global styles
+public/                  favicon.png, og.png, robots.txt
+scripts/                 Brand asset generator
 ```
 
 ## Routes
 
-Current routes include:
+| Route | Purpose |
+| --- | --- |
+| `/` | Landing page — hero, problems, capabilities, showcases, workflow, setup, roles, comparison, FAQ, CTA |
+| `/features` | Anchored deep-dives per workflow |
+| `/changelog` | Release notes from the `changelog` collection |
+| `/about` | Product rationale, architecture, release history, explicit scope |
+| `/contact` | Demo request form |
+| `/404` | Not-found page |
 
-- `/`
-- `/features`
-- `/pricing`
-- `/blog`
-- `/blog/[slug]`
-- `/blog/page/[page]`
-- `/changelog`
-- `/about`
-- `/contact`
-- `/elements`
-- `/sign-in`
-- `/sign-up`
-- `/signin`
-- `/signup`
-- `/rss.xml`
-- `/404`
-
-`/sign-in` and `/sign-up` are the preferred auth-template routes. `/signin` and `/signup` are also present in the repo, so check both before changing auth screens.
-
-## Design System
-
-Design tokens live in `src/styles/global.css` and are documented in `docs/DESIGN.md`.
-
-Important tokens and rules:
-
-- Primary color: `--color-primary` = `#2d6dc3`
-- Accent color: `--color-accent` = `#fad13b`
-- Light canvas: `--color-bg-primary` = `#fdfaf5`
-- Dark canvas: `--color-bg-primary-dark` = `#0b1220`
-- Display font: `--font-brand` = Instrument Serif
-- UI/body font: `--font-sans` = Inter
-- Main max width: `--max-screen` = `1200px`
-- Inner max width: `--inner-screen` = `800px`
-- Use `.site-container` for regular sections.
-- Use `.inner-container` for narrow article/content layouts.
-- Dark mode is class-based and stored in `localStorage` as `dark_mode`.
-
-When adding UI:
-
-- Use existing tokens before adding new values.
-- Use existing components before creating new ones.
-- Keep light and dark mode styles together.
-- Keep motion subtle and respect `prefers-reduced-motion`.
-- Prefer Lucide icons via `@lucide/astro`.
-- Do not introduce a new dependency for simple UI behavior.
-
-## Astro And Content Rules
-
-- Use Astro Content Layer collections from `src/content.config.js`.
-- Use `getCollection()` for blog/changelog content.
-- Use `entry.id` for content routes.
-- Use `render(entry)` rather than old Astro content APIs.
-- Use `import.meta.env` for environment variables.
-- Public client-exposed env vars must use the `PUBLIC_` prefix.
-- `getStaticPaths()` params should be strings.
-
-Blog posts live in `src/content/post/<slug>/index.mdx`.
-
-Changelog entries live in `src/content/changelog/*.mdx`.
+Feature anchors are linked from `menu.json` and the footer —
+`#pos`, `#kds`, `#menu`, `#inventory`, `#reports`, `#shift`, `#customers`,
+`#staff`, `#hardware`. If you rename one, update `menu.json`, `Footer.astro` and
+the module `id` in `pages/features.astro` together.
 
 ## Component Conventions
 
-- Page-level sections go in `src/components/sections/`.
-- Small reusable primitives go in `src/components/ui/`.
-- Structural text/layout helpers go in `src/components/elements/`.
-- Repeated cards go in `src/components/cards/`.
-- Page utilities go in `src/components/widgets/`.
-- Site identity should come from `src/config/site.js` when practical.
-- Navigation comes from `src/collections/menu.json`.
+- Sections → `src/components/sections/`
+- Primitives → `src/components/ui/`
+- Text/layout helpers → `src/components/elements/`
+- Product mockups → `src/components/product/`
+- Page utilities → `src/components/widgets/`
+
+Site identity comes from `src/config/site.js`. Navigation comes from
+`src/collections/menu.json`.
+
+## Product Mockups
+
+`src/components/product/*` render the application UI. They are the most valuable
+content on the site, so:
+
+- Keep them faithful to the real screens in `../frontend` (columns, labels,
+  states, button text).
+- Use `src/lib/fa.ts` (`formatToman`, `formatTomanAmount`, `fa`, `faPercent`,
+  `faDigits`) for every number so Rial→Toman conversion and Persian digits match
+  the product.
+- Pick the right numeral helper. `fa()` formats through `Intl`, which is correct
+  for amounts and quantities (`۱٬۲۳۴`) but adds a thousands separator to anything
+  numeric — so it turns a year into `۲٬۰۲۶`. Use `faDigits()` for labels that are
+  not amounts: years, step numbers, version parts. Never leave ASCII digits in
+  Persian copy; Latin digits survive only in SKU codes, routes, order numbers and
+  other identifiers.
+- Wrap in `AppFrame.astro` with the real route.
+- Never fabricate a capability to make a screenshot look fuller.
 
 ## Styling Conventions
 
 - Prefer Tailwind utilities plus project tokens.
 - Avoid one-off hex values unless extending the token system deliberately.
-- Avoid inline styles for colors and layout unless dynamic CSS variables are genuinely needed.
 - Use `font-brand` only for display headings.
-- Use the default sans font for body, forms, labels, navigation, and buttons.
-- Major marketing sections commonly use `py-16 md:py-24`.
-- Use dashed borders where the existing visual language does.
-- Ensure text fits on mobile before finishing UI work.
+- Major marketing sections use `py-16 md:py-24`; separators are dashed.
+- Check every change at 375 / 768 / 1024 / 1440 and in dark mode.
 
-## Motion Conventions
+## Content Rules
 
-- AOS is initialized in `src/assets/js/main.js`.
-- Custom AOS styles live in `src/styles/aos-custom.css`.
-- Common reveal attributes:
-
-```html
-data-aos="fade-up-xs"
-data-aos-once="true"
-```
-
-- Use staggered delays sparingly, usually `data-aos-delay={i * 100}`.
-- Use CSS transitions/animations for small local effects.
-- Use `motion` only when orchestration is worth the dependency.
+- Copy is Persian, written for a café owner, about real daily workflows.
+- Avoid generic SaaS filler ("transform your business", "all-in-one solution").
+- Money is stored in Rial and always displayed in Toman.
+- Dates are Jalali/Shamsi. `changelog` frontmatter carries a pre-formatted
+  `dateLabel` so the build never depends on ICU calendar data.
 
 ## SEO And Analytics
 
-Relevant files:
-
-- `src/config/site.js`
-- `src/layouts/Meta.astro`
-- `src/components/widgets/Meta.astro`
-- `src/components/widgets/TrackGa.astro`
-- `src/pages/rss.xml.js`
-- `public/og.jpg`
-- `public/robots.txt`
+- `src/config/site.js` — title, description, keywords, OG image.
+- `src/layouts/Meta.astro` — canonical URL, Open Graph, Twitter card.
+- `astro.config.mjs` — `site` from `PUBLIC_SITE_URL` (set it before deploying).
+- `public/robots.txt` — points at `sitemap-index.xml`.
 
 Environment variables:
 
 ```env
-PUBLIC_SITE_URL=https://your-domain.com
+PUBLIC_SITE_URL=https://toastiran.ir
 PUBLIC_GA4_ID=
 PUBLIC_UMAMI_ID=
 ```
-
-Analytics are optional. Do not require analytics IDs for local development.
-
-## Before Editing
-
-1. Read the relevant page/component first.
-2. Check `docs/PRD.md` for current scope.
-3. Check `docs/DESIGN.md` before changing visual patterns.
-4. Check the matching `docs/plan/*.md` file when changing a page.
-5. Preserve unrelated user changes in the working tree.
-
-## After Editing
-
-For code changes, run the narrowest useful verification:
-
-- `pnpm build` for route/content/type changes.
-- `pnpm check` for formatting/lint-sensitive edits.
-- Manual browser review for visual/layout changes.
-
-For docs-only changes, a text scan is usually enough.
-
-Useful scans:
-
-```bash
-rg -n "TODO|FIXME|\\[ \\]" docs README.md README-zh.md CLAUDE.md
-rg -n "template positioning|backend feature|real auth" docs README.md README-zh.md CLAUDE.md
-```
-
-## Do Not
-
-- Do not reintroduce previous-template positioning.
-- Do not recreate removed planning docs unless explicitly asked.
-- Do not add new public claims that are not reflected in the current code.
-- Do not make the static auth/contact pages sound like real backend features.
-- Do not add real secrets or private credentials.
-- Do not replace the established Astro + Tailwind + MDX stack without an explicit request.

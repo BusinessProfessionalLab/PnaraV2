@@ -203,3 +203,85 @@
   opacity: 1;
 }
 
+/*
+ * RTL mirroring
+ * ------------
+ * The variants above move along the physical X axis, but this site is served as
+ * `dir="rtl"`, so the layout is mirrored: a block that sits on the right in LTR
+ * sits on the left here. Leaving the offsets alone would slide every block in
+ * from the side it is anchored to — and make paired text/visual columns travel
+ * toward each other instead of entering from their own edge.
+ *
+ * Only the resting (pre-animation) state is flipped. The `.aos-animate` rules
+ * already resolve to translate(0), so they are deliberately left untouched — and
+ * `:not(.aos-animate)` keeps these overrides from out-specifying them.
+ */
+[dir="rtl"] [data-aos="fade-left-sm"]:not(.aos-animate) {
+  transform: translateX(-30px);
+}
+
+[dir="rtl"] [data-aos="fade-right-sm"]:not(.aos-animate) {
+  transform: translateX(30px);
+}
+
+[dir="rtl"] [data-aos="fade-left-xs"]:not(.aos-animate) {
+  transform: translateX(-15px);
+}
+
+[dir="rtl"] [data-aos="fade-right-xs"]:not(.aos-animate) {
+  transform: translateX(15px);
+}
+
+[dir="rtl"] [data-aos="fade-left-lg"]:not(.aos-animate) {
+  transform: translateX(-150px);
+}
+
+[dir="rtl"] [data-aos="fade-right-lg"]:not(.aos-animate) {
+  transform: translateX(150px);
+}
+
+[dir="rtl"] [data-aos="fade-up-right-sm"]:not(.aos-animate) {
+  transform: translate(30px, 30px);
+}
+
+[dir="rtl"] [data-aos="fade-up-left-sm"]:not(.aos-animate) {
+  transform: translate(-30px, 30px);
+}
+
+[dir="rtl"] [data-aos="fade-down-right-sm"]:not(.aos-animate) {
+  transform: translate(30px, -30px);
+}
+
+[dir="rtl"] [data-aos="fade-down-left-sm"]:not(.aos-animate) {
+  transform: translate(-30px, -30px);
+}
+
+/*
+ * Below md: drop the sideways travel
+ * ---------------------------------
+ * The blocks using the horizontal and diagonal variants are the alternating
+ * text/visual columns. Those sit side by side from md up, but stack full-width
+ * below it — and a full-width block sliding 15-150px sideways starts partly
+ * outside the viewport, so its edge is clipped for the whole entrance.
+ *
+ * A plain vertical reveal is the right motion for stacked content anyway. The
+ * `[dir="rtl"]` selectors are repeated at matching specificity so they win on
+ * source order against the mirroring rules above.
+ */
+@media (max-width: 767.98px) {
+  [data-aos^="fade-left"]:not(.aos-animate),
+  [data-aos^="fade-right"]:not(.aos-animate),
+  [data-aos^="fade-up-left"]:not(.aos-animate),
+  [data-aos^="fade-up-right"]:not(.aos-animate),
+  [data-aos^="fade-down-left"]:not(.aos-animate),
+  [data-aos^="fade-down-right"]:not(.aos-animate),
+  [dir="rtl"] [data-aos^="fade-left"]:not(.aos-animate),
+  [dir="rtl"] [data-aos^="fade-right"]:not(.aos-animate),
+  [dir="rtl"] [data-aos^="fade-up-left"]:not(.aos-animate),
+  [dir="rtl"] [data-aos^="fade-up-right"]:not(.aos-animate),
+  [dir="rtl"] [data-aos^="fade-down-left"]:not(.aos-animate),
+  [dir="rtl"] [data-aos^="fade-down-right"]:not(.aos-animate) {
+    transform: translateY(30px);
+  }
+}
+

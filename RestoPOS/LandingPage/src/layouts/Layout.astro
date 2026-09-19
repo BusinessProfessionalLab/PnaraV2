@@ -24,7 +24,7 @@ import '../styles/article.css';
 import '../styles/article-enhancements.css';
 ---
 
-<html lang="">
+<html lang="fa" dir="rtl">
   <head>
     <meta charset="UTF-8" />
     <Meta
@@ -46,8 +46,42 @@ import '../styles/article-enhancements.css';
     </script>
 
     <link rel="icon" type="image/x-icon" href="/favicon.png" />
+
+    <!--
+      Safety net for the two reveal systems on this site.
+
+      Both of them start their content hidden — AnimatedText sets its words to
+      opacity 0, and every [data-aos] block is hidden by aos.css until the AOS
+      script adds .aos-animate. If either bundle fails to load (stale dep cache,
+      blocked request, an exception earlier in main.js stopping AOS.init from ever
+      running) the page would render with invisible headings and blank sections,
+      which on a marketing site is far worse than losing an animation.
+
+      This inline script is served from the HTML itself, so it always runs. It only
+      steps in when the corresponding bundle never reported ready.
+    -->
+    <script is:inline>
+      window.setTimeout(function () {
+        if (!window.__animatedTextReady) {
+          document.querySelectorAll('.animated-text .word').forEach(function (word) {
+            word.style.opacity = '1';
+            word.style.transform = 'none';
+            word.style.filter = 'none';
+          });
+        }
+
+        // AOS.init() stamps these attributes onto <body>; their absence means the
+        // AOS bundle never ran. Adding .aos-animate reuses the existing stylesheet
+        // to transition every block to its visible state.
+        if (!document.body.hasAttribute('data-aos-easing')) {
+          document.querySelectorAll('[data-aos]').forEach(function (el) {
+            el.classList.add('aos-animate');
+          });
+        }
+      }, 2500);
+    </script>
   </head>
-  <body class="antialiased bg-bg-primary dark:bg-bg-primary-dark max-w-full overflow-x-hidden">
+  <body class="antialiased bg-bg-primary dark:bg-bg-primary-dark max-w-full overflow-x-hidden" data-app="toastiran-pos">
     <TopBg />
     <Header />
     <slot />

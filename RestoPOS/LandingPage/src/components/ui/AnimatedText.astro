@@ -40,6 +40,9 @@ if (content) {
 <script>
   import { animate, stagger, inView } from "motion";
 
+  // Tell the safety net in Layout.astro that the reveal system is alive.
+  window.__animatedTextReady = true;
+
   const animatedTexts = document.querySelectorAll(".animated-text");
 
   animatedTexts.forEach((animatedText) => {
@@ -63,6 +66,24 @@ if (content) {
       // @ts-expect-error
       word.style.filter = "blur(10px)";
     });
+
+    // If reduce-motion is on, show the copy and skip the animation entirely.
+    //
+    // Every property the reveal animates has to be reset here, not just opacity:
+    // the inline transform and blur above are the *starting* state of the
+    // animation, so setting opacity alone leaves every heading permanently
+    // blurred and nudged down for anyone with reduced motion enabled.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      words.forEach((word) => {
+        // @ts-expect-error
+        word.style.opacity = "1";
+        // @ts-expect-error
+        word.style.transform = "none";
+        // @ts-expect-error
+        word.style.filter = "none";
+      });
+      return;
+    }
 
     inView(animatedText, (element) => {
       const words = element.querySelectorAll(".word");

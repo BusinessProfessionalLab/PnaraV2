@@ -1,0 +1,208 @@
+---
+/**
+ * Reports dashboard mockup (`/admin/reports`).
+ *
+ * Uses the same blocks the real reports screen renders: a date-range preset
+ * switcher, the hourly sales heat strip, the revenue share per category, the
+ * best-vs-worst selling list (with the product's `Star` / `Underperforming`
+ * bands), and the cashier performance audit.
+ */
+import { CalendarRange, Clock3, Crown, TrendingUp, Users } from "@lucide/astro";
+import { formatToman, fa, faPercent } from "@/lib/fa";
+
+// Hour → relative sales intensity for a café day (opening spike, lunch, evening peak).
+const hourly = [
+  4, 2, 2, 2, 3, 6, 14, 26, 42, 56, 64, 58, 52, 60, 66, 54, 60, 72, 84, 96, 88, 74, 48, 20,
+];
+
+const categoryShares = [
+  { name: "قهوه گرم", share: 38, color: "var(--color-primary)" },
+  { name: "قهوه سرد", share: 27, color: "#6da7ff" },
+  { name: "کیک و دسر", share: 18, color: "var(--color-accent)" },
+  { name: "صبحانه", share: 11, color: "#c5cedb" },
+  { name: "دمنوش", share: 6, color: "#92a1b7" },
+];
+
+// Build the donut out of a single conic-gradient — no chart library needed.
+let cursor = 0;
+const donut = categoryShares
+  .map((c) => {
+    const from = cursor;
+    cursor += c.share;
+    return `${c.color} ${from}% ${cursor}%`;
+  })
+  .join(", ");
+
+const topItems = [
+  { title: "لاته", category: "قهوه گرم", qty: 412, rial: 49_440_000, band: "Star" },
+  { title: "آیس لاته", category: "قهوه سرد", qty: 286, rial: 41_470_000, band: "Star" },
+  { title: "کیک شکلاتی", category: "کیک و دسر", qty: 154, rial: 18_480_000, band: "default" },
+  { title: "چای ماسالا", category: "دمنوش", qty: 21, rial: 1_995_000, band: "Underperforming" },
+];
+
+const cashiers = [
+  { name: "مریم رضایی", orders: 96, rial: 78_400_000, avgRial: 816_000 },
+  { name: "علی کاظمی", orders: 61, rial: 48_900_000, avgRial: 801_000 },
+];
+
+const totalSales = topItems.reduce((s, i) => s + i.rial, 0);
+---
+
+<div class="flex flex-col bg-bg-primary/20 dark:bg-neutral-950/20">
+  <!-- Presets + period value -->
+  <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-neutral-200/70 dark:border-neutral-700/60">
+    <div class="flex gap-0.5 rounded-xl bg-neutral-100 dark:bg-neutral-800 p-1">
+      {["۷ روز", "۱۴ روز", "۳۰ روز"].map((label, i) => (
+        <span
+          class:list={[
+            "px-3 py-1.5 rounded-lg text-[11px] font-semibold",
+            i === 1
+              ? "bg-bg-secondary dark:bg-neutral-700 text-neutral-800 dark:text-neutral-100 shadow-sm"
+              : "text-neutral-500 dark:text-neutral-400",
+          ]}
+        >
+          {label}
+        </span>
+      ))}
+    </div>
+    <div class="flex items-center gap-1.5 ms-auto text-[11px] text-neutral-400 dark:text-neutral-500">
+      <CalendarRange class="w-3.5 h-3.5" aria-hidden="true" />
+      <span class="tabular-nums">{formatToman(totalSales)} فروش در این بازه</span>
+    </div>
+  </div>
+
+  <!-- Peak hours heat strip -->
+  <div class="px-4 py-4 border-b border-neutral-200/70 dark:border-neutral-700/60">
+    <div class="flex items-center gap-2 mb-3">
+      <Clock3 class="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+      <span class="text-[12px] font-bold text-neutral-800 dark:text-neutral-100">ساعات پیک فروش</span>
+    </div>
+    <div class="flex items-end gap-[3px] h-20">
+      {
+        hourly.map((v, hour) => (
+          <div class="group relative flex-1 h-full flex items-end" title={`ساعت ${fa(hour)}`}>
+            <div
+              class="w-full rounded-sm bg-primary transition-opacity"
+              style={`height: ${Math.max(4, v)}%; opacity: ${(0.18 + (v / 96) * 0.72).toFixed(2)};`}
+            />
+          </div>
+        ))
+      }
+    </div>
+    <div class="flex gap-[3px] mt-1.5">
+      {
+        hourly.map((_, hour) => (
+          <div class="flex-1 text-center text-[8px] leading-3 text-neutral-400 dark:text-neutral-600 tabular-nums">
+            {hour % 3 === 0 ? fa(hour) : ""}
+          </div>
+        ))
+      }
+    </div>
+  </div>
+
+  <!-- Category share + best/worst -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-neutral-200/70 dark:divide-neutral-700/60 [&>div]:px-4 [&>div]:py-4">
+    <div>
+      <div class="flex items-center gap-2 mb-3">
+        <TrendingUp class="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+        <span class="text-[12px] font-bold text-neutral-800 dark:text-neutral-100">توزیع درآمد دسته‌ها</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="relative w-20 h-20 shrink-0" role="img" aria-label="سهم دسته‌ها از درآمد">
+          <div class="w-full h-full rounded-full" style={`background: conic-gradient(${donut});`}></div>
+          <div class="absolute inset-[22%] rounded-full bg-bg-secondary dark:bg-bg-secondary-dark"></div>
+        </div>
+        <ul class="min-w-0 flex-1 space-y-1">
+          {
+            categoryShares.map((c) => (
+              <li class="flex items-center gap-1.5 text-[10px]">
+                <span class="w-2 h-2 rounded-full shrink-0" style={`background: ${c.color};`} />
+                <span class="text-neutral-600 dark:text-neutral-300 truncate">{c.name}</span>
+                <span class="ms-auto text-neutral-400 dark:text-neutral-500 tabular-nums">{faPercent(c.share)}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <div class="flex items-center gap-2 mb-3">
+        <Crown class="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+        <span class="text-[12px] font-bold text-neutral-800 dark:text-neutral-100">پرفروش در برابر کم‌فروش</span>
+      </div>
+      <ul class="space-y-2.5">
+        {
+          topItems.map((item) => (
+            <li>
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] font-semibold text-neutral-700 dark:text-neutral-200 truncate">
+                  {item.title}
+                </span>
+                {item.band === "Star" && (
+                  <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                    پرفروش
+                  </span>
+                )}
+                {item.band === "Underperforming" && (
+                  <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+                    کم‌فروش
+                  </span>
+                )}
+                <span class="ms-auto text-[10px] text-neutral-500 dark:text-neutral-400 tabular-nums">
+                  {formatToman(item.rial)}
+                </span>
+              </div>
+              <div class="mt-1.5 h-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
+                <div
+                  class:list={[
+                    "h-full rounded-full",
+                    item.band === "Star"
+                      ? "bg-primary"
+                      : item.band === "Underperforming"
+                        ? "bg-neutral-300 dark:bg-neutral-600"
+                        : "bg-primary/45",
+                  ]}
+                  style={`width: ${((item.rial / topItems[0].rial) * 100).toFixed(1)}%;`}
+                />
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+
+  <!-- Cashier audit -->
+  <div class="px-4 py-4 border-t border-neutral-200/70 dark:border-neutral-700/60">
+    <div class="flex items-center gap-2 mb-3">
+      <Users class="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+      <span class="text-[12px] font-bold text-neutral-800 dark:text-neutral-100">ممیزی عملکرد صندوق‌دار</span>
+    </div>
+    <ul class="divide-y divide-dashed divide-neutral-200/70 dark:divide-neutral-700/60">
+      {
+        cashiers.map((c) => (
+          <li class="flex items-center gap-3 py-2">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800 text-[10px] font-bold text-neutral-500 dark:text-neutral-400">
+              {c.name.slice(0, 1)}
+            </span>
+            <div class="min-w-0 flex-1">
+              <div class="text-[11px] font-semibold text-neutral-700 dark:text-neutral-200 truncate">{c.name}</div>
+              <div class="text-[10px] text-neutral-400 dark:text-neutral-500 tabular-nums">
+                {fa(c.orders)} سفارش
+              </div>
+            </div>
+            <div class="text-end">
+              <div class="text-[11px] font-bold text-neutral-700 dark:text-neutral-200 tabular-nums">
+                {formatToman(c.rial)}
+              </div>
+              <div class="text-[10px] text-neutral-400 dark:text-neutral-500 tabular-nums">
+                میانگین {formatToman(c.avgRial)}
+              </div>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</div>

@@ -14,8 +14,8 @@ const {
   description,
   keywords = "",
   url = siteConfig.url, //
-  ogImage = "/og.jpg",
-  twitterHandle = siteConfig.social.twitterName || '',
+  ogImage = "/og.png",
+  twitterHandle = siteConfig.meta.twitterHandle || '',
 } = Astro.props;
 ---
 
@@ -27,6 +27,8 @@ const {
 <meta name="description" content={description} />
 <meta name="keywords" content={keywords} />
 <meta name="author" content={siteConfig.author} />
+<link rel="canonical" href={url} />
+<meta name="robots" content="index, follow" />
 
 <!-- Open Graph Tags -->
 <meta property="og:type" content="website" />
@@ -34,7 +36,8 @@ const {
 <meta property="og:description" content={description} />
 <meta property="og:url" content={url} />
 <meta property="og:image" content={ogImage} />
-<meta property="og:site_name" content={title} />
+<meta property="og:site_name" content={siteConfig.title} />
+<meta property="og:locale" content="fa_IR" />
 
 <!-- Twitter Meta Tags -->
 <meta name="twitter:card" content="summary_large_image" />

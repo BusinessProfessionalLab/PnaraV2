@@ -136,7 +136,7 @@ const expectations = [
             <span
               class="inline-flex w-fit rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-xs font-medium text-primary dark:border-primary-light/20 dark:bg-primary-light/10 dark:text-primary-light"
             >
-              فرم نمایشی
+              پاسخ در روز کاری
             </span>
           </div>
 
@@ -226,26 +226,29 @@ const expectations = [
             </div>
 
             <div
-              class="rounded-xl border border-dashed border-primary/20 bg-primary/5 p-4 text-sm leading-7 text-neutral-600 dark:border-primary-light/20 dark:bg-primary-light/10 dark:text-neutral-300"
+              id="form-error"
+              class="hidden rounded-xl border border-red-200 bg-red-50 p-4 text-center text-sm font-medium leading-7 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300"
+              role="alert"
+            ></div>
+
+            <div
+              id="form-success"
+              class="hidden rounded-xl border border-green-200 bg-green-50 p-4 text-center text-sm font-medium leading-7 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300"
+              role="status"
             >
-              <strong class="font-semibold text-primary dark:text-primary-light">فرم نمایشی است.</strong><br />
-              تا زمانی که این فرم به سرویس ایمیل یا API متصل نشده، پیام ارسال نمی‌شود. فعلاً برای تماس مستقیم از
-              <a href={`mailto:${siteConfig.mail}`} class="mx-1 text-primary hover:underline dark:text-primary-light" dir="ltr">{siteConfig.mail}</a>
-              استفاده کنید.
+              درخواست ثبت شد. برای هماهنگی زمان دمو با شما تماس می‌گیریم.
             </div>
 
             <div class="form-submit-btn">
               <Button type="fill" className="w-full max-w-none justify-center" url="javascript:void(0);">
-                ثبت درخواست دمو <Send size={16} class="-scale-x-100" />
+                <span class="btn-label flex items-center gap-2">ثبت درخواست دمو <Send size={16} class="-scale-x-100" /></span>
+                <span class="btn-spinner" aria-hidden="true">
+                  <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+                  در حال ارسال…
+              </span>
               </Button>
             </div>
 
-            <div
-              id="form-success"
-              class="hidden rounded-xl border border-green-200 bg-green-50 p-4 text-center text-sm font-medium text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300"
-            >
-              درخواست ثبت شد. برای هماهنگی زمان دمو با شما تماس می‌گیریم.
-            </div>
           </form>
         </div>
       </div>
@@ -272,6 +275,18 @@ const expectations = [
     color: var(--color-neutral-400);
   }
 
+  /* Submit-button loading state. Scoped display rules (not utility toggles)
+     so the swap never depends on utility order in the generated CSS. */
+  .btn-spinner {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-spinner.is-visible {
+    display: flex;
+  }
+
   .contact-field:focus {
     border-color: var(--color-primary);
     background: var(--color-bg-secondary);
@@ -296,23 +311,111 @@ const expectations = [
 </style>
 
 <script>
-  const form = document.getElementById("contact-form") as HTMLFormElement | null;
-  const successMsg = document.getElementById("form-success");
-  const submitBtn = form?.querySelector(".form-submit-btn a") as HTMLAnchorElement | null;
+    const WORKER_ENDPOINT = "https://pnara-sup01.mr-2donya9034.workers.dev/";
 
-  submitBtn?.addEventListener("click", (event) => {
-    event.preventDefault();
-
-    if (!form?.checkValidity()) {
-      form?.reportValidity();
-      return;
+    /** Payload shape expected by the Cloudflare Worker. */
+    interface ContactPayload {
+      fullName: string;
+      cafeName: string;
+      phone: string;
+      city: string;
+      subject: string;
+      description: string;
     }
 
-    successMsg?.classList.remove("hidden");
-    form.reset();
+    interface WorkerResponse {
+      success?: boolean;
+      message?: string;
+    }
 
-    setTimeout(() => {
-      successMsg?.classList.add("hidden");
-    }, 6000);
-  });
-</script>
+    const form = document.getElementById("contact-form") as HTMLFormElement | null;
+    const submitBtn = form?.querySelector(".form-submit-btn a") as HTMLAnchorElement | null;
+    const btnLabel = form?.querySelector<HTMLElement>(".form-submit-btn .btn-label") ?? null;
+    const btnSpinner = form?.querySelector<HTMLElement>(".form-submit-btn .btn-spinner") ?? null;
+    const successMsg = document.getElementById("form-success");
+    const errorMsg = document.getElementById("form-error");
+
+    const faFallbackError =
+      "ارسال پیام انجام نشد. لطفاً چند لحظه بعد دوباره تلاش کنید یا از ایمیل استفاده کنید.";
+
+    // Captured before any dynamic text overwrites the element's content.
+    const defaultSuccessText = successMsg?.textContent?.trim() ?? "";
+
+    const setSubmitting = (submitting: boolean) => {
+      if (!form || !submitBtn) return;
+
+      submitBtn.setAttribute("aria-busy", submitting ? "true" : "false");
+      submitBtn.style.pointerEvents = submitting ? "none" : "";
+      submitBtn.style.opacity = submitting ? "0.75" : "";
+      btnLabel?.classList.toggle("hidden", submitting);
+      btnSpinner?.classList.toggle("is-visible", submitting);
+
+      for (const field of form.elements) {
+        if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement) {
+          field.disabled = submitting;
+        }
+      }
+    };
+
+    const showNotice = (el: HTMLElement | null, message: string) => {
+      if (!el) return;
+      el.textContent = message;
+      el.classList.remove("hidden");
+    };
+
+    const hideNotice = (el: HTMLElement | null) => {
+      el?.classList.add("hidden");
+    };
+
+    submitBtn?.addEventListener("click", async (event) => {
+      event.preventDefault();
+
+      if (!form || submitBtn.getAttribute("aria-busy") === "true") return;
+
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
+      const payload: ContactPayload = {
+        fullName: (form.elements.namedItem("name") as HTMLInputElement).value.trim(),
+        cafeName: (form.elements.namedItem("store") as HTMLInputElement).value.trim(),
+        phone: (form.elements.namedItem("phone") as HTMLInputElement).value.trim(),
+        city: (form.elements.namedItem("city") as HTMLInputElement).value.trim(),
+        subject: (form.elements.namedItem("subject") as HTMLSelectElement).value,
+        description: (form.elements.namedItem("message") as HTMLTextAreaElement).value.trim(),
+      };
+
+      hideNotice(successMsg);
+      hideNotice(errorMsg);
+      setSubmitting(true);
+
+      try {
+        const response = await fetch(WORKER_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        let result: WorkerResponse = {};
+        try {
+          result = (await response.json()) as WorkerResponse;
+        } catch {
+          // Non-JSON body (e.g. an HTML error page) — fall through to the status check.
+        }
+
+        if (!response.ok || result.success === false) {
+          showNotice(errorMsg, result.message?.trim() || faFallbackError);
+          return;
+        }
+
+        showNotice(successMsg, result.message?.trim() || defaultSuccessText);
+        form.reset();
+        window.setTimeout(() => hideNotice(successMsg), 6000);
+      } catch {
+        showNotice(errorMsg, faFallbackError);
+      } finally {
+        setSubmitting(false);
+      }
+    });
+  </script>

@@ -1,0 +1,97 @@
+---
+import Button from "@/components/ui/Button.astro";
+import Badge from "@/components/ui/Badge.astro";
+import AnimatedText from "@/components/ui/AnimatedText.astro";
+import AppFrame from "@/components/ui/AppFrame.astro";
+import PosPreview from "@/components/product/PosPreview.astro";
+
+/**
+ * Hero.
+ *
+ * Centred copy with the register preview full-width underneath: the POS screen
+ * is the product, and it needs the width to stay legible. Everything else in the
+ * page keeps the split text/preview composition of the design system.
+ */
+const facts = [
+  { value: "تومان", label: "مبالغ به تومان نمایش داده می‌شوند، ذخیره‌سازی به ریال" },
+  { value: "شمسی", label: "تاریخ و ساعت جلالی در صندوق، بلیت‌ها و گزارش‌ها" },
+  { value: "۸۰ / ۵۸", label: "میلی‌متر، عرض رول پرینتر حرارتی پشتیبانی‌شده" },
+];
+---
+
+<div class="relative site-container z-20 w-full mx-auto mt-16 px-4 md:mt-20 lg:mt-28 xl:px-0">
+  <!-- ── Copy ───────────────────────────────────────────────────────── -->
+  <div class="flex flex-col items-center text-center max-w-3xl mx-auto">
+    <div
+      class="flex flex-wrap gap-2 justify-center mb-6"
+      data-aos="fade-up-xs"
+      data-aos-delay="100"
+      data-aos-duration="500"
+      data-aos-once="true"
+    >
+      <Badge variant="primary">ساخته‌شده برای بازار ایران</Badge>
+      <Badge variant="accent">صندوق لمسی + انبار</Badge>
+    </div>
+
+    <h1 class="mb-5">
+      <AnimatedText
+        content="صندوق لمسی کافه، با انباری که خودش حساب می‌کند"
+        delay={0.1}
+        duration={0.5}
+        stagger={0.08}
+        class="text-3xl leading-[1.35] sm:text-4xl lg:text-[3.4rem] lg:leading-[1.25] font-brand"
+      />
+    </h1>
+
+    <div class="mb-8 max-w-2xl">
+      <AnimatedText
+        content="سفارش را در صندوق لمسی می‌زنید؛ سیستم بر اساس رسپی، مواد اولیه را از انبار کم می‌کند، بلیت بار و آشپزخانه را می‌فرستد و پایان شیفت نشان می‌دهد چقدر فروختید، چقدر خرج کردید و چقدر سود کردید."
+        delay={0.3}
+        duration={0.5}
+        stagger={0.015}
+        class="text-base sm:text-lg text-neutral-600 dark:text-neutral-300 leading-8 sm:leading-9"
+      />
+    </div>
+
+    <div
+      class="flex flex-wrap gap-3 justify-center"
+      data-aos="fade-up-sm"
+      data-aos-delay="600"
+      data-aos-duration="500"
+      data-aos-once="true"
+    >
+      <Button url="/contact" type="fill" size="lg">درخواست دمو</Button>
+      <Button url="/features" size="lg">قابلیت‌ها را ببینید</Button>
+    </div>
+
+    <!-- Concrete facts instead of vague trust badges -->
+    <dl
+      class="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full"
+      data-aos="fade-up-xs"
+      data-aos-delay="700"
+      data-aos-once="true"
+    >
+      {
+        facts.map((fact) => (
+          <div class="rounded-xl border border-primary/10 dark:border-neutral-700 bg-bg-secondary/70 dark:bg-bg-secondary-dark/70 px-4 py-3 text-start">
+            <dt class="font-brand text-primary dark:text-primary-light text-base">{fact.value}</dt>
+            <dd class="mt-1 text-xs text-neutral-500 dark:text-neutral-400 leading-6">{fact.label}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </div>
+
+  <!-- ── Register preview ───────────────────────────────────────────── -->
+  <div
+    class="relative mt-12 md:mt-16 mx-auto max-w-[1120px]"
+    data-aos="fade-up-sm"
+    data-aos-delay="300"
+    data-aos-duration="800"
+    data-aos-once="true"
+  >
+    <AppFrame label="صندوق لمسی · کافه ونوشه" route="/pos" live={true}>
+      <PosPreview />
+    </AppFrame>
+  </div>
+</div>

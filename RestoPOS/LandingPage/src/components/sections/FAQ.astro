@@ -1,0 +1,28 @@
+---
+import SectionHeader from "@/components/elements/SectionHeader.astro";
+import AccordionItem from "@/components/ui/AccordionItem.astro";
+
+interface Props {
+  /** Anchor target so other pages can deep-link a single question block. */
+  id?: string;
+  title?: string;
+  description?: string;
+  items: Array<{ question: string; answer: string }>;
+}
+
+const {
+  id,
+  title = "پرسش‌های متداول",
+  description = "",
+  items = []
+} = Astro.props;
+---
+
+<section id={id} class="py-16 md:py-24 site-container">
+  <SectionHeader title={title} description={description} />
+  <div class="max-w-2xl mx-auto mt-8">
+    {items.map((item: { question: string; answer: string }, index: number) => (
+      <AccordionItem question={item.question} answer={item.answer} index={index}  data-aos="fade-up-xs" data-aos-once="true" data-aos-delay={index * 100}  />
+    ))}
+  </div>
+</section>

@@ -1,0 +1,274 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import PageHeader from "@/components/elements/PageHeader.astro";
+import Button from "@/components/ui/Button.astro";
+import AppFrame from "@/components/ui/AppFrame.astro";
+import KdsPreview from "@/components/product/KdsPreview.astro";
+import ReportsPreview from "@/components/product/ReportsPreview.astro";
+import InventoryPreview from "@/components/product/InventoryPreview.astro";
+import { siteConfig } from "@/config/site";
+import {
+  MonitorSmartphone, ChefHat, UtensilsCrossed, Boxes, ChartColumn, Users,
+  Clock3, Lock, Printer, Server, Check, ArrowLeft, ShieldCheck, Scale, Tag
+} from "@lucide/astro";
+
+/**
+ * Feature deep-dives, one module per workflow. The `id` of each module is the
+ * anchor the header dropdown links to, so keep them in sync with menu.json.
+ */
+const modules = [
+  {
+    id: "pos",
+    icon: MonitorSmartphone,
+    title: "صندوق لمسی و فروش",
+    lead: "صندوق روی صفحه لمسی می‌نشیند و برای شلوغ‌ترین ساعت روز طراحی شده: تب دسته‌ها، کارت محصول و صورتحساب زنده، همه در یک صفحه.",
+    points: [
+      "جستجوی فازی روی نام، توضیح، دسته و کد (SKU) مواد اولیه هر آیتم",
+      "حالت انتخاب چندتایی: چند محصول را بچینید و یک‌جا به سفارش اضافه کنید",
+      "سه نوع سفارش — حضوری با شماره میز، بیرون‌بر و بار",
+      "کشو افزودنی با تعداد و یادداشت آماده‌سازی برای هر خط سفارش",
+      "ثبت موقت: پیش‌نویس روی سرور ذخیره می‌شود و رفرش مرورگر آن را از بین نمی‌برد",
+      "حذف کامل پیش‌نویس رهاشده تا داده یتیم در دیتابیس نماند",
+      "نشان «نزدیک اتمام» و «ناموجود» روی کارت محصول، از دل موجودی انبار",
+      "تصویر و ترتیب نمایش هر محصول، مستقیماً از پنل منو",
+    ],
+  },
+  {
+    id: "kds",
+    icon: ChefHat,
+    title: "نمایشگر بار و آشپزخانه",
+    lead: "دو نمایشگر جدا، هر کدام فقط ردیف‌های ایستگاه خودش. به‌روزرسانی زنده است و سفارش جدید با صدا اعلام می‌شود.",
+    visual: "kds",
+    points: [
+      "هر آیتم و هر افزودنی ایستگاه خودش را دارد: بار، آشپزخانه یا هر دو",
+      "سفارش‌های فعال با شماره، میز، مبلغ و زمان سپری‌شده",
+      "وضعیت‌ها به‌ترتیب: در انتظار شروع → در حال آماده‌سازی → آماده تحویل",
+      "یادداشت آماده‌سازی روی بلیت ایستگاه هایلایت می‌شود",
+      "افزودنی‌ها به‌صورت بولت زیر هر آیتم، با تعداد در صورت نیاز",
+      "اتصال زنده روی SignalR؛ قطعی اتصال در نوار بالای نمایشگر دیده می‌شود",
+    ],
+  },
+  {
+    id: "menu",
+    icon: UtensilsCrossed,
+    title: "منو، افزودنی و رسپی",
+    lead: "منو فقط یک فهرست قیمت نیست؛ نقشه مصرف مواد اولیه کافه است. همین‌جاست که کسر خودکار انبار ممکن می‌شود.",
+    points: [
+      "دسته‌بندی با اولویت نمایش دلخواه — همان ترتیبی که در تب‌های صندوق دیده می‌شود",
+      "محصولات با تصویر، توضیح، قیمت، قیمت شامل یا بدون مالیات و زمان آماده‌سازی",
+      "افزودنی مشترک برای چند آیتم یا افزودنی اختصاصی یک محصول",
+      "گروه افزودنی با حداقل و حداکثر انتخاب و انتخاب اجباری",
+      "رسپی برای خود محصول و برای افزودنی‌ها — مواد اولیه، مقدار مصرف و واحد",
+      "ناموجود کردن یک آیتم، بدون حذف آن از منو",
+      "تخفیف درصدی روی آیتم یا دسته، و تخفیف خط به خط در سفارش",
+      "ترتیب چیدمان محصولات در صندوق با همان اولویت پنل تعیین می‌شود",
+    ],
+  },
+  {
+    id: "inventory",
+    icon: Boxes,
+    title: "انبار و مواد اولیه",
+    lead: "انبار روی سه ستون کار می‌کند: ورود کالا با فاکتور خرید، خروج با علت مشخص، و گردش کامل هر کالا.",
+    visual: "inventory",
+    points: [
+      "واحد پایه و تبدیل واحد: گرم، کیلوگرم، میلی‌لیتر، لیتر، عدد، پرس، قوطی",
+      "محل نگهداری: انبار مرکزی، خط آشپزخانه، بار، سردخانه، انبار خشک",
+      "نقطه سفارش مجدد و موجودی بهینه برای هر کالا، با هشدار کسری",
+      "بهای میانگین موزون که با هر فاکتور خرید به‌روز می‌شود",
+      "ضایعات با علت مشخص: تاریخ مصرف، فساد، خطای آماده‌سازی، غذای پرسنل، ریختن",
+      "کاردکس هر کالا: موجودی قبل و بعد، بهای واحد و مرجع هر حرکت",
+      "ارزش موجودی به تفکیک محل نگهداری و دسته کالا",
+      "تأمین‌کننده‌ها و فاکتورهای خرید با وضعیت پرداخت",
+    ],
+  },
+  {
+    id: "reports",
+    icon: ChartColumn,
+    title: "گزارش‌ها و سود",
+    lead: "گزارش‌ها را طوری چیدیم که به تصمیم برسید: چه چیزی بفروشم، چه چیزی را از منو بردارم، کدام ساعت نیرو بگذارم.",
+    visual: "reports",
+    points: [
+      "نقشه حرارتی ساعات پیک فروش در ۲۴ ساعت شبانه‌روز",
+      "سهم هر دسته منو از درآمد بازه انتخابی",
+      "پرفروش در برابر کم‌فروش، با باند مشخص برای هر آیتم",
+      "ممیزی عملکرد صندوق‌دار: تعداد سفارش، فروش و میانگین فاکتور",
+      "رتبه‌بندی فروش کالا بر اساس تعداد و مبلغ",
+      "بازه دلخواه شمسی، به‌علاوه پیش‌فرض‌های ۷، ۱۴ و ۳۰ روزه",
+    ],
+  },
+  {
+    id: "shift",
+    icon: Clock3,
+    title: "شیفت و صندوق نقدی",
+    lead: "هر فروش زیر یک شیفت ثبت می‌شود؛ به همین دلیل پایان روز یک عدد قابل اتکا دارید، نه یک حدس.",
+    points: [
+      "باز کردن شیفت با مبلغ نقد ابتدایی",
+      "ثبت برداشت نقدی و پرداخت نقدی در طول شیفت",
+      "محاسبه نقد مورد انتظار از فروش نقد به‌علاوه حرکات صندوق",
+      "ثبت نقد شمارش‌شده در پایان و محاسبه اختلاف صندوق",
+      "تفکیک فروش شیفت بر اساس روش پرداخت",
+      "وضعیت شیفت جاری روی داشبورد، در نگاه اول",
+    ],
+  },
+  {
+    id: "customers",
+    icon: Users,
+    title: "مشتریان و باشگاه وفاداری",
+    lead: "باشگاه مشتریان بدون کار اضافه ساخته می‌شود: شماره موبایل را در صندوق وارد می‌کنید و بقیه‌اش خودکار است.",
+    points: [
+      "ثبت خودکار مشتری بعد از اولین سفارش تسویه‌شده",
+      "شماره موبایل به‌عنوان شناسه اصلی مشتری",
+      "تعداد مراجعه، مجموع خرید و تاریخ اولین و آخرین مراجعه به شمسی",
+      "امتیاز وفاداری بر اساس مبلغ خرید؛ نرخ امتیاز در تنظیمات فروشگاه قابل تغییر است",
+      "نشان «مشتری وفادار» در صندوق، همراه با تعداد سفارش‌های قبلی",
+      "جستجوی مشتری با شماره موبایل یا نام در پنل مدیریت",
+    ],
+  },
+  {
+    id: "staff",
+    icon: Lock,
+    title: "پرسنل و سطح دسترسی",
+    lead: "دسترسی‌ها دانه‌دانه تعریف می‌شوند؛ لازم نیست نگران باشید که هر کسی به تنظیمات یا گزارش‌ها دست بزند.",
+    points: [
+      "کاربران پرسنل با کد پرسنلی، ایمیل و شماره تماس",
+      "نقش‌ها با مجموعه‌ای از مجوزها؛ یک کاربر می‌تواند چند نقش داشته باشد",
+      "مجوزهای جدا برای ثبت سفارش، لغو سفارش، تسویه و لغو پیش‌نویس",
+      "مجوز جدا برای مدیریت منو، انبار، پرسنل و گزارش‌های فروش یا عملکرد",
+      "ورود امن با نشست و توکن تازه‌سازی، و امکان غیرفعال کردن کاربر",
+      "ثبت و حسابرسی عملیات حساس در سیستم",
+    ],
+  },
+  {
+    id: "hardware",
+    icon: Printer,
+    title: "سخت‌افزار و اتصال‌ها",
+    lead: "سیستم با سخت‌افزاری که در کافه‌های ایران معمول است کار می‌کند و روی سرور خودتان اجرا می‌شود.",
+    points: [
+      "کارتخوان‌های PC-POS روی LAN یا COM/سریال، با انتظار تا ۴۵ ثانیه برای تأیید تراکنش",
+      "مدل دستگاه برای آسان‌پرداخت، سامان‌کیش (SEP) و به‌پرداخت ملت",
+      "ثبت شناسه پذیرنده و شماره ترمینال برای هر دستگاه در تنظیمات",
+      "پرینتر حرارتی ESC/POS روی شبکه، پورت ۹۱۰۰؛ اگر در دسترس نباشد فیش روی سرور ذخیره می‌شود",
+      "چاپ فیش از مرورگر روی رول ۸۰ یا ۵۸ میلی‌متری — فیش مشتری و فیش ایستگاه جدا",
+      "نمایشگرهای بار و آشپزخانه روی SignalR",
+      `بک‌اند ${siteConfig.product.runtime} و پایگاه داده ${siteConfig.product.database}`,
+    ],
+  },
+];
+---
+
+<Layout
+  title="قابلیت‌ها — صندوق لمسی، انبار و گزارش‌های کافه | توست‌ایران"
+  description="قابلیت‌های توست‌ایران به‌تفکیک گردش کار کافه: صندوق لمسی، نمایشگر بار و آشپزخانه، منو و رسپی، انبار با فاکتور خرید و ضایعات، گزارش سود، شیفت، باشگاه مشتریان و سطح دسترسی پرسنل."
+  keywords="قابلیت‌های صندوق کافه, نمایشگر آشپزخانه, رسپی و کسر خودکار انبار, گزارش سود کافه, شیفت صندوق, باشگاه مشتریان کافه, دسترسی پرسنل"
+>
+  <section class="site-container my-12">
+    <PageHeader
+      title="همه‌چیز بر اساس گردش کار کافه"
+      description="هر بخش را طوری نوشتیم که بتوانید در همان روز راه‌اندازی از آن استفاده کنید — با جزئیاتی که واقعاً در سیستم وجود دارد."
+    />
+  </section>
+
+  {modules.map((mod, index) => (
+    <section id={mod.id} class="py-14 md:py-20 site-container scroll-mt-24">
+      <div class={`flex flex-col ${mod.visual && index % 2 === 0 ? "md:flex-row-reverse" : mod.visual ? "md:flex-row" : ""} items-center gap-10 md:gap-14`}>
+        <!-- Text -->
+        <div
+          class="flex-1 min-w-0 w-full"
+          data-aos={mod.visual && index % 2 === 0 ? "fade-left-sm" : "fade-up-xs"}
+          data-aos-once="true"
+        >
+          <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-6">
+            <mod.icon class="w-6 h-6" aria-hidden="true" />
+          </span>
+          <h2 class="text-2xl md:text-3xl font-brand mb-4">{mod.title}</h2>
+          <p class="text-neutral-600 dark:text-neutral-300 leading-8 mb-6">{mod.lead}</p>
+          <ul
+            class:list={[
+              mod.visual
+                ? "space-y-3"
+                : "grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3",
+            ]}
+          >
+            {mod.points.map((point) => (
+              <li class="flex items-start gap-2">
+                <Check class="w-4 h-4 text-primary mt-1 flex-shrink-0" aria-hidden="true" />
+                <span class="text-sm text-neutral-600 dark:text-neutral-300 leading-7">{point}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <!-- Visual (only where a faithful screen exists) -->
+        {mod.visual && (
+          <div
+            class="flex-1 min-w-0 w-full"
+            data-aos={index % 2 === 0 ? "fade-right-sm" : "fade-left-sm"}
+            data-aos-delay="200"
+            data-aos-once="true"
+          >
+            <AppFrame
+              label={mod.visual === "kds" ? "نمایشگر بار · کافه ونوشه" : mod.visual === "reports" ? "گزارش‌ها · کافه ونوشه" : "انبار · کافه ونوشه"}
+              route={mod.visual === "kds" ? "/kds" : mod.visual === "reports" ? "/admin/reports" : "/admin/inventory"}
+              live={mod.visual === "kds"}
+            >
+              {mod.visual === "kds" && <KdsPreview />}
+              {mod.visual === "reports" && <ReportsPreview />}
+              {mod.visual === "inventory" && <InventoryPreview />}
+            </AppFrame>
+          </div>
+        )}
+      </div>
+
+      {index < modules.length - 1 && (
+        <div class="w-full border-b border-dashed border-neutral-200 dark:border-neutral-700 mt-14 md:mt-20"></div>
+      )}
+    </section>
+  ))}
+
+  <!-- Operational facts worth stating plainly -->
+  <section class="py-16 md:py-24 site-container">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-3xl md:text-4xl font-brand mb-5">چیزهایی که بهتر است از اول بدانید</h2>
+      <p class="text-neutral-600 dark:text-neutral-300 leading-8">
+        ترجیح می‌دهیم پیش از خرید بدانید چه چیزی هست و چه چیزی نیست.
+      </p>
+    </div>
+    <div class="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
+      {[
+        { icon: Scale, title: "ریال ذخیره، تومان نمایش", desc: "مبالغ به ریال با دقت کامل ذخیره و همه‌جا به تومان نمایش داده می‌شوند." },
+        { icon: Server, title: "سرور خودتان", desc: `روی ${siteConfig.product.runtime} و ${siteConfig.product.database} در زیرساخت خودتان اجرا می‌شود.` },
+        { icon: Tag, title: "تک‌فروشگاهی", desc: "نسخه فعلی یک مجموعه را پوشش می‌دهد: یک منو، یک انبار، یک تنظیمات فروشگاه." },
+        { icon: ShieldCheck, title: "بدون قفل داده", desc: "داده‌ها در پایگاه داده خودتان است و از طریق API در دسترس شماست." },
+      ].map((item, i) => (
+        <div
+          class="p-5 rounded-xl border border-dashed border-primary/20 dark:border-neutral-700"
+          data-aos="fade-up-sm"
+          data-aos-delay={i * 80}
+          data-aos-once="true"
+        >
+          <item.icon class="w-5 h-5 text-primary mb-3" aria-hidden="true" />
+          <div class="text-sm font-bold text-neutral-800 dark:text-neutral-100 mb-1.5">{item.title}</div>
+          <div class="text-xs text-neutral-500 dark:text-neutral-400 leading-6">{item.desc}</div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <div class="w-full border-b border-dashed border-neutral-200 dark:border-neutral-700 my-8 site-container"></div>
+
+  <!-- CTA -->
+  <section class="py-16 md:py-24 site-container" data-aos="fade-up-xs" data-aos-once="true">
+    <div class="max-w-2xl mx-auto text-center">
+      <h2 class="text-3xl md:text-4xl font-brand mb-4">منوی خودتان را روی آن امتحان کنید</h2>
+      <p class="text-neutral-600 dark:text-neutral-300 mb-8 leading-8">
+        در دمو، آیتم‌های منوی خودتان را با مواد اولیه‌شان ثبت می‌کنیم و یک شیفت واقعی را با هم می‌بندیم.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <Button url="/contact" type="fill" size="lg">
+          درخواست دمو <ArrowLeft size={18} />
+        </Button>
+        <Button url="/changelog" size="lg">تغییرات نسخه‌ها</Button>
+      </div>
+    </div>
+  </section>
+</Layout>

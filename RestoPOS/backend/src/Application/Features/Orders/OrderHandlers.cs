@@ -36,6 +36,46 @@ internal static class OrderLoader
     }
 }
 
+internal static class OrderItemWriter
+{
+    public static async Task AddAsync(
+        IApplicationDbContext db,
+        Order order,
+        Guid menuItemId,
+        int quantity,
+        string? notes,
+        IReadOnlyList<AddModifierRequest>? modifiers,
+        CancellationToken cancellationToken)
+    {
+        var menuItem = await db.MenuItems.Include(m => m.Modifiers)
+            .FirstOrDefaultAsync(m => m.Id == menuItemId, cancellationToken)
+            ?? throw new NotFoundException(nameof(MenuItem), menuItemId);
+
+        var line = order.AddItem(menuItem, quantity, notes);
+        foreach (var modifierReq in modifiers ?? [])
+        {
+            if (modifierReq.AddonId is { } addonId)
+            {
+                var addon = await db.Addons.FirstOrDefaultAsync(a => a.Id == addonId, cancellationToken)
+                    ?? throw new NotFoundException(nameof(Addon), addonId);
+                if (!await db.MenuItemAddons.AnyAsync(x => x.MenuItemId == menuItem.Id && x.AddonId == addonId, cancellationToken))
+                    throw new DomainException("This add-on is not attached to the menu item.");
+                line.AddAddon(addon, modifierReq.Quantity);
+            }
+            else if (modifierReq.MenuItemModifierId is { } modifierId)
+            {
+                var modifier = menuItem.Modifiers.FirstOrDefault(m => m.Id == modifierId)
+                               ?? throw new NotFoundException(nameof(MenuItemModifier), modifierId);
+                line.AddModifier(modifier, modifierReq.Quantity);
+            }
+            else
+            {
+                throw new DomainException("A modifier or add-on must be specified.");
+            }
+        }
+    }
+}
+
 public sealed class CreateDraftOrderCommandHandler(
     IApplicationDbContext db,
     ICurrentUserService current,
@@ -60,6 +100,9 @@ public sealed class CreateDraftOrderCommandHandler(
                         ?? throw new NotFoundException(nameof(DiningTable), tableId);
             order.TableNumber ??= table.Code;
         }
+        foreach (var item in request.Items ?? [])
+            await OrderItemWriter.AddAsync(db, order, item.MenuItemId, item.Quantity, item.Notes, item.Modifiers, cancellationToken);
+        order.Recalculate();
         db.Orders.Add(order);
         await db.SaveChangesAsync(cancellationToken);
         return OrderMapping.ToDto(order);
@@ -81,33 +124,7 @@ public sealed class AddOrderItemCommandHandler(IApplicationDbContext db) : IRequ
     public async Task<OrderDto> Handle(AddOrderItemCommand request, CancellationToken cancellationToken)
     {
         var order = await OrderLoader.Load(db, request.OrderId, cancellationToken);
-        var menuItem = await db.MenuItems.Include(m => m.Modifiers)
-            .FirstOrDefaultAsync(m => m.Id == request.MenuItemId, cancellationToken)
-            ?? throw new NotFoundException(nameof(MenuItem), request.MenuItemId);
-
-        var line = order.AddItem(menuItem, request.Quantity, request.Notes);
-        foreach (var modifierReq in request.Modifiers ?? [])
-        {
-            if (modifierReq.AddonId is { } addonId)
-            {
-                var addon = await db.Addons.FirstOrDefaultAsync(a => a.Id == addonId, cancellationToken)
-                    ?? throw new NotFoundException(nameof(Addon), addonId);
-                if (!await db.MenuItemAddons.AnyAsync(x => x.MenuItemId == menuItem.Id && x.AddonId == addonId, cancellationToken))
-                    throw new DomainException("This add-on is not attached to the menu item.");
-                line.AddAddon(addon, modifierReq.Quantity);
-            }
-            else if (modifierReq.MenuItemModifierId is { } modifierId)
-            {
-                var modifier = menuItem.Modifiers.FirstOrDefault(m => m.Id == modifierId)
-                               ?? throw new NotFoundException(nameof(MenuItemModifier), modifierId);
-                line.AddModifier(modifier, modifierReq.Quantity);
-            }
-            else
-            {
-                throw new DomainException("A modifier or add-on must be specified.");
-            }
-        }
-
+        await OrderItemWriter.AddAsync(db, order, request.MenuItemId, request.Quantity, request.Notes, request.Modifiers, cancellationToken);
         order.Recalculate();
         await db.SaveChangesAsync(cancellationToken);
         return OrderMapping.ToDto(order);

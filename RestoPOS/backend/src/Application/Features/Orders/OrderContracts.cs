@@ -33,7 +33,14 @@ public sealed record OrderDto(
     IReadOnlyList<OrderItemDto> KitchenItems,
     IReadOnlyList<OrderItemDto> BarItems);
 
-public sealed record CreateDraftOrderCommand(OrderType OrderType, string? TableNumber, string? CustomerPhone, string? Notes, Guid? DiningTableId = null) : MediatR.IRequest<OrderDto>;
+public sealed record CreateDraftOrderItemRequest(Guid MenuItemId, int Quantity, string? Notes, IReadOnlyList<AddModifierRequest>? Modifiers);
+public sealed record CreateDraftOrderCommand(
+    OrderType OrderType,
+    string? TableNumber,
+    string? CustomerPhone,
+    string? Notes,
+    Guid? DiningTableId = null,
+    IReadOnlyList<CreateDraftOrderItemRequest>? Items = null) : MediatR.IRequest<OrderDto>;
 public sealed record AddOrderItemCommand(Guid OrderId, Guid MenuItemId, int Quantity, string? Notes, IReadOnlyList<AddModifierRequest>? Modifiers) : MediatR.IRequest<OrderDto>;
 public sealed record AddModifierRequest(Guid? MenuItemModifierId, int Quantity, Guid? AddonId = null);
 public sealed record RemoveOrderItemCommand(Guid OrderId, Guid OrderItemId) : MediatR.IRequest<OrderDto>;

@@ -7,6 +7,7 @@ import type {
   CategoryDto,
   CategorySalesDetailDto,
   CustomerDto,
+  CustomerReturnRateReportDto,
   DashboardSummaryDto,
   DiningAreaDto,
   DiningTableDto,
@@ -651,6 +652,8 @@ export const api = {
     apiFetch<ShiftSummaryReportDto[]>(`/api/reports/shifts/z-report${q({ preset, cashierId, fromUtc, toUtc })}`),
   profitMargin: (preset: TimePeriodPreset = "ThisMonth", fromUtc?: string, toUtc?: string) =>
     apiFetch<ProfitMarginReportDto>(`/api/reports/cogs/profit-margin${q({ preset, fromUtc, toUtc })}`),
+  customerReturnRate: (preset: TimePeriodPreset = "ThisMonth", fromUtc?: string, toUtc?: string) =>
+    apiFetch<CustomerReturnRateReportDto>(`/api/reports/customers/return-rate${q({ preset, fromUtc, toUtc })}`),
 };
 
 export type { BaseUnit };

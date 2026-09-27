@@ -6,6 +6,13 @@ using RestoPOS.Domain.Services;
 
 namespace RestoPOS.Application.Features.Analytics;
 
+internal sealed record MenuItemRecipeIngredient(
+    Guid InventoryItemId,
+    string Name,
+    BaseUnit Unit,
+    decimal Quantity,
+    decimal CostRials);
+
 internal static class AnalyticsScope
 {
     public static IQueryable<Order> PaidOrders(IApplicationDbContext db, DateTime fromUtc, DateTime toUtc) =>
@@ -20,7 +27,11 @@ internal static class AnalyticsScope
         db.Payments.AsNoTracking()
             .Where(p => p.Status == PaymentStatus.Settled && p.PaidAt != null && p.PaidAt >= fromUtc && p.PaidAt <= toUtc);
 
-    public static async Task<(Dictionary<Guid, decimal> MenuItemUnitCogs, Dictionary<Guid, decimal> ModifierUnitCogs)>
+    public static async Task<(
+        Dictionary<Guid, decimal> MenuItemUnitCogs,
+        Dictionary<Guid, decimal> ModifierUnitCogs,
+        Dictionary<Guid, List<MenuItemRecipeIngredient>> MenuItemIngredients,
+        Dictionary<Guid, List<MenuItemRecipeIngredient>> ModifierIngredients)>
         BuildAllRecipeUnitCostsAsync(IApplicationDbContext db, CancellationToken cancellationToken)
     {
         var recipes = await db.Recipes.AsNoTracking()
@@ -32,26 +43,53 @@ internal static class AnalyticsScope
 
         var menu = new Dictionary<Guid, decimal>();
         var mods = new Dictionary<Guid, decimal>();
+        var menuIngredients = new Dictionary<Guid, List<MenuItemRecipeIngredient>>();
+        var modifierIngredients = new Dictionary<Guid, List<MenuItemRecipeIngredient>>();
 
         foreach (var recipe in recipes)
         {
             decimal cost = 0;
+            var ingredients = new Dictionary<Guid, MenuItemRecipeIngredient>();
             foreach (var line in recipe.Lines)
             {
                 if (line.InventoryItem is null)
                     continue;
                 var qtyInBase = line.InventoryItem.ConvertToBase(line.Quantity, line.Unit);
-                cost += qtyInBase * line.InventoryItem.WeightedAverageCost;
+                var ingredientCost = qtyInBase * line.InventoryItem.WeightedAverageCost;
+                cost += ingredientCost;
+                if (ingredients.TryGetValue(line.InventoryItemId, out var existing))
+                {
+                    ingredients[line.InventoryItemId] = existing with
+                    {
+                        Quantity = existing.Quantity + qtyInBase,
+                        CostRials = existing.CostRials + ingredientCost
+                    };
+                }
+                else
+                {
+                    ingredients[line.InventoryItemId] = new MenuItemRecipeIngredient(
+                        line.InventoryItemId,
+                        line.InventoryItem.Name,
+                        line.InventoryItem.BaseUnit,
+                        qtyInBase,
+                        ingredientCost);
+                }
             }
 
             cost = decimal.Round(cost, 0, MidpointRounding.AwayFromZero);
             if (recipe.MenuItemId is Guid mid)
+            {
                 menu[mid] = cost;
+                menuIngredients[mid] = ingredients.Values.ToList();
+            }
             if (recipe.MenuItemModifierId is Guid modId)
+            {
                 mods[modId] = cost;
+                modifierIngredients[modId] = ingredients.Values.ToList();
+            }
         }
 
-        return (menu, mods);
+        return (menu, mods, menuIngredients, modifierIngredients);
     }
 
     public static string DayOfWeekFa(int dayOfWeek) => dayOfWeek switch

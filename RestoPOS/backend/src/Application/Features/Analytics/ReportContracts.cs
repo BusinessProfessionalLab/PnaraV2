@@ -94,7 +94,14 @@ public sealed record MenuItemPerformanceRowDto(
     MoneyAmountDto EstimatedCogs,
     MoneyAmountDto GrossProfit,
     decimal GrossMarginPercent,
-    string Band);
+    string Band,
+    IReadOnlyList<MenuItemIngredientUsageDto> Ingredients);
+
+public sealed record MenuItemIngredientUsageDto(
+    string Name,
+    decimal Quantity,
+    BaseUnit Unit,
+    MoneyAmountDto Cost);
 
 public sealed record MenuItemPerformanceReportDto(
     string PeriodLabelFa,
@@ -163,6 +170,13 @@ public sealed record ProfitMarginReportDto(
     decimal GrossMarginPercent,
     IReadOnlyList<ProfitMarginLineDto> Lines);
 
+public sealed record CustomerReturnRateReportDto(
+    string PeriodLabelFa,
+    int CustomerCount,
+    int ReturningCustomerCount,
+    int FirstTimeCustomerCount,
+    decimal ReturningRatePercent);
+
 // ───────────────────────── Legacy rows (frontend compatibility) ─────────────────────────
 
 public sealed record SalesByProductRow(Guid MenuItemId, string Title, Guid CategoryId, string CategoryName, int Quantity, decimal NetSales);
@@ -200,6 +214,9 @@ public sealed record GetShiftSummaryReportsQuery(TimePeriodPreset Preset, Guid? 
 
 public sealed record GetProfitMarginReportQuery(TimePeriodPreset Preset, DateTime? FromUtc, DateTime? ToUtc)
     : IRequest<ProfitMarginReportDto>;
+
+public sealed record GetCustomerReturnRateQuery(TimePeriodPreset Preset, DateTime? FromUtc, DateTime? ToUtc)
+    : IRequest<CustomerReturnRateReportDto>;
 
 // Legacy
 public sealed record GetSalesByProductQuery(DateTime FromUtc, DateTime ToUtc) : IRequest<IReadOnlyList<SalesByProductRow>>;

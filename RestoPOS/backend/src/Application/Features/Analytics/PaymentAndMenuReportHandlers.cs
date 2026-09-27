@@ -91,7 +91,8 @@ public sealed class GetMenuItemPerformanceQueryHandler(IApplicationDbContext db)
     {
         var period = TimePeriodHelper.Resolve(request.Preset, request.FromUtc, request.ToUtc);
         var topCount = Math.Clamp(request.TopCount, 1, 100);
-        var (menuCogs, modifierCogs) = await AnalyticsScope.BuildAllRecipeUnitCostsAsync(db, cancellationToken);
+        var (menuCogs, modifierCogs, menuIngredients, modifierIngredients) =
+            await AnalyticsScope.BuildAllRecipeUnitCostsAsync(db, cancellationToken);
 
         var itemRows = await AnalyticsScope.PaidOrders(db, period.FromUtc, period.ToUtc)
             .SelectMany(o => o.Items)
@@ -106,6 +107,10 @@ public sealed class GetMenuItemPerformanceQueryHandler(IApplicationDbContext db)
                 Modifiers = i.Modifiers.Select(m => new { m.MenuItemModifierId, m.Quantity })
             })
             .ToListAsync(cancellationToken);
+        var menuCatalog = await db.MenuItems.AsNoTracking()
+            .Where(i => !i.IsDeleted)
+            .Select(i => new { i.Id, i.Title, i.CategoryId, CategoryName = i.Category.Name })
+            .ToListAsync(cancellationToken);
 
         var aggregated = itemRows
             .GroupBy(i => new { i.MenuItemId, i.Title, i.CategoryId, i.CategoryName })
@@ -115,12 +120,49 @@ public sealed class GetMenuItemPerformanceQueryHandler(IApplicationDbContext db)
                 var revenue = g.Sum(x => x.LineTotal);
                 menuCogs.TryGetValue(g.Key.MenuItemId, out var unitCogs);
                 var cogs = unitCogs * qty;
+                var ingredientUsage = new Dictionary<Guid, MenuItemRecipeIngredient>();
+
+                void AddIngredient(MenuItemRecipeIngredient ingredient, decimal multiplier)
+                {
+                    var used = ingredient with
+                    {
+                        Quantity = ingredient.Quantity * multiplier,
+                        CostRials = ingredient.CostRials * multiplier
+                    };
+                    if (ingredientUsage.TryGetValue(used.InventoryItemId, out var existing))
+                    {
+                        ingredientUsage[used.InventoryItemId] = existing with
+                        {
+                            Quantity = existing.Quantity + used.Quantity,
+                            CostRials = existing.CostRials + used.CostRials
+                        };
+                    }
+                    else
+                    {
+                        ingredientUsage[used.InventoryItemId] = used;
+                    }
+                }
+
+                if (menuIngredients.TryGetValue(g.Key.MenuItemId, out var baseIngredients))
+                {
+                    foreach (var ingredient in baseIngredients)
+                        AddIngredient(ingredient, qty);
+                }
+
                 foreach (var line in g)
                 {
                     foreach (var mod in line.Modifiers)
                     {
-                        if (mod.MenuItemModifierId is { } modifierId && modifierCogs.TryGetValue(modifierId, out var modUnit))
+                        if (mod.MenuItemModifierId is not { } modifierId)
+                            continue;
+
+                        if (modifierCogs.TryGetValue(modifierId, out var modUnit))
                             cogs += modUnit * mod.Quantity * line.Quantity;
+                        if (modifierIngredients.TryGetValue(modifierId, out var modIngredients))
+                        {
+                            foreach (var ingredient in modIngredients)
+                                AddIngredient(ingredient, mod.Quantity * line.Quantity);
+                        }
                     }
                 }
 
@@ -137,10 +179,33 @@ public sealed class GetMenuItemPerformanceQueryHandler(IApplicationDbContext db)
                     Revenue = revenue,
                     Cogs = cogs,
                     Profit = profit,
-                    Margin = margin
+                    Margin = margin,
+                    Ingredients = ingredientUsage.Values.ToList()
                 };
             })
+            .ToList();
+
+        var soldMenuItemIds = aggregated.Select(i => i.MenuItemId).ToHashSet();
+        foreach (var item in menuCatalog.Where(i => !soldMenuItemIds.Contains(i.Id)))
+        {
+            aggregated.Add(new
+            {
+                MenuItemId = item.Id,
+                item.Title,
+                item.CategoryId,
+                item.CategoryName,
+                Qty = 0,
+                Revenue = 0m,
+                Cogs = 0m,
+                Profit = 0m,
+                Margin = 0m,
+                Ingredients = new List<MenuItemRecipeIngredient>()
+            });
+        }
+        aggregated = aggregated
             .OrderByDescending(x => x.Revenue)
+            .ThenByDescending(x => x.Qty)
+            .ThenBy(x => x.Title)
             .ToList();
 
         var max = aggregated.Count == 0 ? 0 : aggregated[0].Revenue;
@@ -148,6 +213,14 @@ public sealed class GetMenuItemPerformanceQueryHandler(IApplicationDbContext db)
         {
             var ratio = max == 0 ? 0 : r.Revenue / max;
             var band = ratio >= 0.6m ? "Star" : ratio <= 0.15m ? "Underperforming" : "Core";
+            var ingredients = r.Ingredients
+                .Select(i => new MenuItemIngredientUsageDto(
+                    i.Name,
+                    decimal.Round(i.Quantity, 4, MidpointRounding.AwayFromZero),
+                    i.Unit,
+                    MoneyAmountDto.FromRials(i.CostRials)))
+                .OrderByDescending(i => i.Cost.Rials)
+                .ToList();
             return new MenuItemPerformanceRowDto(
                 index + 1,
                 r.MenuItemId,
@@ -159,7 +232,8 @@ public sealed class GetMenuItemPerformanceQueryHandler(IApplicationDbContext db)
                 MoneyAmountDto.FromRials(r.Cogs),
                 MoneyAmountDto.FromRials(r.Profit),
                 r.Margin,
-                band);
+                band,
+                ingredients);
         }).ToList();
 
         var top = all.Take(topCount).ToList();

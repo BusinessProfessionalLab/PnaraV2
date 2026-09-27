@@ -92,7 +92,7 @@ public sealed class GetProfitMarginReportQueryHandler(IApplicationDbContext db)
     public async Task<ProfitMarginReportDto> Handle(GetProfitMarginReportQuery request, CancellationToken cancellationToken)
     {
         var period = TimePeriodHelper.Resolve(request.Preset, request.FromUtc, request.ToUtc);
-        var (menuCogs, modifierCogs) = await AnalyticsScope.BuildAllRecipeUnitCostsAsync(db, cancellationToken);
+        var (menuCogs, modifierCogs, _, _) = await AnalyticsScope.BuildAllRecipeUnitCostsAsync(db, cancellationToken);
 
         var items = await AnalyticsScope.PaidOrders(db, period.FromUtc, period.ToUtc)
             .SelectMany(o => o.Items)

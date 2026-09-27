@@ -47,18 +47,19 @@ public sealed class GetDashboardSummaryQueryHandler(IApplicationDbContext db)
         var paid = await AnalyticsScope.PaidOrders(db, from, to)
             .Select(o => new
             {
-                o.Subtotal,
-                o.ModifiersTotal,
                 o.DiscountAmount,
                 o.TaxAmount,
                 o.GrandTotal
             })
             .ToListAsync(ct);
 
-        var gross = paid.Sum(o => o.Subtotal + o.ModifiersTotal);
         var discounts = paid.Sum(o => o.DiscountAmount);
         var vat = paid.Sum(o => o.TaxAmount);
-        var net = gross - discounts;
+        var net = (await AnalyticsScope.SettledPayments(db, from, to)
+            .Select(p => p.Amount)
+            .ToListAsync(ct))
+            .Sum();
+        var gross = net - vat;
         var paidCount = paid.Count;
         var avg = paidCount == 0 ? 0 : paid.Sum(o => o.GrandTotal) / paidCount;
 
@@ -85,31 +86,35 @@ public sealed class GetSalesTimelineQueryHandler(IApplicationDbContext db)
     {
         var period = TimePeriodHelper.Resolve(request.Preset, request.FromUtc, request.ToUtc);
         var currentOrders = await AnalyticsScope.PaidOrders(db, period.FromUtc, period.ToUtc)
-            .Select(o => new { PaidAt = o.PaidAt!.Value, o.Subtotal, o.ModifiersTotal, o.DiscountAmount, o.GrandTotal })
+            .Select(o => new { PaidAt = o.PaidAt!.Value, o.TaxAmount })
             .ToListAsync(cancellationToken);
 
-        var previousOrders = await AnalyticsScope.PaidOrders(db, period.ComparisonFromUtc, period.ComparisonToUtc)
-            .Select(o => new { PaidAt = o.PaidAt!.Value, Net = o.Subtotal + o.ModifiersTotal - o.DiscountAmount })
+        var currentPayments = await AnalyticsScope.SettledPayments(db, period.FromUtc, period.ToUtc)
+            .Select(p => new { PaidAt = p.PaidAt!.Value, p.Amount })
             .ToListAsync(cancellationToken);
 
-        var currentBuckets = currentOrders
+        var previousPayments = await AnalyticsScope.SettledPayments(db, period.ComparisonFromUtc, period.ComparisonToUtc)
+            .Select(p => new { PaidAt = p.PaidAt!.Value, p.Amount })
+            .ToListAsync(cancellationToken);
+
+        var orderBuckets = currentOrders
             .GroupBy(o => AnalyticsScope.BucketKey(o.PaidAt, request.Interval))
-            .ToDictionary(
-                g => g.Key,
-                g => (
-                    Net: g.Sum(x => x.Subtotal + x.ModifiersTotal - x.DiscountAmount),
-                    Gross: g.Sum(x => x.Subtotal + x.ModifiersTotal),
-                    Count: g.Count()));
+            .ToDictionary(g => g.Key, g => (Vat: g.Sum(x => x.TaxAmount), Count: g.Count()));
+
+        var paymentBuckets = currentPayments
+            .GroupBy(p => AnalyticsScope.BucketKey(p.PaidAt, request.Interval))
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
 
         var duration = period.ToUtc - period.FromUtc;
-        var previousBuckets = previousOrders
+        var previousBuckets = previousPayments
             .GroupBy(o => AnalyticsScope.BucketKey(o.PaidAt, request.Interval))
-            .ToDictionary(g => g.Key, g => g.Sum(x => x.Net));
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
 
         var points = new List<SalesTimelinePointDto>();
         foreach (var bucket in AnalyticsScope.EnumerateBuckets(period.FromUtc, period.ToUtc, request.Interval))
         {
-            currentBuckets.TryGetValue(bucket, out var cur);
+            orderBuckets.TryGetValue(bucket, out var curOrders);
+            paymentBuckets.TryGetValue(bucket, out var netSales);
             var previousBucket = bucket - duration;
             previousBuckets.TryGetValue(AnalyticsScope.AlignBucketStart(previousBucket, request.Interval), out var prevNet);
             // Also try exact aligned key from comparison window shift
@@ -121,9 +126,9 @@ public sealed class GetSalesTimelineQueryHandler(IApplicationDbContext db)
                 bucket,
                 AnalyticsScope.BucketLabelIso(bucket, request.Interval),
                 AnalyticsScope.BucketLabel(bucket, request.Interval),
-                MoneyAmountDto.FromRials(cur.Net),
-                MoneyAmountDto.FromRials(cur.Gross),
-                cur.Count,
+                MoneyAmountDto.FromRials(netSales),
+                MoneyAmountDto.FromRials(netSales - curOrders.Vat),
+                curOrders.Count,
                 MoneyAmountDto.FromRials(prevNet)));
         }
 
@@ -137,28 +142,38 @@ public sealed class GetPeakHoursHeatmapQueryHandler(IApplicationDbContext db)
     public async Task<IReadOnlyList<HourlyHeatmapRowDto>> Handle(GetPeakHoursHeatmapQuery request, CancellationToken cancellationToken)
     {
         var period = TimePeriodHelper.Resolve(request.Preset, request.FromUtc, request.ToUtc);
-        var paid = await AnalyticsScope.PaidOrders(db, period.FromUtc, period.ToUtc)
-            .Select(o => new { PaidAt = o.PaidAt!.Value, Net = o.Subtotal + o.ModifiersTotal - o.DiscountAmount })
+        var paidOrders = await AnalyticsScope.PaidOrders(db, period.FromUtc, period.ToUtc)
+            .Select(o => new { PaidAt = o.PaidAt!.Value })
             .ToListAsync(cancellationToken);
 
-        var grouped = paid
-            .GroupBy(o => new { Dow = PersianDateTime.GetDayOfWeek(o.PaidAt), Hour = PersianDateTime.GetHour(o.PaidAt) })
-            .ToDictionary(g => (g.Key.Dow, g.Key.Hour), g => (Count: g.Count(), Net: g.Sum(x => x.Net)));
+        var payments = await AnalyticsScope.SettledPayments(db, period.FromUtc, period.ToUtc)
+            .Select(p => new { PaidAt = p.PaidAt!.Value, p.Amount })
+            .ToListAsync(cancellationToken);
 
-        var maxCount = grouped.Count == 0 ? 1 : Math.Max(1, grouped.Values.Max(x => x.Count));
+        var orderCounts = paidOrders
+            .GroupBy(o => (Day: PersianDateTime.GetDayOfWeek(o.PaidAt), Hour: PersianDateTime.GetHour(o.PaidAt)))
+            .ToDictionary(g => g.Key, g => g.Count());
+        var salesByHour = payments
+            .GroupBy(p => (Day: PersianDateTime.GetDayOfWeek(p.PaidAt), Hour: PersianDateTime.GetHour(p.PaidAt)))
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Amount));
+
+        var maxSales = salesByHour.Count == 0 ? 0 : salesByHour.Values.Max();
         var rows = new List<HourlyHeatmapRowDto>(7 * 24);
         for (var dow = 0; dow <= 6; dow++)
         {
             for (var hour = 0; hour < 24; hour++)
             {
-                grouped.TryGetValue((dow, hour), out var cell);
-                var density = decimal.Round(cell.Count / (decimal)maxCount, 4, MidpointRounding.AwayFromZero);
+                orderCounts.TryGetValue((dow, hour), out var orderCount);
+                salesByHour.TryGetValue((dow, hour), out var sales);
+                var density = maxSales <= 0
+                    ? 0
+                    : decimal.Round(sales / maxSales, 4, MidpointRounding.AwayFromZero);
                 rows.Add(new HourlyHeatmapRowDto(
                     dow,
                     AnalyticsScope.DayOfWeekFa(dow),
                     hour,
-                    cell.Count,
-                    MoneyAmountDto.FromRials(cell.Net),
+                    orderCount,
+                    MoneyAmountDto.FromRials(sales),
                     density));
             }
         }

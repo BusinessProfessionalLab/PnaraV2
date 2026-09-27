@@ -147,6 +147,16 @@ public sealed class ReportsController(ISender sender) : ControllerBase
         CancellationToken ct = default) =>
         Ok(await sender.Send(new GetProfitMarginReportQuery(preset, fromUtc, toUtc), ct));
 
+    [HttpGet("customers/return-rate")]
+    [Authorize(Policy = Permissions.ReportsViewSales)]
+    [ProducesResponseType(typeof(CustomerReturnRateReportDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<CustomerReturnRateReportDto>> GetCustomerReturnRate(
+        [FromQuery] TimePeriodPreset preset = TimePeriodPreset.ThisMonth,
+        [FromQuery] DateTime? fromUtc = null,
+        [FromQuery] DateTime? toUtc = null,
+        CancellationToken ct = default) =>
+        Ok(await sender.Send(new GetCustomerReturnRateQuery(preset, fromUtc, toUtc), ct));
+
     // ==========================================
     // Legacy endpoints (existing Next.js reports hub)
     // ==========================================

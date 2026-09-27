@@ -627,8 +627,10 @@ export type MenuItemPerformanceReportDto = {
     grossProfit: MoneyAmountDto;
     grossMarginPercent: number;
     band: string;
+    ingredients: { name: string; quantity: number; unit: BaseUnit; cost: MoneyAmountDto }[];
   }[];
   lowestSellingItems: MenuItemPerformanceReportDto["topSellingItems"];
+  allItems: MenuItemPerformanceReportDto["topSellingItems"];
 };
 
 export type CategorySalesDetailDto = {
@@ -665,6 +667,7 @@ export type ProfitMarginReportDto = {
   lines: {
     menuItemId: string;
     title: string;
+    categoryId: string;
     categoryName: string;
     quantitySold: number;
     revenue: MoneyAmountDto;
@@ -672,4 +675,12 @@ export type ProfitMarginReportDto = {
     grossProfit: MoneyAmountDto;
     grossMarginPercent: number;
   }[];
+};
+
+export type CustomerReturnRateReportDto = {
+  periodLabelFa: string;
+  customerCount: number;
+  returningCustomerCount: number;
+  firstTimeCustomerCount: number;
+  returningRatePercent: number;
 };

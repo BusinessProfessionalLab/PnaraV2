@@ -72,7 +72,7 @@ export function receiptHtml(
          </div>
          ${settings.taxIdentificationNumber ? `<div class="center">شناسه مالیاتی: ${settings.taxIdentificationNumber}</div>` : ""}
          ${settings.receiptFooter ? `<div class="center">${settings.receiptFooter}</div>` : ""}
-         <div class="center">ToastIran POS — Pnara</div>`
+         <div class="center">Pnara</div>`
       : ""
   }
 </body></html>`;

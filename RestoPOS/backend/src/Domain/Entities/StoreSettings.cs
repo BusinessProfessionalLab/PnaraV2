@@ -4,7 +4,7 @@ namespace RestoPOS.Domain.Entities;
 
 public class StoreSettings : BaseEntity
 {
-    public string StoreName { get; set; } = "ToastIran POS";
+    public string StoreName { get; set; } = "Pnara";
     public string? LogoUrl { get; set; }
     public string? TaxIdentificationNumber { get; set; }
     public string? ReceiptHeader { get; set; }

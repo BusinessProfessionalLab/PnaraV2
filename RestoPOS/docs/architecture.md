@@ -1,4 +1,4 @@
-# معماری ToastIran POS
+# معماری Pnara
 
 ## لایه‌ها
 

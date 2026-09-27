@@ -74,7 +74,7 @@ public sealed class EscPosThermalDispatcher(ILogger<EscPosThermalDispatcher> log
         sb.AppendLine($"قابل پرداخت: {order.GrandTotal:N0} ریال");
         if (!string.IsNullOrWhiteSpace(settings.ReceiptFooter))
             sb.AppendLine(settings.ReceiptFooter);
-        sb.AppendLine("ToastIran POS — Pnara");
+        sb.AppendLine("Pnara");
         sb.Append('\x1d').Append('V').Append((char)0);
         return Encoding.UTF8.GetBytes(sb.ToString());
     }

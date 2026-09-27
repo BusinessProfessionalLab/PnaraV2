@@ -7,7 +7,7 @@
     <LangVersion>latest</LangVersion>
     <Authors>Pnara</Authors>
     <Company>Pnara</Company>
-    <Product>ToastIran POS</Product>
+    <Product>Pnara</Product>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 </Project>

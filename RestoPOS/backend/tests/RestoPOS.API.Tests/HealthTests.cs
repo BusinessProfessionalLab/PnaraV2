@@ -25,6 +25,6 @@ public class HealthTests : IClassFixture<TestingWebApplicationFactory>
         var response = await client.GetAsync("/health");
         response.IsSuccessStatusCode.Should().BeTrue();
         var body = await response.Content.ReadAsStringAsync();
-        body.Should().Contain("ToastIran POS");
+        body.Should().Contain("Pnara");
     }
 }

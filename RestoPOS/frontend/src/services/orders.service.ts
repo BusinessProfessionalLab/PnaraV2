@@ -53,7 +53,7 @@ export const ordersService = {
   activeOrders: () =>
     apiClient.get<OrderDto[]>("/api/orders/active").then((r) => r.data),
 
-  addItem: (orderId: string, payload: Record<string, unknown>) =>
+  addItem: (orderId: string, payload: DraftOrderItem) =>
     apiClient
       .post<OrderDto>(`/api/orders/${orderId}/items`, payload)
       .then((r) => r.data),

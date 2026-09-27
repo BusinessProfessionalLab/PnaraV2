@@ -79,7 +79,7 @@ function SidebarNav({
         <BrandMark />
         <div className="min-w-0">
           <div className="truncate text-[15px] font-bold tracking-tight text-foreground">
-            {storeName || "ToastIran POS"}
+            {storeName || "Pnara"}
           </div>
           <div className="text-[11px] font-medium text-muted-foreground">
             پنل مدیریت
@@ -338,7 +338,7 @@ function RailNav({
           <LogOut className="size-[18px]" strokeWidth={1.8} aria-hidden />
         </button>
       </div>
-      <span className="sr-only">{storeName || "ToastIran POS"}</span>
+      <span className="sr-only">{storeName || "Pnara"}</span>
     </div>
   );
 }
@@ -368,7 +368,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <BrandMark />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold">
-            {storeName || "ToastIran POS"}
+            {storeName || "Pnara"}
           </div>
           <div className="text-[11px] text-muted-foreground">پنل مدیریت</div>
         </div>

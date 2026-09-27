@@ -6,6 +6,6 @@
  * release ships; never hardcode a version inside a component.
  */
 export const appConfig = {
-  appName: "ToastIran POS",
+  appName: "Pnara",
   version: "1.4.0",
 } as const;

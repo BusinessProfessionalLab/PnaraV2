@@ -79,7 +79,7 @@ try
     {
         options.SwaggerDoc("v1", new OpenApiInfo
         {
-            Title = "ToastIran POS API",
+            Title = "Pnara API",
             Version = "v1",
             Description = "Pnara — Restaurant & Cafe POS / WMS for the Iranian market"
         });
@@ -113,8 +113,8 @@ try
     app.UseAuthorization();
     app.MapControllers();
     app.MapHub<OrderKitchenHub>("/hubs/kitchen");
-    app.MapGet("/health", () => Results.Ok(new { product = "ToastIran POS", vendor = "Pnara", status = "ok" }));
-    app.MapGet("/api/health", () => Results.Ok(new { product = "ToastIran POS", vendor = "Pnara", status = "ok" }));
+    app.MapGet("/health", () => Results.Ok(new { product = "Pnara", vendor = "Pnara", status = "ok" }));
+    app.MapGet("/api/health", () => Results.Ok(new { product = "Pnara", vendor = "Pnara", status = "ok" }));
 
     if (!app.Environment.IsEnvironment("Testing"))
     {
@@ -130,7 +130,7 @@ try
 }
 catch (Exception ex) when (ex is not HostAbortedException)
 {
-    Log.Fatal(ex, "ToastIran POS terminated unexpectedly");
+    Log.Fatal(ex, "Pnara terminated unexpectedly");
     throw;
 }
 finally

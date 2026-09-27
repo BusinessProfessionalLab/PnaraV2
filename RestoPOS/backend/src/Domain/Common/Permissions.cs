@@ -1,7 +1,7 @@
 namespace RestoPOS.Domain.Common;
 
 /// <summary>
-/// Granular permission catalog for ToastIran POS. Codes are persisted and also used as JWT claims / policy names.
+/// Granular permission catalog for Pnara. Codes are persisted and also used as JWT claims / policy names.
 /// </summary>
 public static class Permissions
 {

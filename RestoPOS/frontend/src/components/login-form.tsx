@@ -61,7 +61,7 @@ export function LoginForm() {
           <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-primary-soft text-primary">
             <Store className="size-6" strokeWidth={2} aria-hidden />
           </div>
-          <h1 className="text-[1.4rem] font-bold tracking-tight">ToastIran POS</h1>
+          <h1 className="text-[1.4rem] font-bold tracking-tight">Pnara</h1>
           <p className="mt-1.5 text-[13px] leading-5 text-muted-foreground">
             صندوق فروشگاهی و مدیریت رستوران و کافه
           </p>

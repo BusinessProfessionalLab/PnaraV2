@@ -311,7 +311,7 @@ export function PosRegister() {
           </div>
           <div className="hidden min-w-0 sm:block">
             <div className="truncate text-sm font-bold leading-5">
-              {settings.data?.storeName ?? "ToastIran POS"}
+              {settings.data?.storeName ?? "Pnara"}
             </div>
             <div className="text-[11px] text-muted-foreground">
               صندوق · {session?.fullName}

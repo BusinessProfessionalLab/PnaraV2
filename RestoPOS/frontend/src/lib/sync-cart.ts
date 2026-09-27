@@ -1,5 +1,5 @@
 import { ApiError } from "@/api/errors";
-import { ordersService } from "@/services/orders.service";
+import { ordersService, type DraftOrderItem } from "@/services/orders.service";
 import { useCartStore } from "./cart-store";
 import type { OrderDto } from "./types";
 
@@ -17,14 +17,40 @@ export async function syncCartToServer(): Promise<OrderDto> {
 async function syncCartToServerInternal(): Promise<OrderDto> {
   const cart = useCartStore.getState();
   if (!cart.lines.length) throw new Error("سبد خرید خالی است.");
-  if (cart.serverOrderId && !cart.dirty) {
-    return ordersService.getOrder(cart.serverOrderId);
-  }
-
   const snapshot = {
     ...cart,
     lines: [...cart.lines],
   };
+
+  const items: DraftOrderItem[] = snapshot.lines.map((line) => ({
+    menuItemId: line.menuItemId,
+    quantity: line.quantity,
+    notes: line.notes || null,
+    modifiers: line.modifiers.map((m) => ({
+      menuItemModifierId: m.addonId ? null : m.id,
+      addonId: m.addonId ?? null,
+      quantity: m.quantity,
+    })),
+  }));
+
+  if (cart.serverOrderId && !cart.dirty) {
+    const order = await ordersService.getOrder(cart.serverOrderId);
+    if (order.status !== "Draft" || order.items.length > 0) return order;
+
+    // Older servers ignored the items sent with the create-draft request. If
+    // that left this browser linked to an empty draft, restore its local lines
+    // through the existing add-item endpoint before returning it for payment.
+    let restored = await addItemsToEmptyDraft(order, items);
+    if (snapshot.discountPercent || snapshot.discountAmount) {
+      restored = await ordersService.applyDiscount(
+        restored.id,
+        snapshot.discountPercent,
+        snapshot.discountAmount,
+      );
+    }
+    useCartStore.getState().hydrateServer(restored.id, restored.orderNumber);
+    return restored;
+  }
 
   const draftPayload = {
     orderType: snapshot.orderType,
@@ -32,19 +58,16 @@ async function syncCartToServerInternal(): Promise<OrderDto> {
     diningTableId: snapshot.diningTableId || null,
     customerPhone: snapshot.customerPhone || null,
     notes: snapshot.notes || null,
-    items: snapshot.lines.map((line) => ({
-      menuItemId: line.menuItemId,
-      quantity: line.quantity,
-      notes: line.notes || null,
-      modifiers: line.modifiers.map((m) => ({ menuItemModifierId: m.addonId ? null : m.id, addonId: m.addonId ?? null, quantity: m.quantity })),
-    })),
+    items,
   };
 
   const syncOnce = async (retryCount = 0): Promise<OrderDto> => {
     const draft = await ordersService.createDraft(draftPayload);
 
     try {
-      let last = draft;
+      // Keep this fallback for deployments where the API has not yet been
+      // updated to accept items on CreateDraftOrderCommand.
+      let last = await addItemsToEmptyDraft(draft, items);
       if (snapshot.discountPercent || snapshot.discountAmount) {
         last = await ordersService.applyDiscount(
           last.id,
@@ -63,4 +86,14 @@ async function syncCartToServerInternal(): Promise<OrderDto> {
   };
 
   return syncOnce();
+}
+
+async function addItemsToEmptyDraft(order: OrderDto, items: DraftOrderItem[]): Promise<OrderDto> {
+  if (order.items.length > 0 || items.length === 0) return order;
+
+  let updated = order;
+  for (const item of items) {
+    updated = await ordersService.addItem(order.id, item);
+  }
+  return updated;
 }

@@ -1,4 +1,4 @@
-# ToastIran POS — Frontend
+# Pnara — Frontend
 
 صندوق لمسی، نمایشگر بار/آشپزخانه و پنل مدیریت Next.js 14.
 

@@ -10,7 +10,7 @@ const vazir = Vazirmatn({
 });
 
 export const metadata: Metadata = {
-  title: "ToastIran POS — Pnara",
+  title: "Pnara",
   description: "صندوق فروشگاهی و انبار رستوران و کافه برای بازار ایران",
 };
 

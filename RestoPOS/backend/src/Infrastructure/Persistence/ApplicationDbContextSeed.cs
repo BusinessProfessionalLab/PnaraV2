@@ -153,7 +153,7 @@ public static class ApplicationDbContextSeed
         }
 
         await db.SaveChangesAsync();
-        logger.LogInformation("ToastIran POS seed completed.");
+        logger.LogInformation("Pnara seed completed.");
     }
 
     private static async Task<ApplicationRole> EnsureRole(RoleManager<ApplicationRole> roles, string name, string description, bool system)

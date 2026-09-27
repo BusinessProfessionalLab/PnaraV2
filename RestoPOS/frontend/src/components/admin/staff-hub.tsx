@@ -16,7 +16,7 @@ type RoleWithPermissions = RoleDto & { permissions?: string[] };
 export function StaffHub() {
   return (
     <Tabs defaultValue="staff">
-      <TabsList className="mb-4">
+      <TabsList dir="rtl" className="mb-4">
         <TabsTrigger value="staff">پرسنل</TabsTrigger>
         <TabsTrigger value="roles">نقش‌ها</TabsTrigger>
       </TabsList>

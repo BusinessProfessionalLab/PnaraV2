@@ -1,0 +1,250 @@
+---
+/**
+ * POS register mockup (`/pos`).
+ *
+ * Every element here mirrors the real touch register in `frontend/`:
+ * category tabs with live counts, fuzzy search that also covers recipe SKUs,
+ * order type + table number, per-item modifiers and preparation notes, the
+ * low-stock and sold-out signals on the product tiles, the loyal-customer
+ * badge, and a live receipt panel with Toman totals.
+ *
+ * Prices are held in Rial and rendered in Toman by `formatToman()`, the same
+ * conversion the product performs.
+ */
+import { Coffee, Search, ShoppingBasket, Sparkles, Wifi } from "@lucide/astro";
+import { formatToman, fa } from "@/lib/fa";
+
+const categories = [
+  { name: "همه", count: 24, active: true },
+  { name: "قهوه گرم", count: 6 },
+  { name: "قهوه سرد", count: 5 },
+  { name: "دمنوش", count: 4 },
+  { name: "کیک و دسر", count: 5 },
+  { name: "صبحانه", count: 4 },
+];
+
+const products = [
+  { title: "لاته", rial: 1_200_000, meta: "دانه اسپرسو ۱۸گ · شیر ۱۸۰م‌ل", badge: null },
+  { title: "کاپوچینو", rial: 1_100_000, meta: null, badge: null },
+  { title: "اسپرسو دوپیو", rial: 850_000, meta: null, badge: null },
+  { title: "آیس لاته", rial: 1_450_000, meta: null, badge: "nearly-out" },
+  { title: "موکا", rial: 1_350_000, meta: null, badge: null },
+  { title: "چای ماسالا", rial: 950_000, meta: null, badge: "sold-out" },
+];
+
+const lines = [
+  {
+    title: "لاته",
+    qty: 2,
+    rial: 1_200_000,
+    modifiers: ["شیر بادام +۱۵٬۰۰۰", "شات اضافه +۲۰٬۰۰۰"],
+    note: "بدون شکر",
+  },
+  { title: "آیس لاته", qty: 1, rial: 1_450_000, modifiers: [], note: null },
+];
+
+// Receipt totals, computed exactly like the register does.
+const itemsTotal = lines.reduce((sum, l) => sum + l.rial * l.qty, 0);
+const modifiersTotal = 700_000; // ۲ × شیر بادام + ۲ × شات اضافه
+const discountTotal = 0;
+const taxable = itemsTotal + modifiersTotal - discountTotal;
+const vatTotal = Math.round(taxable * 0.1);
+const grandTotal = taxable + vatTotal;
+---
+
+<div class="grid grid-cols-1 md:grid-cols-[1fr_320px] lg:grid-cols-[1fr_340px]">
+  <!-- ── Product picker ─────────────────────────────────────────────── -->
+  <div class="flex flex-col min-w-0 border-b md:border-b-0 md:border-s border-neutral-200/70 dark:border-neutral-700/60">
+    <!-- Register toolbar -->
+    <div class="flex flex-wrap items-center gap-2 px-3 sm:px-4 py-3 border-b border-neutral-200/70 dark:border-neutral-700/60">
+      <div class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-bg-primary/60 dark:bg-neutral-800/60 border border-primary/10 dark:border-neutral-700 min-w-0 flex-1">
+        <Search class="w-3.5 h-3.5 text-neutral-400 shrink-0" aria-hidden="true" />
+        <span class="text-[11px] text-neutral-400 dark:text-neutral-500 truncate">جستجوی نام، کد یا مواد اولیه…</span>
+      </div>
+
+      <div class="flex items-center rounded-lg border border-primary/10 dark:border-neutral-700 p-0.5 gap-0.5">
+        <span class="px-2.5 py-1.5 rounded-md text-[11px] font-semibold bg-primary text-white">حضوری</span>
+        <span class="px-2.5 py-1.5 rounded-md text-[11px] font-medium text-neutral-500 dark:text-neutral-400">بیرون‌بر</span>
+        <span class="px-2.5 py-1.5 rounded-md text-[11px] font-medium text-neutral-500 dark:text-neutral-400">بار</span>
+      </div>
+
+      <span class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-accent/20 text-neutral-700 dark:text-neutral-200">میز ۷</span>
+    </div>
+
+    <!-- Category tabs -->
+    <!-- Wraps instead of scrolling: the mockup is narrower than the real register,
+         and a scrolling row would clip pills behind a scrollbar. -->
+    <div class="flex flex-wrap items-center gap-1.5 px-3 sm:px-4 py-2.5 border-b border-neutral-200/70 dark:border-neutral-700/60">
+      {
+        categories.map((c) => (
+          <span
+            class:list={[
+              "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[11px] font-semibold whitespace-nowrap",
+              c.active
+                ? "border-transparent bg-primary text-white shadow-sm"
+                : "border-primary/10 dark:border-neutral-700 bg-bg-secondary dark:bg-bg-secondary-dark text-neutral-500 dark:text-neutral-400",
+            ]}
+          >
+            {c.name}
+            <span
+              class:list={[
+                "rounded-full px-1.5 py-px text-[9px] font-bold",
+                c.active
+                  ? "bg-white/20 text-white"
+                  : "bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400",
+              ]}
+            >
+              {fa(c.count)}
+            </span>
+          </span>
+        ))
+      }
+    </div>
+
+    <!-- Product grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 sm:p-4">
+      {
+        products.map((p) => (
+          <div class="relative flex flex-col rounded-2xl border border-primary/10 dark:border-neutral-700 bg-bg-secondary dark:bg-bg-secondary-dark p-2 shadow-xs overflow-hidden">
+            <div class="relative aspect-square w-full rounded-xl border border-dashed border-primary/15 dark:border-neutral-700 bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+              {/* Stand-in for the product photo the real register renders here. */}
+              <Coffee class="w-6 h-6 text-primary/25 dark:text-primary-light/25" aria-hidden="true" />
+              {p.badge === "nearly-out" && (
+                <span class="absolute start-1.5 top-1.5 px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-amber-400/95 text-amber-950">
+                  نزدیک اتمام
+                </span>
+              )}
+              {p.badge === "sold-out" && (
+                <span class="absolute start-1.5 top-1.5 px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-neutral-700/90 text-neutral-100">
+                  ناموجود
+                </span>
+              )}
+            </div>
+            <div class="flex flex-1 flex-col gap-1.5 p-1.5 pt-2">
+              <div class="text-[11px] font-bold text-neutral-800 dark:text-neutral-100 truncate">{p.title}</div>
+              {p.meta && (
+                <div class="text-[9px] text-neutral-400 dark:text-neutral-500 truncate">{p.meta}</div>
+              )}
+              <div class="mt-auto flex items-center justify-between gap-2 border-t border-dashed border-neutral-200/70 dark:border-neutral-700/60 pt-1.5">
+                <span class="text-[10px] font-medium text-primary dark:text-primary-light tabular-nums">
+                  {formatToman(p.rial)}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+
+    <!-- Mobile receipt summary (the real register opens the cart as a sheet) -->
+    <div class="md:hidden flex items-center justify-between gap-3 px-3 sm:px-4 py-3 border-t border-neutral-200/70 dark:border-neutral-700/60 bg-bg-primary/40 dark:bg-neutral-800/40">
+      <span class="inline-flex items-center gap-2 text-[11px] font-semibold text-neutral-700 dark:text-neutral-200">
+        <ShoppingBasket class="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+        {fa(lines.length + 1)} قلم · {formatToman(grandTotal)}
+      </span>
+      <span class="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-primary text-white">مشاهده صورتحساب</span>
+    </div>
+  </div>
+
+  <!-- ── Receipt panel ──────────────────────────────────────────────── -->
+  <aside class="hidden md:flex flex-col bg-bg-primary/40 dark:bg-neutral-900/40">
+    <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-neutral-200/70 dark:border-neutral-700/60">
+      <span class="inline-flex items-center gap-2 text-[12px] font-bold text-neutral-800 dark:text-neutral-100">
+        <ShoppingBasket class="w-4 h-4 text-primary" aria-hidden="true" />
+        صورتحساب
+      </span>
+      {/* Order numbers are generated as Latin identifiers — keep them LTR. */}
+      <span class="font-latin text-[10px] text-neutral-400 dark:text-neutral-500 tabular-nums" dir="ltr">#1024</span>
+    </div>
+
+    <!-- Customer + loyalty -->
+    <div class="px-4 py-3 border-b border-dashed border-neutral-200/70 dark:border-neutral-700/60">
+      <div class="flex items-center gap-2">
+        <span class="font-latin text-[11px] font-medium text-neutral-700 dark:text-neutral-200 tabular-nums" dir="ltr"
+          >0912 345 6789</span
+        >
+        <span
+          class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-accent/25 text-amber-800 dark:text-amber-200"
+        >
+          <Sparkles class="w-2.5 h-2.5" aria-hidden="true" />
+          مشتری وفادار — ۷ سفارش قبلی
+        </span>
+      </div>
+    </div>
+
+    <!-- Lines -->
+    <div class="flex-1 divide-y divide-dashed divide-neutral-200/70 dark:divide-neutral-700/60">
+      {
+        lines.map((line) => (
+          <div class="px-4 py-3">
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-[12px] font-bold text-neutral-800 dark:text-neutral-100">
+                {line.title}
+                <span class="text-neutral-400 dark:text-neutral-500 font-medium">× {fa(line.qty)}</span>
+              </span>
+              <span class="text-[11px] font-semibold text-neutral-700 dark:text-neutral-200 tabular-nums">
+                {formatToman(line.rial * line.qty)}
+              </span>
+            </div>
+            {line.modifiers.length > 0 && (
+              <div class="flex flex-wrap gap-1 mt-1.5">
+                {line.modifiers.map((m: string) => (
+                  <span class="px-1.5 py-0.5 rounded text-[9px] bg-primary/8 text-primary dark:text-primary-light">
+                    {m}
+                  </span>
+                ))}
+              </div>
+            )}
+            {line.note && (
+              <div class="text-[9px] text-neutral-400 dark:text-neutral-500 mt-1.5">یادداشت: {line.note}</div>
+            )}
+          </div>
+        ))
+      }
+    </div>
+
+    <!-- Totals -->
+    <div class="px-4 py-3 border-t border-dashed border-neutral-200/70 dark:border-neutral-700/60 space-y-1.5">
+      {
+        [
+          { label: "جمع اقلام", value: itemsTotal },
+          { label: "افزودنی‌ها", value: modifiersTotal },
+          { label: "تخفیف", value: discountTotal },
+          { label: "ارزش افزوده ۱۰٪", value: vatTotal },
+        ].map((row) => (
+          <div class="flex items-center justify-between text-[11px]">
+            <span class="text-neutral-500 dark:text-neutral-400">{row.label}</span>
+            <span class="text-neutral-700 dark:text-neutral-200 tabular-nums">{formatToman(row.value)}</span>
+          </div>
+        ))
+      }
+      <div class="flex items-center justify-between pt-2 border-t border-dashed border-neutral-200/70 dark:border-neutral-700/60">
+        <span class="text-[12px] font-bold text-neutral-800 dark:text-neutral-100">قابل پرداخت</span>
+        <span class="text-[13px] font-bold text-primary dark:text-primary-light tabular-nums">
+          {formatToman(grandTotal)}
+        </span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="p-3 grid grid-cols-2 gap-2">
+      <span class="col-span-2 text-center px-3 py-2.5 rounded-xl text-[12px] font-bold bg-primary text-white">
+        ارسال به بار و آشپزخانه
+      </span>
+      <span
+        class="text-center px-3 py-2 rounded-xl text-[11px] font-semibold border border-primary/20 dark:border-neutral-600 text-neutral-600 dark:text-neutral-300"
+      >
+        ثبت موقت
+      </span>
+      <span
+        class="text-center px-3 py-2 rounded-xl text-[11px] font-semibold border border-primary/20 dark:border-neutral-600 text-neutral-600 dark:text-neutral-300"
+      >
+        تسویه
+      </span>
+      <div class="col-span-2 flex items-center justify-center gap-1.5 pt-1">
+        <Wifi class="w-3 h-3 text-emerald-500" aria-hidden="true" />
+        <span class="text-[9px] text-neutral-400 dark:text-neutral-500">اتصال پرینتر و کارتخوان برقرار است</span>
+      </div>
+    </div>
+  </aside>
+</div>

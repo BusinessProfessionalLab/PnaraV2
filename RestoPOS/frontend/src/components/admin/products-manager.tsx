@@ -27,21 +27,24 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  useAddons,
-  useAttachAddon,
+  useAddOptionToGroup,
   useCategories,
   useCreateMenuItem,
   useCreateModifier,
+  useCreateModifierGroup,
   useDeleteMenuItem,
   useDeleteModifier,
-  useDetachAddon,
+  useDeleteModifierGroup,
   useMenuItems,
+  useToggleSoldOut,
   useUpdateMenuItem,
   useUpdateModifier,
+  useUpsertRecipe,
 } from "@/queries/menu";
 import { useInventory } from "@/queries/inventory";
 import { errorMessage } from "@/api/errors";
 import {
+  Ban,
   CirclePlus,
   FolderTree,
   ImagePlus,
@@ -55,10 +58,15 @@ import {
 } from "lucide-react";
 import { formatToman } from "@/lib/currency";
 import { fuzzyScore } from "@/lib/fuzzy-search";
-import { cn } from "@/lib/cn";
-import type { InventoryItemDto, MenuItemDto, RecipeLineDto, TicketStation } from "@/lib/types";
+import type {
+  InventoryItemListDto,
+  MenuItemDto,
+  ModifierGroupDto,
+  RecipeLineDto,
+  TicketStation,
+} from "@/lib/types";
 
-type Category = { id: string; name: string };
+type Category = { id: string; name: string | null };
 
 async function cropImageToSquare(file: File): Promise<string> {
   const source = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -153,13 +161,13 @@ function ImageUpload({ value, onChange }: { value: string; onChange: (url: strin
 export function ProductsManager() {
   const cats = useCategories(true);
   const items = useMenuItems(false);
-  const inv = useInventory();
+  const inv = useInventory({ pageSize: 200 });
   const [categoryId, setCategoryId] = useState("all");
   const [query, setQuery] = useState("");
   const [editItemId, setEditItemId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
-  const categories = useMemo(() => (cats.data ?? []).filter((c) => !c.isSystem), [cats.data]);
+  const categories = useMemo(() => cats.data ?? [], [cats.data]);
 
   const filtered = useMemo(() => {
     const list = items.data ?? [];
@@ -169,7 +177,7 @@ export function ProductsManager() {
       return (
         fuzzyScore(
           query,
-          `${item.title} ${item.nameEn ?? ""} ${item.description ?? ""} ${item.categoryName}`,
+          `${item.title ?? ""} ${item.description ?? ""} ${item.categoryName ?? ""}`,
         ) > 0
       );
     });
@@ -179,6 +187,8 @@ export function ProductsManager() {
     () => items.data?.find((i) => i.id === editItemId) ?? null,
     [items.data, editItemId],
   );
+
+  const inventory = inv.data?.items ?? [];
 
   return (
     <div className="space-y-4">
@@ -284,7 +294,7 @@ export function ProductsManager() {
               <ItemEditor
                 key={editingItem.id}
                 item={editingItem}
-                inventory={inv.data ?? []}
+                inventory={inventory}
                 onDeleted={() => setEditItemId(null)}
               />
             ) : null}
@@ -308,7 +318,7 @@ export function ProductsManager() {
                 description="ابتدا از بخش «دسته‌بندی‌ها» یک دسته بسازید"
               />
             ) : (
-              <ProductForm categories={categories} inventory={inv.data ?? []} onCreated={() => setCreateOpen(false)} />
+              <ProductForm categories={categories} inventory={inventory} onCreated={() => setCreateOpen(false)} />
             )}
           </DialogBody>
         </DialogContent>
@@ -329,7 +339,7 @@ function ProductCard({ item, onClick }: { item: MenuItemDto; onClick: () => void
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={item.imageUrl}
-            alt={item.title}
+            alt={item.title ?? ""}
             className="aspect-square w-full rounded-xl object-cover ring-1 ring-border/50"
           />
         ) : (
@@ -340,6 +350,10 @@ function ProductCard({ item, onClick }: { item: MenuItemDto; onClick: () => void
         {!item.isActive ? (
           <Badge variant="neutral" className="absolute end-2 top-2 backdrop-blur-sm">
             غیرفعال
+          </Badge>
+        ) : item.isSoldOut ? (
+          <Badge variant="danger" className="absolute end-2 top-2 backdrop-blur-sm">
+            تمام شد
           </Badge>
         ) : null}
       </div>
@@ -362,71 +376,20 @@ function ProductCard({ item, onClick }: { item: MenuItemDto; onClick: () => void
 
 /* ──────────────────────────────────────────────────────────────── */
 
-function AddonSelector({
-  addons,
-  selected,
-  onChange,
-}: {
-  addons: import("@/lib/types").AddonDto[];
-  selected: string[];
-  onChange: (ids: string[]) => void;
-}) {
-  return (
-    <div className="rounded-xl border border-border p-3">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold">افزودنی‌های مشترک این محصول</span>
-        <Badge variant="neutral" className="tabular-nums">
-          {selected.length} انتخاب
-        </Badge>
-      </div>
-      {addons.length === 0 ? (
-        <p className="mt-2 text-xs text-muted-foreground">ابتدا یک افزودنی مشترک بسازید.</p>
-      ) : (
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {addons.map((a) => {
-            const on = selected.includes(a.id);
-            return (
-              <label
-                key={a.id}
-                className={cn(
-                  "flex cursor-pointer items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors duration-150",
-                  on ? "border-primary/40 bg-primary-soft/50" : "border-border hover:border-border-strong",
-                )}
-              >
-                <input
-                  type="checkbox"
-                  checked={on}
-                  onChange={(e) => onChange(e.target.checked ? [...selected, a.id] : selected.filter((id) => id !== a.id))}
-                  className="size-4 rounded border-border accent-(--color-primary)"
-                />
-                <span className="min-w-0 flex-1 truncate">{a.name}</span>
-                <span className="text-xs text-muted-foreground tabular-nums">{formatToman(a.extraPrice)}</span>
-              </label>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function ProductForm({
   categories,
   inventory,
   onCreated,
 }: {
   categories: Category[];
-  inventory: InventoryItemDto[];
+  inventory: InventoryItemListDto[];
   onCreated?: () => void;
 }) {
-  const allAddons = useAddons(false);
   const allItems = useMenuItems(false);
   const createItem = useCreateMenuItem();
-  const attachAddon = useAttachAddon();
+  const saveRecipe = useUpsertRecipe();
   const [submitting, setSubmitting] = useState(false);
-  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [title, setTitle] = useState("");
-  const [nameEn, setNameEn] = useState("");
   const [price, setPrice] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -441,7 +404,6 @@ function ProductForm({
         Math.max(0, ...(allItems.data ?? []).filter((item) => item.categoryId === categoryId).map((item) => item.displayPriority)) + 1;
       const id = await createItem.mutateAsync({
         title,
-        nameEn: nameEn || null,
         description: null,
         basePrice: Number(price) * 10,
         taxInclusive: false,
@@ -451,19 +413,22 @@ function ProductForm({
         isActive: true,
         ticketStation: station,
         prepTimeMinutes: 4,
-        recipeLines,
       });
-      await Promise.all(
-        selectedAddons.map((addonId) =>
-          attachAddon.mutateAsync({ menuItemId: id, addonId }),
-        ),
-      );
+      // The create command carries no lines — the recipe is saved right after
+      // through the dedicated upsert endpoint.
+      if (recipeLines.length > 0) {
+        await saveRecipe.mutateAsync({
+          menuItemId: id,
+          menuItemModifierId: null,
+          name: `BOM ${title}`,
+          lines: recipeLines,
+        });
+      }
       toast.success("محصول ثبت شد");
       setTitle("");
-      setNameEn("");
       setPrice("");
       setImageUrl("");
-      setSelectedAddons([]);
+      setRecipeLines([]);
       onCreated?.();
     } catch (error) {
       toast.error(errorMessage(error));
@@ -483,9 +448,6 @@ function ProductForm({
       <Field label="نام فارسی محصول">
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثلاً اسپرسو" />
       </Field>
-      <Field label="نام انگلیسی (اختیاری)">
-        <Input dir="ltr" className="text-start" value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="Espresso" />
-      </Field>
       <Field label="قیمت">
         <PriceInput value={price} onChange={setPrice} placeholder="قیمت محصول" />
       </Field>
@@ -497,7 +459,7 @@ function ProductForm({
           <SelectContent>
             {categories.map((c) => (
               <SelectItem key={c.id} value={c.id}>
-                {c.name}
+                {c.name ?? "—"}
               </SelectItem>
             ))}
           </SelectContent>
@@ -516,9 +478,6 @@ function ProductForm({
         </Select>
       </Field>
       <ImageUpload value={imageUrl} onChange={setImageUrl} />
-      <div className="sm:col-span-2">
-        <AddonSelector addons={allAddons.data ?? []} selected={selectedAddons} onChange={setSelectedAddons} />
-      </div>
       <div className="sm:col-span-2">
         <RecipeEditor item={null} inventory={inventory} onLinesChange={setRecipeLines} />
       </div>
@@ -543,27 +502,40 @@ function ItemEditor({
   onDeleted,
 }: {
   item: MenuItemDto;
-  inventory: InventoryItemDto[];
+  inventory: InventoryItemListDto[];
   onDeleted?: () => void;
 }) {
-  const allAddons = useAddons(false);
   const updateItem = useUpdateMenuItem();
   const deleteItem = useDeleteMenuItem();
   const createModifier = useCreateModifier();
   const editModifier = useUpdateModifier();
   const removeModifier = useDeleteModifier();
-  const attachAddon = useAttachAddon();
-  const detachAddon = useDetachAddon();
-  const [sharedAddonIds, setSharedAddonIds] = useState<string[]>(() => (item.addons ?? []).map((a) => a.id));
-  const [title, setTitle] = useState(item.title);
-  const [nameEn, setNameEn] = useState(item.nameEn ?? "");
+  const createGroup = useCreateModifierGroup();
+  const removeGroup = useDeleteModifierGroup();
+  const addOption = useAddOptionToGroup();
+  const toggleSoldOut = useToggleSoldOut();
+  const [title, setTitle] = useState(item.title ?? "");
   const [description, setDescription] = useState(item.description ?? "");
   const [price, setPrice] = useState(String(item.basePrice / 10));
   const [imageUrl, setImageUrl] = useState(item.imageUrl ?? "");
   const [modName, setModName] = useState("");
   const [modPrice, setModPrice] = useState("");
   const [editingMod, setEditingMod] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<null | { kind: "product" } | { kind: "modifier"; id: string; name: string }>(null);
+  const [groupName, setGroupName] = useState("");
+  const [groupRequired, setGroupRequired] = useState(false);
+  const [optionGroupId, setOptionGroupId] = useState<string | null>(null);
+  const [optionName, setOptionName] = useState("");
+  const [optionPrice, setOptionPrice] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<
+    | null
+    | { kind: "product" }
+    | { kind: "modifier"; id: string; name: string }
+    | { kind: "group"; id: string; name: string }
+  >(null);
+
+  const modifiers = item.modifiers ?? [];
+  const groups = item.modifierGroups ?? [];
+  const looseModifiers = modifiers.filter((modifier) => !modifier.modifierGroupId);
 
   async function update() {
     try {
@@ -571,7 +543,6 @@ function ItemEditor({
         id: item.id,
         payload: {
           title,
-          nameEn: nameEn || null,
           description: description || null,
           basePrice: Number(price) * 10,
           taxInclusive: item.taxInclusive,
@@ -609,9 +580,9 @@ function ItemEditor({
             name: modName,
             extraPrice: Number(modPrice) * 10,
             ticketStation: item.ticketStation,
-            displayPriority:
-              item.modifiers.find((m) => m.id === editingMod)?.displayPriority ?? 1,
+            displayPriority: modifiers.find((m) => m.id === editingMod)?.displayPriority ?? 1,
             isActive: true,
+            modifierGroupId: modifiers.find((m) => m.id === editingMod)?.modifierGroupId ?? null,
           },
         });
       } else {
@@ -620,7 +591,8 @@ function ItemEditor({
           name: modName,
           extraPrice: Number(modPrice) * 10,
           ticketStation: item.ticketStation,
-          displayPriority: item.modifiers.length + 1,
+          displayPriority: modifiers.length + 1,
+          modifierGroupId: null,
         });
       }
       toast.success(editingMod ? "اضافه ویرایش شد" : "اضافه ثبت شد");
@@ -641,13 +613,61 @@ function ItemEditor({
     }
   }
 
+  async function saveGroup() {
+    try {
+      await createGroup.mutateAsync({
+        menuItemId: item.id,
+        name: groupName,
+        minSelections: 0,
+        maxSelections: 1,
+        isRequired: groupRequired,
+        displayPriority: groups.length + 1,
+      });
+      toast.success("گروه افزودنی ساخته شد");
+      setGroupName("");
+      setGroupRequired(false);
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
+
+  async function saveOption(group: ModifierGroupDto) {
+    try {
+      await addOption.mutateAsync({
+        groupId: group.id,
+        payload: {
+          modifierGroupId: group.id,
+          name: optionName,
+          extraPrice: Number(optionPrice) * 10,
+          ticketStation: item.ticketStation,
+          displayPriority: (group.options ?? []).length + 1,
+        },
+      });
+      toast.success("گزینه اضافه شد");
+      setOptionGroupId(null);
+      setOptionName("");
+      setOptionPrice("");
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
+
+  async function deleteGroup(id: string) {
+    try {
+      await removeGroup.mutateAsync(id);
+      toast.success("گروه افزودنی حذف شد");
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
+
   return (
     <div className="space-y-5">
       {/* Product identity */}
       <div className="flex items-center gap-3">
         {item.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.imageUrl} alt={item.title} className="size-12 rounded-xl object-cover ring-1 ring-border" />
+          <img src={item.imageUrl} alt={item.title ?? ""} className="size-12 rounded-xl object-cover ring-1 ring-border" />
         ) : (
           <div className="flex size-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
             <Layers3 className="size-5" aria-hidden />
@@ -659,6 +679,25 @@ function ItemEditor({
             {item.categoryName} · {formatToman(item.basePrice)}
           </div>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="shrink-0"
+          loading={toggleSoldOut.isPending}
+          onClick={() =>
+            toggleSoldOut.mutate(
+              { id: item.id, isSoldOut: !item.isSoldOut },
+              {
+                onSuccess: () =>
+                  toast.success(item.isSoldOut ? "محصول موجود شد" : "محصول «تمام شد» علامت خورد"),
+                onError: (error) => toast.error(errorMessage(error)),
+              },
+            )
+          }
+        >
+          <Ban className="size-3.5" aria-hidden />
+          {item.isSoldOut ? "موجود شد" : "تمام شد"}
+        </Button>
         <Button
           variant="outline"
           size="sm"
@@ -676,9 +715,6 @@ function ItemEditor({
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="نام فارسی">
             <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-          </Field>
-          <Field label="نام انگلیسی">
-            <Input dir="ltr" className="text-start" value={nameEn} onChange={(e) => setNameEn(e.target.value)} />
           </Field>
           <Field label="قیمت">
             <PriceInput value={price} onChange={setPrice} />
@@ -698,31 +734,126 @@ function ItemEditor({
         </Button>
       </div>
 
-      {/* Shared addons */}
-      <AddonSelector
-        addons={allAddons.data ?? []}
-        selected={sharedAddonIds}
-        onChange={async (ids) => {
-          const added = ids.filter((id) => !sharedAddonIds.includes(id));
-          const removed = sharedAddonIds.filter((id) => !ids.includes(id));
-          await Promise.all([
-            ...added.map((id) =>
-              attachAddon.mutateAsync({ menuItemId: item.id, addonId: id }),
-            ),
-            ...removed.map((id) =>
-              detachAddon.mutateAsync({ menuItemId: item.id, addonId: id }),
-            ),
-          ]);
-          setSharedAddonIds(ids);
-        }}
-      />
+      {/* Add-on groups */}
+      <div className="space-y-3 rounded-xl border border-border p-3.5">
+        <SectionLabel>گروه‌های افزودنی این محصول</SectionLabel>
+        <p className="text-xs text-muted-foreground">
+          گزینه‌هایی که مشتری باید از میانشان انتخاب کند (مثلاً انتخاب نوع شیر) در گروه‌ها تعریف می‌شوند.
+        </p>
+        {groups.length === 0 ? (
+          <p className="text-xs text-muted-foreground">گروهی ساخته نشده است.</p>
+        ) : (
+          <ul className="space-y-2">
+            {groups.map((group) => (
+              <li key={group.id} className="rounded-lg border border-border p-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">{group.name}</span>
+                  {group.isRequired ? <Badge variant="warning">الزامی</Badge> : null}
+                  <span className="text-[11px] text-muted-foreground">
+                    حداقل {group.minSelections} · حداکثر {group.maxSelections}
+                  </span>
+                  <span className="ms-auto flex items-center gap-1">
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="ghost"
+                      className="text-muted-foreground"
+                      aria-label={`افزودن گزینه به ${group.name}`}
+                      onClick={() => {
+                        setOptionGroupId(optionGroupId === group.id ? null : group.id);
+                        setOptionName("");
+                        setOptionPrice("");
+                      }}
+                    >
+                      <Plus className="size-3.5" aria-hidden />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="ghost"
+                      className="text-muted-foreground hover:bg-danger/10 hover:text-danger"
+                      aria-label={`حذف گروه ${group.name}`}
+                      onClick={() => setConfirmDelete({ kind: "group", id: group.id, name: group.name ?? "" })}
+                    >
+                      <Trash2 className="size-3.5" aria-hidden />
+                    </Button>
+                  </span>
+                </div>
+                {(group.options ?? []).length > 0 ? (
+                  <ul className="mt-2 space-y-1">
+                    {(group.options ?? []).map((option) => (
+                      <li key={option.id} className="flex items-center gap-2 rounded-md bg-muted/40 px-2 py-1.5">
+                        <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{option.name}</span>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          +{formatToman(option.extraPrice)}
+                        </span>
+                        <Button
+                          type="button"
+                          size="icon-sm"
+                          variant="ghost"
+                          className="text-muted-foreground hover:bg-danger/10 hover:text-danger"
+                          aria-label={`حذف گزینه ${option.name}`}
+                          onClick={() => setConfirmDelete({ kind: "modifier", id: option.id, name: option.name ?? "" })}
+                        >
+                          <Trash2 className="size-3" aria-hidden />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-[11px] text-muted-foreground">گزینه‌ای در این گروه نیست.</p>
+                )}
+                {optionGroupId === group.id ? (
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <Input value={optionName} onChange={(e) => setOptionName(e.target.value)} placeholder="نام گزینه، مثلاً شیر بادام" />
+                    <PriceInput value={optionPrice} onChange={setOptionPrice} placeholder="قیمت اضافه" />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="col-span-2"
+                      loading={addOption.isPending}
+                      disabled={!optionName.trim() || !optionPrice}
+                      onClick={() => saveOption(group)}
+                    >
+                      <Plus className="size-4" aria-hidden />
+                      افزودن گزینه
+                    </Button>
+                  </div>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+          <Input value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="نام گروه جدید، مثلاً انتخاب شیر" />
+          <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-[13px] font-medium">
+            <input
+              type="checkbox"
+              checked={groupRequired}
+              onChange={(e) => setGroupRequired(e.target.checked)}
+              className="size-4 rounded border-border accent-(--color-primary)"
+            />
+            الزامی
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            loading={createGroup.isPending}
+            disabled={!groupName.trim()}
+            onClick={() => saveGroup()}
+          >
+            <Plus className="size-4" aria-hidden />
+            ساخت گروه
+          </Button>
+        </div>
+      </div>
 
       {/* Item-specific extras */}
       <div className="space-y-3 rounded-xl border border-border p-3.5">
         <SectionLabel>اضافات این محصول</SectionLabel>
-        {item.modifiers.length > 0 ? (
+        {looseModifiers.length > 0 ? (
           <ul className="space-y-1.5">
-            {item.modifiers.map((m) => (
+            {looseModifiers.map((m) => (
               <li key={m.id} className="flex items-center gap-2 rounded-lg border border-border p-2">
                 <div className="min-w-0 flex-1">
                   <span className="text-sm font-semibold">{m.name}</span>
@@ -738,7 +869,7 @@ function ItemEditor({
                   aria-label={`ویرایش ${m.name}`}
                   onClick={() => {
                     setEditingMod(m.id);
-                    setModName(m.name);
+                    setModName(m.name ?? "");
                     setModPrice(String(m.extraPrice / 10));
                   }}
                 >
@@ -750,7 +881,7 @@ function ItemEditor({
                   variant="ghost"
                   className="text-muted-foreground hover:bg-danger/10 hover:text-danger"
                   aria-label={`حذف ${m.name}`}
-                  onClick={() => setConfirmDelete({ kind: "modifier", id: m.id, name: m.name })}
+                  onClick={() => setConfirmDelete({ kind: "modifier", id: m.id, name: m.name ?? "" })}
                 >
                   <Trash2 className="size-3.5" aria-hidden />
                 </Button>
@@ -782,17 +913,29 @@ function ItemEditor({
       <ConfirmDialog
         open={Boolean(confirmDelete)}
         onOpenChange={(open) => !open && setConfirmDelete(null)}
-        title={confirmDelete?.kind === "modifier" ? `حذف اضافه «${confirmDelete.name}»` : "حذف محصول"}
+        title={
+          confirmDelete?.kind === "modifier"
+            ? `حذف «${confirmDelete.name}»`
+            : confirmDelete?.kind === "group"
+              ? `حذف گروه «${confirmDelete.name}»`
+              : "حذف محصول"
+        }
         description={
           confirmDelete?.kind === "modifier"
-            ? "این اضافه از محصول حذف می‌شود."
-            : "محصول به‌همراه رسپی و ارتباط‌هایش حذف می‌شود."
+            ? "این مورد از محصول حذف می‌شود."
+            : confirmDelete?.kind === "group"
+              ? "گروه به‌همراه گزینه‌هایش حذف می‌شود."
+              : "محصول به‌همراه رسپی و ارتباط‌هایش حذف می‌شود."
         }
         confirmLabel="حذف"
-        pending={deleteItem.isPending || removeModifier.isPending}
+        pending={deleteItem.isPending || removeModifier.isPending || removeGroup.isPending}
         onConfirm={() => {
           if (confirmDelete?.kind === "modifier") {
             deleteMod(confirmDelete.id);
+            setConfirmDelete(null);
+          } else if (confirmDelete?.kind === "group") {
+            deleteGroup(confirmDelete.id);
+            setConfirmDelete(null);
           } else if (confirmDelete?.kind === "product") {
             remove();
           }

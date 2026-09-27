@@ -13,7 +13,6 @@ import {
   MonitorSmartphone,
   Settings,
   Store,
-  Tag,
   Users,
   UtensilsCrossed,
   X,
@@ -37,7 +36,6 @@ const NAV: NavSection[] = [
     items: [
       { href: "/admin", label: "داشبورد", icon: LayoutDashboard },
       { href: "/admin/menu", label: "منو و رسپی", icon: UtensilsCrossed },
-      { href: "/admin/discounts", label: "تخفیف‌ها", icon: Tag },
       { href: "/admin/inventory", label: "انبار", icon: Boxes },
     ],
   },
@@ -64,7 +62,7 @@ function SidebarNav({
   storeName,
   onNavigate,
 }: {
-  storeName?: string;
+  storeName?: string | null;
   onNavigate?: () => void;
 }) {
   const path = usePathname();
@@ -248,7 +246,7 @@ function RailNav({
   storeName,
   onNavigate,
 }: {
-  storeName?: string;
+  storeName?: string | null;
   onNavigate?: () => void;
 }) {
   const path = usePathname();

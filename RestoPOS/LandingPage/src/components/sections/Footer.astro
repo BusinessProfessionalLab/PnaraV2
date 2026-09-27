@@ -1,0 +1,117 @@
+---
+import Logo from "@/components/ui/Logo.astro";
+import ToTop from "@/components/widgets/ToTop.astro";
+import { siteConfig } from "@/config/site.js";
+import { faDigits } from "@/lib/fa";
+
+// Persian numerals, to match every other number on the site. `faDigits` rather
+// than `fa` because a year must not get a thousands separator.
+const currentYear = faDigits(new Date().getFullYear());
+
+const footerGroups = [
+  {
+    title: "محصول",
+    links: [
+      { name: "قابلیت‌ها", url: "/features" },
+      { name: "صندوق لمسی و فروش", url: "/features#pos" },
+      { name: "انبار و مواد اولیه", url: "/features#inventory" },
+      { name: "گزارش‌ها و سود", url: "/features#reports" },
+      { name: "سخت‌افزار و اتصال‌ها", url: "/features#hardware" },
+    ],
+  },
+  {
+    title: "راه‌اندازی",
+    links: [
+      { name: "پیش‌نیازهای نصب", url: "/about#setup" },
+      { name: "کارتخوان‌های PC-POS", url: "/features#hardware" },
+      { name: "پرینتر حرارتی", url: "/features#hardware" },
+      { name: "نمایشگر بار و آشپزخانه", url: "/features#kds" },
+    ],
+  },
+  {
+    title: "توست‌ایران",
+    links: [
+      { name: "درباره محصول", url: "/about" },
+      { name: "تغییرات نسخه‌ها", url: "/changelog" },
+      { name: "تماس با ما", url: "/contact" },
+    ],
+  },
+  {
+    title: "شروع کنید",
+    links: [
+      { name: "درخواست دمو", url: "/contact" },
+      { name: "پرسش‌های متداول", url: "/#faq" },
+      { name: "نقش‌ها و دسترسی‌ها", url: "/features#staff" },
+    ],
+  },
+];
+---
+
+<footer
+  class="text-neutral-700 border-t mt-20 md:mt-32 border-dashed border-primary/15 dark:border-primary-dark/15 border-[.75px]"
+>
+  <div class="container mx-auto px-7 max-w-7xl py-12 md:py-16">
+    <!-- Top: brand + link groups -->
+    <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-10 lg:gap-16 mb-12">
+      <div class="max-w-sm">
+        <Logo />
+        <p class="mt-4 text-sm text-neutral-500 dark:text-neutral-400 leading-7">
+          صندوق لمسی، انبار و گزارش‌های کافه و رستوران — ساخته‌شده برای بازار ایران: مبالغ به تومان،
+          تقویم شمسی و کارتخوان‌های PC-POS داخلی.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-8 md:gap-12">
+        {
+          footerGroups.map((group) => (
+            <div>
+              <h4 class="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-4">{group.title}</h4>
+              <ul class="space-y-3">
+                {group.links.map((link) => (
+                  <li>
+                    <a
+                      href={link.url}
+                      class="text-sm text-neutral-500 dark:text-neutral-400 hover:text-primary dark:hover:text-primary-light transition-colors duration-200"
+                    >
+                      {link.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+
+    <!-- Bottom bar -->
+    <div
+      class="border-t border-dashed border-primary/10 dark:border-primary-dark/10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4"
+    >
+      <p class="text-sm text-neutral-400 dark:text-neutral-500 text-center sm:text-start">
+        © {currentYear}
+        <a href="/" class="hover:text-primary dark:hover:text-primary-light transition-colors">{siteConfig.author}</a>
+        — تمام حقوق محفوظ است.
+      </p>
+
+      <div class="flex items-center gap-4">
+        <span class="inline-flex items-center gap-2 text-xs text-neutral-400 dark:text-neutral-500">
+          <span
+            class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-dashed border-primary/30 text-primary/80"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+            نسخه {siteConfig.product.version}
+          </span>
+          <a
+            href={`mailto:${siteConfig.mail}`}
+            class="hover:text-primary dark:hover:text-primary-light transition-colors"
+            dir="ltr">{siteConfig.mail}</a
+          >
+        </span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Back to top -->
+<ToTop />

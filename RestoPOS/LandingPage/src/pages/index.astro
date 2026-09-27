@@ -1,0 +1,610 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import HeroSection from "@/components/home/HeroSection.astro";
+import SectionHeader from "@/components/elements/SectionHeader.astro";
+import FAQ from "@/components/sections/FAQ.astro";
+import Button from "@/components/ui/Button.astro";
+import AppFrame from "@/components/ui/AppFrame.astro";
+import PosPreview from "@/components/product/PosPreview.astro";
+import KdsPreview from "@/components/product/KdsPreview.astro";
+import ReportsPreview from "@/components/product/ReportsPreview.astro";
+import InventoryPreview from "@/components/product/InventoryPreview.astro";
+import { siteConfig } from "@/config/site";
+import { fa } from "@/lib/fa";
+import {
+  MonitorSmartphone, ChefHat, UtensilsCrossed, Boxes, ChartColumn, Users,
+  Clock3, Lock, Printer, Server, CreditCard, Search, TrendingUp, ShieldCheck,
+  FileSpreadsheet, BadgePercent, PackagePlus, TriangleAlert, Check,
+  CalendarRange, ArrowLeft
+} from "@lucide/astro";
+
+/* ── What the system runs on (real integrations only) ───────────────── */
+const integrations = [
+  { icon: CreditCard, title: "کارتخوان‌های PC-POS", desc: "آسان‌پرداخت · سامان‌کیش (SEP) · به‌پرداخت ملت — روی LAN یا COM" },
+  { icon: Printer, title: "پرینتر حرارتی ESC/POS", desc: "ارسال مستقیم روی شبکه، پورت ۹۱۰۰ — یا چاپ از مرورگر روی رول ۸۰ و ۵۸" },
+  { icon: MonitorSmartphone, title: "صفحه لمسی", desc: "صندوق تمام‌صفحه روی مانیتور لمسی؛ دکمه‌ها برای لمس اندازه‌گذاری شده‌اند" },
+  { icon: Server, title: `${siteConfig.product.runtime} + ${siteConfig.product.database}`, desc: "بک‌اند روی سرور خودتان؛ داده‌ها در انبار داده خودتان می‌ماند" },
+];
+
+/* ── The operational problems this replaces ─────────────────────────── */
+const problems = [
+  {
+    icon: Boxes,
+    title: "موجودی روی کاغذ است، نه در سیستم",
+    desc: "هر لاته ۱۸ گرم دانه و ۱۸۰ میلی‌لیتر شیر مصرف می‌کند. وقتی مصرف را دستی کم می‌کنید، عدد انبار تا آخر هفته دیگر واقعی نیست و خرید بعدی حدسی می‌شود.",
+  },
+  {
+    icon: BadgePercent,
+    title: "سود هر آیتم معلوم نیست",
+    desc: "میانگین موزون بهای خرید مواد اولیه در سیستم نگه داشته می‌شود؛ پس گزارش سود، هزینه تمام‌شده هر آیتم را کنار درآمدش می‌گذارد — نه فقط فروش را.",
+  },
+  {
+    icon: Clock3,
+    title: "اختلاف صندوق، آخر شب",
+    desc: "مبلغ مورد انتظار صندوق از فروش نقد به‌علاوه برداشت‌ها و پرداخت‌های نقدی ثبت‌شده حساب می‌شود؛ اختلاف را همان شب می‌بینید، نه آخر ماه.",
+  },
+  {
+    icon: TriangleAlert,
+    title: "سفارش بین صندوق و بار گم می‌شود",
+    desc: "بلیت آماده‌سازی جدا برای بار و آشپزخانه چاپ می‌شود و نمایشگر ایستگاه با صدا خبر می‌دهد؛ دیگر کسی دنبال «سفارش فلان میز» نمی‌گردد.",
+  },
+];
+
+/* ── Core capabilities, grouped the way a café actually works ───────── */
+const capabilities = [
+  {
+    icon: MonitorSmartphone,
+    title: "صندوق لمسی",
+    desc: "دکمه‌های بزرگ برای لمس، جستجوی فازی روی نام، توضیح، دسته و کد مواد اولیه، و انتخاب چند محصول با هم.",
+    href: "/features#pos",
+  },
+  {
+    icon: ChefHat,
+    title: "نمایشگر بار و آشپزخانه",
+    desc: "هر ایستگاه فقط ردیف‌های خودش را می‌بیند؛ به‌روزرسانی زنده با SignalR و هشدار صوتی برای سفارش جدید.",
+    href: "/features#kds",
+  },
+  {
+    icon: UtensilsCrossed,
+    title: "منو، افزودنی و رسپی",
+    desc: "دسته‌بندی با ترتیب دلخواه، افزودنی مشترک یا اختصاصی، گروه انتخاب اجباری و مصرف مواد برای هر آیتم.",
+    href: "/features#menu",
+  },
+  {
+    icon: PackagePlus,
+    title: "انبار و رسپی",
+    desc: "فاکتور خرید، ضایعات با علت، گردش کامل کالا و هشدار نقطه سفارش. کسر انبار با ارسال سفارش خودکار انجام می‌شود.",
+    href: "/features#inventory",
+  },
+  {
+    icon: ChartColumn,
+    title: "گزارش‌ها و سود",
+    desc: "ساعات پیک، سهم دسته‌ها از درآمد، پرفروش در برابر کم‌فروش، و ممیزی عملکرد هر صندوق‌دار.",
+    href: "/features#reports",
+  },
+  {
+    icon: Users,
+    title: "باشگاه مشتریان",
+    desc: "مشتری با شماره موبایل بعد از اولین تسویه خودکار ثبت می‌شود؛ تعداد مراجعه، خرید عمری و امتیاز وفاداری.",
+    href: "/features#customers",
+  },
+  {
+    icon: Clock3,
+    title: "شیفت و صندوق نقدی",
+    desc: "باز و بسته کردن شیفت با مبلغ ابتدایی، ثبت برداشت و پرداخت، و محاسبه اختلاف صندوق در پایان.",
+    href: "/features#shift",
+  },
+  {
+    icon: Lock,
+    title: "پرسنل و سطح دسترسی",
+    desc: "هر کاربر نقش و مجوز جدا دارد؛ از ثبت سفارش و تسویه تا مدیریت منو و تغییر تنظیمات فروشگاه.",
+    href: "/features#staff",
+  },
+];
+
+/* ── Register behaviour worth calling out ───────────────────────────── */
+const registerDetails = [
+  { icon: Search, title: "جستجو تا سطح مواد اولیه", desc: "جستجوی منو علاوه بر نام و دسته، کد (SKU) و نام مواد اولیه هر آیتم را هم می‌پوشاند." },
+  { icon: PackagePlus, title: "انتخاب چندتایی", desc: "حالت افزودن گروهی: چند محصول را انتخاب کنید و با هم به سفارش اضافه کنید." },
+  { icon: FileSpreadsheet, title: "پیش‌نویس جان‌سخت", desc: "فاکتور نیمه‌کاره روی سرور ذخیره می‌شود؛ رفرش مرورگر آن را از بین نمی‌برد." },
+  { icon: TriangleAlert, title: "حذف کامل نیمه‌کاره", desc: "پیش‌نویس رهاشده به‌طور کامل حذف می‌شود تا داده یتیم در دیتابیس نماند." },
+  { icon: MonitorSmartphone, title: "سه نوع سفارش", desc: "حضوری با شماره میز، بیرون‌بر و بار — هر کدام مسیر بلیت خودشان را دارند." },
+  { icon: TrendingUp, title: "نشان «نزدیک اتمام»", desc: "اگر موجودی ماده اولیه‌ای به نقطه سفارش برسد، همان کارت محصول در صندوق هشدار می‌گیرد." },
+];
+
+/* ── One working day, in order ──────────────────────────────────────── */
+const steps = [
+  { title: "شیفت را باز کنید", desc: "مبلغ نقد ابتدای شیفت ثبت می‌شود؛ فروش، برداشت و پرداخت همان شیفت زیر همان شیفت می‌ماند." },
+  { title: "سفارش را ثبت کنید", desc: "حضوری، بیرون‌بر یا بار. محصول را از تب دسته‌ها لمس کنید یا با نام، دسته و کد ماده اولیه جستجو کنید." },
+  { title: "افزودنی و یادداشت", desc: "کشو افزودنی باز می‌شود: شات اضافه، شیر گیاهی، بدون شکر. یادداشت آماده‌سازی روی بلیت ایستگاه می‌آید." },
+  { title: "به بار و آشپزخانه بفرستید", desc: "وضعیت سفارش جلو می‌رود، مواد اولیه طبق رسپی کسر می‌شود و بلیت هر ایستگاه چاپ و دیسپچ می‌شود." },
+  { title: "تسویه کنید", desc: "نقد با محاسبه بقیه، کارت‌به‌کارت با شماره پیگیری، یا کارتخوان PC-POS با انتظار برای تأیید تراکنش." },
+  { title: "شیفت را ببندید", desc: "نقد مورد انتظار، نقد شمارش‌شده و اختلاف؛ به‌علاوه فروش تفکیک‌شده بر اساس روش پرداخت." },
+];
+
+/* ── Reports, exactly as the reports screen presents them ───────────── */
+const reportViews = [
+  { title: "ساعات پیک فروش", desc: "نقشه حرارتی ۲۴ ساعته: کدام ساعت‌ها بیشترین فروش را دارند." },
+  { title: "توزیع درآمد دسته‌ها", desc: "سهم هر دسته منو از درآمد بازه انتخابی." },
+  { title: "پرفروش در برابر کم‌فروش", desc: "آیتم‌ها با باند پرفروش و کم‌فروش مشخص می‌شوند تا منو را اصلاح کنید." },
+  { title: "ممیزی عملکرد صندوق‌دار", desc: "تعداد سفارش، فروش و میانگین فاکتور هر صندوق‌دار." },
+  { title: "فروش کالا", desc: "رتبه‌بندی آیتم‌ها بر اساس تعداد و مبلغ فروش در بازه." },
+  { title: "بازه دلخواه شمسی", desc: "پیش‌فرض‌های ۷، ۱۴ و ۳۰ روزه یا انتخاب تاریخ شروع و پایان با تقویم شمسی." },
+];
+
+/* ── Who uses which screen ──────────────────────────────────────────── */
+const roles = [
+  { icon: ChartColumn, title: "صاحب کافه", desc: "داشبورد، هشدار کسری موجودی، وضعیت شیفت جاری، گزارش سود و تنظیمات برند." },
+  { icon: MonitorSmartphone, title: "صندوق‌دار", desc: "صندوق لمسی، پیش‌نویس‌ها، ردیف سفارش‌های در انتظار پرداخت و تسویه." },
+  { icon: ChefHat, title: "باریستا و آشپز", desc: "نمایشگر ایستگاه با بلیت زنده، افزودنی‌ها، یادداشت‌ها و زمان سپری‌شده." },
+  { icon: Lock, title: "مدیر فروشگاه", desc: "منو و رسپی، انبار و فاکتور خرید، پرسنل و سطح دسترسی، گزارش عملکرد." },
+];
+
+/* ── Before / after ─────────────────────────────────────────────────── */
+const comparison = [
+  { topic: "موجودی مواد اولیه", before: "دفتر کاغذی، به‌روزرسانی هفتگی", after: "کسر خودکار با هر سفارش ارسال‌شده" },
+  { topic: "بهای تمام‌شده", before: "تخمینی، بر اساس آخرین خرید", after: "میانگین موزون از فاکتورهای خرید ثبت‌شده" },
+  { topic: "وضعیت سفارش", before: "صدا زدن بین صندوق و بار", after: "بلیت ایستگاه + نمایشگر زنده با هشدار صوتی" },
+  { topic: "اختلاف صندوق", before: "شمارش دستی، بدون مبلغ مرجع", after: "نقد مورد انتظار در برابر نقد شمارش‌شده" },
+  { topic: "مشتریان", before: "شماره در گوشی پرسنل", after: "باشگاه مشتریان با مراجعه، خرید و امتیاز" },
+  { topic: "گزارش فروش", before: "اکسل، دستی، آخر ماه", after: "بازه شمسی دلخواه، به‌روز" },
+];
+
+const faqItems = [
+  {
+    question: "برای کار کردن به اینترنت نیاز دارم؟",
+    answer:
+      "صندوق با API خودتان روی شبکه محلی کار می‌کند و سبد خرید در مرورگر نگه داشته می‌شود، بنابراین قطع شدن اینترنت شما را متوقف نمی‌کند. اما ثبت نهایی سفارش، کسر انبار و تسویه روی سرور انجام می‌شود؛ پس سرور باید در دسترس باشد.",
+  },
+  {
+    question: "مبالغ به ریال ذخیره می‌شوند یا تومان؟",
+    answer:
+      "همه مبالغ به ریال با دقت کامل ذخیره و در تمام رابط کاربری — صندوق، بلیت‌ها و گزارش‌ها — به تومان نمایش داده می‌شوند. یک بار درست ذخیره کنید، جای دیگری تبدیل نکنید.",
+  },
+  {
+    question: "با کدام کارتخوان‌ها کار می‌کند؟",
+    answer:
+      "لایه PC-POS هر دو مسیر LAN و COM/سریال را پوشش می‌دهد و برای آسان‌پرداخت، سامان‌کیش (SEP) و به‌پرداخت ملت مدل دستگاه در تنظیمات وجود دارد. برای اتصال واقعی، شناسه پذیرنده و شماره ترمینال در همان تنظیمات ثبت می‌شود و کلاینت تا ۴۵ ثانیه منتظر تأیید تراکنش می‌ماند.",
+  },
+  {
+    question: "چاپ فیش چطور انجام می‌شود؟",
+    answer:
+      "دو مسیر مستقل: چاپ از مرورگر روی رول ۸۰ یا ۵۸ میلی‌متری (فیش مشتری و فیش بار/آشپزخانه جدا)، و ارسال مستقیم بایت‌های ESC/POS از سرور به پرینتر شبکه. اگر پرینتر در شبکه در دسترس نباشد، فیش در پوشه‌ای روی سرور ذخیره می‌شود تا از دست نرود.",
+  },
+  {
+    question: "افزودنی‌ها هم از انبار کم می‌شوند؟",
+    answer:
+      "بله. هر افزودنی می‌تواند رسپی خودش را داشته باشد؛ بنابراین «شیر بادام» یا «شات اضافه» هم به اندازه مصرف واقعی از انبار کسر می‌شود، نه به‌صورت تخمینی.",
+  },
+  {
+    question: "می‌توانم چند شعبه را با یک سیستم ببینم؟",
+    answer:
+      "نسخه فعلی تک‌فروشگاهی است: نام فروشگاه، لوگو، نرخ مالیات، منو، انبار و پرینتر یک مجموعه را پوشش می‌دهد. برای هر شعبه یک نصب جدا لازم است.",
+  },
+  {
+    question: "دسترسی پرسنل چطور کنترل می‌شود؟",
+    answer:
+      "هر کاربر نشست و نقش جدا دارد و مجوزها دانه‌دانه‌اند — از ثبت سفارش و لغو آن تا تسویه، مدیریت منو، انبار و تغییر تنظیمات. عملیات حساس در سیستم ثبت و حسابرسی می‌شود.",
+  },
+];
+
+const setupItems = [
+  { icon: Server, title: "سرور و پایگاه داده", desc: `${siteConfig.product.runtime} و ${siteConfig.product.database}` },
+  { icon: Printer, title: "پرینتر حرارتی", desc: "ESC/POS روی شبکه (پورت ۹۱۰۰) یا پرینتر پیش‌فرض ویندوز" },
+  { icon: CreditCard, title: "کارتخوان PC-POS", desc: "هم‌شبکه با صندوق (VLAN یکسان) یا پورت COM مشخص" },
+  { icon: MonitorSmartphone, title: "ترمینال صندوق", desc: "مرورگر تمام‌صفحه روی صفحه لمسی — صندوق، بار و آشپزخانه" },
+];
+---
+
+<Layout
+  title="توست‌ایران — صندوق لمسی، انبار و گزارش فروش کافه و رستوران"
+  description="صندوق لمسی برای کافه و رستوران: ثبت سفارش، کسر خودکار مواد اولیه بر اساس رسپی، بلیت بار و آشپزخانه، انبار با فاکتور خرید و ضایعات، باشگاه مشتریان و گزارش سود. مبالغ به تومان و تاریخ‌ها شمسی."
+  keywords="صندوق کافه, صندوق فروش رستوران, نرم‌افزار مدیریت کافه, انبار کافه, رسپی و BOM, کارتخوان PC-POS, پرینتر حرارتی, گزارش فروش و سود کافه, صندوق لمسی, نمایشگر آشپزخانه"
+>
+
+  <!-- 1. Hero -->
+  <HeroSection />
+
+  <!-- 2. What it runs on — real integrations, not customer logos -->
+  <section class="py-12 md:py-16 lg:py-20 site-container" data-aos="fade-up-xs" data-aos-once="true" data-aos-delay="650">
+    <p class="text-center text-sm text-neutral-400 dark:text-neutral-500 mb-6">
+      با سخت‌افزاری که همین حالا در کافه دارید کار می‌کند
+    </p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {integrations.map((item) => (
+        <div class="flex items-start gap-3 p-4 rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700">
+          <item.icon class="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-neutral-700 dark:text-neutral-200">{item.title}</div>
+            <div class="mt-1 text-xs text-neutral-500 dark:text-neutral-400 leading-6">{item.desc}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- 3. The problems -->
+  <section class="py-16 md:py-24 site-container">
+    <SectionHeader
+      title="چهار جا که کافه‌ها پول از دست می‌دهند"
+      description="این‌ها را از کار روزمره کافه برداشتیم، نه از یک فهرست قابلیت. هر کدام هم راه‌حل مشخصی در سیستم دارد."
+    />
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+      {problems.map((problem, i) => (
+        <div
+          class="p-6 rounded-xl bg-bg-secondary dark:bg-bg-secondary-dark border border-primary/10 dark:border-neutral-700"
+          data-aos="fade-up-sm"
+          data-aos-delay={i * 100}
+          data-aos-once="true"
+        >
+          <span class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary mb-4">
+            <problem.icon class="w-5 h-5" aria-hidden="true" />
+          </span>
+          <h3 class="text-lg font-bold text-neutral-800 dark:text-neutral-100 mb-2">{problem.title}</h3>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400 leading-7">{problem.desc}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- 4. What the system actually is -->
+  <section class="py-8 md:py-12 site-container" data-aos="fade-up-xs" data-aos-once="true">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-3xl md:text-4xl font-brand mb-5">یک سیستم، نه چهار ابزار جدا</h2>
+      <p class="text-neutral-600 dark:text-neutral-300 leading-8">
+        منو، رسپی، انبار، صندوق، مشتری و پرسنل به هم وصل‌اند. آیتم منو رسپی دارد، رسپی به مواد اولیه وصل است،
+        فاکتور خرید بهای میانگین را به‌روز می‌کند و تسویه باشگاه مشتریان را. به همین دلیل گزارش سود روی داده واقعی
+        حساب می‌شود، نه روی تخمین.
+      </p>
+    </div>
+    <div class="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
+      {[
+        { icon: UtensilsCrossed, title: "منو → رسپی", desc: "برای هر آیتم و افزودنی، مصرف مواد اولیه را تعریف می‌کنید." },
+        { icon: Boxes, title: "رسپی → انبار", desc: "با ارسال سفارش، کسر خودکار. با لغو سفارش، برگشت کسر. پیش‌نویس انبار را لمس نمی‌کند." },
+        { icon: BadgePercent, title: "انبار → سود", desc: "بهای میانگین موزون، مبنای هزینه تمام‌شده و حاشیه سود هر آیتم است." },
+      ].map((link, i) => (
+        <div
+          class="p-5 rounded-xl border border-primary/10 dark:border-neutral-700 bg-bg-secondary/60 dark:bg-bg-secondary-dark/60 text-center"
+          data-aos="fade-up-sm"
+          data-aos-delay={i * 120}
+          data-aos-once="true"
+        >
+          <link.icon class="w-5 h-5 text-primary mx-auto mb-3" aria-hidden="true" />
+          <div class="text-sm font-bold text-neutral-800 dark:text-neutral-100 mb-1.5">{link.title}</div>
+          <div class="text-xs text-neutral-500 dark:text-neutral-400 leading-6">{link.desc}</div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <div class="w-full border-b border-dashed border-neutral-200 dark:border-neutral-700 my-8 site-container"></div>
+
+  <!-- 5. Capabilities -->
+  <section class="py-16 md:py-24 site-container">
+    <SectionHeader
+      title="چه کاری با آن انجام می‌دهید"
+      description="قابلیت‌ها را بر اساس کاری که در کافه انجام می‌شود گروه‌بندی کردیم، نه بر اساس ماژول نرم‌افزار."
+    />
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-8">
+      {capabilities.map((cap, i) => (
+        <a
+          href={cap.href}
+          class="group h-full p-5 rounded-xl bg-bg-secondary dark:bg-bg-secondary-dark border border-primary/10 dark:border-neutral-700 transition-all duration-300 ease-in-out hover:shadow-md hover:-translate-y-1"
+          data-aos="fade-up-sm"
+          data-aos-delay={i * 80}
+          data-aos-once="true"
+        >
+          <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary mb-4">
+            <cap.icon class="w-5 h-5" aria-hidden="true" />
+          </span>
+          <h3 class="text-base font-bold text-neutral-800 dark:text-neutral-100 mb-2">{cap.title}</h3>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400 leading-7">{cap.desc}</p>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <!-- 6. Showcase — order to station ticket -->
+  <section class="py-16 md:py-24 site-container">
+    <div class="flex flex-col md:flex-row items-center gap-10 md:gap-14">
+      <div class="flex-1 min-w-0" data-aos="fade-right-sm" data-aos-once="true">
+        <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-6">
+          <ChefHat class="w-6 h-6" aria-hidden="true" />
+        </span>
+        <h2 class="text-2xl md:text-3xl font-brand mb-4">از ثبت سفارش تا بلیت ایستگاه</h2>
+        <p class="text-neutral-600 dark:text-neutral-300 leading-8 mb-6">
+          وقتی سفارش را به بار و آشپزخانه می‌فرستید، سه چیز هم‌زمان اتفاق می‌افتد: وضعیت سفارش جلو می‌رود، مواد
+          اولیه رسپی کسر می‌شود، و بلیت هر ایستگاه برای بار و آشپزخانه جدا ارسال می‌شود. نمایشگرها روی SignalR
+          وصل‌اند و سفارش جدید را با صدا اعلام می‌کنند.
+        </p>
+        <ul class="space-y-3">
+          {[
+            "ایستگاه هر آیتم و افزودنی مشخص است: بار، آشپزخانه یا هر دو",
+            "بلیت آماده‌سازی با فونت درشت، شماره میز، زمان سپری‌شده و بولت افزودنی‌ها",
+            "یادداشت آماده‌سازی روی بلیت ایستگاه هایلایت می‌شود",
+            "پیش‌نویس تا لحظه ارسال، انبار را لمس نمی‌کند — و لغو سفارش، کسر را برمی‌گرداند",
+          ].map((point) => (
+            <li class="flex items-start gap-2">
+              <Check class="w-4 h-4 text-primary mt-1 flex-shrink-0" aria-hidden="true" />
+              <span class="text-sm text-neutral-600 dark:text-neutral-300 leading-7">{point}</span>
+            </li>
+          ))}
+        </ul>
+        <div class="mt-8">
+          <Button url="/features#kds">جزئیات نمایشگر ایستگاه</Button>
+        </div>
+      </div>
+
+      <div class="flex-1 min-w-0 w-full" data-aos="fade-left-sm" data-aos-delay="200" data-aos-once="true">
+        <AppFrame label="نمایشگر بار · کافه ونوشه" route="/kds" live={true}>
+          <KdsPreview />
+        </AppFrame>
+      </div>
+    </div>
+  </section>
+
+  <div class="w-full border-b border-dashed border-neutral-200 dark:border-neutral-700 my-8 site-container"></div>
+
+  <!-- 7. Showcase — profit that actually stays -->
+  <section class="py-16 md:py-24 site-container">
+    <div class="flex flex-col md:flex-row-reverse items-center gap-10 md:gap-14">
+      <div class="flex-1 min-w-0" data-aos="fade-left-sm" data-aos-once="true">
+        <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-6">
+          <TrendingUp class="w-6 h-6" aria-hidden="true" />
+        </span>
+        <h2 class="text-2xl md:text-3xl font-brand mb-4">سودی که واقعاً باقی می‌ماند</h2>
+        <p class="text-neutral-600 dark:text-neutral-300 leading-8 mb-6">
+          گزارش‌ها همان چیزی را نشان می‌دهند که در کافه قابل تصمیم‌گیری است: کدام ساعت‌ها شلوغ است، کدام دسته
+          درآمد می‌سازد، کدام آیتم باید از منو حذف شود و هر صندوق‌دار چقدر فروخته است. بازه را با تقویم شمسی
+          انتخاب می‌کنید و اعداد همان لحظه محاسبه می‌شوند.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {reportViews.map((view) => (
+            <div class="rounded-xl border border-primary/10 dark:border-neutral-700 bg-bg-secondary/60 dark:bg-bg-secondary-dark/60 px-4 py-3">
+              <div class="flex items-center gap-2">
+                <CalendarRange class="w-3.5 h-3.5 text-primary shrink-0" aria-hidden="true" />
+                <span class="text-sm font-semibold text-neutral-800 dark:text-neutral-100">{view.title}</span>
+              </div>
+              <p class="mt-1.5 text-xs text-neutral-500 dark:text-neutral-400 leading-6">{view.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div class="flex-1 min-w-0 w-full" data-aos="fade-right-sm" data-aos-delay="200" data-aos-once="true">
+        <AppFrame label="گزارش‌ها · کافه ونوشه" route="/admin/reports">
+          <ReportsPreview />
+        </AppFrame>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Showcase — inventory that breathes with sales -->
+  <section class="py-16 md:py-24 site-container">
+    <div class="flex flex-col md:flex-row items-center gap-10 md:gap-14">
+      <div class="flex-1 min-w-0" data-aos="fade-right-sm" data-aos-once="true">
+        <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-6">
+          <Boxes class="w-6 h-6" aria-hidden="true" />
+        </span>
+        <h2 class="text-2xl md:text-3xl font-brand mb-4">انباری که با فروش نفس می‌کشد</h2>
+        <p class="text-neutral-600 dark:text-neutral-300 leading-8 mb-6">
+          هر ورود کالا از مسیر فاکتور خرید ثبت می‌شود و بهای میانگین موزون را جلو می‌برد. هر خروج، علتش را با
+          خودش دارد: مصرف رسپی، ضایعات، برگشت سفارش یا تعدیل شمارش. کاردکس هر کالا نشان می‌دهد بین دو شمارش،
+          موجودی چطور حرکت کرده است.
+        </p>
+        <ul class="space-y-3">
+          {[
+            "نقطه سفارش مجدد و موجودی بهینه؛ هشدار کسری روی داشبورد و در صندوق",
+            "ضایعات با علت مشخص: تاریخ مصرف، فساد، خطای آماده‌سازی، غذای پرسنل، ریختن",
+            "ارزش موجودی به تفکیک محل نگهداری و دسته کالا",
+            "واحد پایه و تبدیل واحد (گرم، کیلوگرم، میلی‌لیتر، لیتر، عدد، پرس، قوطی)",
+            "انتقال بین محل‌های نگهداری: انبار مرکزی، خط آشپزخانه، بار، سردخانه، انبار خشک",
+          ].map((point) => (
+            <li class="flex items-start gap-2">
+              <Check class="w-4 h-4 text-primary mt-1 flex-shrink-0" aria-hidden="true" />
+              <span class="text-sm text-neutral-600 dark:text-neutral-300 leading-7">{point}</span>
+            </li>
+          ))}
+        </ul>
+        <div class="mt-8">
+          <Button url="/features#inventory">جزئیات انبار</Button>
+        </div>
+      </div>
+
+      <div class="flex-1 min-w-0 w-full" data-aos="fade-left-sm" data-aos-delay="200" data-aos-once="true">
+        <AppFrame label="انبار · کافه ونوشه" route="/admin/inventory">
+          <InventoryPreview />
+        </AppFrame>
+      </div>
+    </div>
+  </section>
+
+  <div class="w-full border-b border-dashed border-neutral-200 dark:border-neutral-700 my-8 site-container"></div>
+
+  <!-- 9. Inside the register -->
+  <section class="py-16 md:py-24 site-container">
+    <SectionHeader
+      title="داخل صندوق لمسی"
+      description="جزئیاتی که وقتی پشت صندوق شلوغ است، تفاوت را می‌سازند."
+    />
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-8">
+      {registerDetails.map((detail, i) => (
+        <div
+          class="p-5 rounded-xl border border-primary/10 dark:border-neutral-700 bg-bg-secondary dark:bg-bg-secondary-dark"
+          data-aos="fade-up-sm"
+          data-aos-delay={i * 80}
+          data-aos-once="true"
+        >
+          <div class="flex items-center gap-2.5 mb-2">
+            <detail.icon class="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
+            <h3 class="text-sm font-bold text-neutral-800 dark:text-neutral-100">{detail.title}</h3>
+          </div>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400 leading-7">{detail.desc}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- 10. The register, in full -->
+  <section class="py-12 md:py-16 site-container" data-aos="fade-up-sm" data-aos-once="true">
+    <SectionHeader
+      title="صندوق، در ابعاد واقعی"
+      description="تصویر بالا همان چیدمان واقعی صندوق است: تب دسته‌ها، کارت محصول با وضعیت موجودی، و صورتحساب زنده."
+    />
+    <div class="max-w-[1120px] mx-auto mt-8">
+      <AppFrame label="صندوق لمسی · کافه ونوشه" route="/pos" live={true}>
+        <PosPreview />
+      </AppFrame>
+    </div>
+  </section>
+
+  <div class="w-full border-b border-dashed border-neutral-200 dark:border-neutral-700 my-8 site-container"></div>
+
+  <!-- 11. A working day -->
+  <section class="py-16 md:py-24 site-container">
+    <SectionHeader
+      title="یک روز کاری با توست‌ایران"
+      description="از باز کردن شیفت صبح تا بستن صندوق شب — به همین ترتیب."
+    />
+    <ol class="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {steps.map((step, i) => (
+        <li
+          class="relative p-6 rounded-xl bg-bg-secondary dark:bg-bg-secondary-dark border border-primary/10 dark:border-neutral-700"
+          data-aos="fade-up-sm"
+          data-aos-delay={i * 80}
+          data-aos-once="true"
+        >
+          <span class="font-brand text-3xl text-primary/25 dark:text-primary-light/25 leading-none">
+            {fa(i + 1).padStart(2, "۰")}
+          </span>
+          <h3 class="mt-3 text-base font-bold text-neutral-800 dark:text-neutral-100 mb-2">{step.title}</h3>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400 leading-7">{step.desc}</p>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <!-- 12. Hardware and setup -->
+  <section id="setup" class="py-16 md:py-24 site-container">
+    <SectionHeader
+      title="برای راه‌اندازی چه لازم است"
+      description="بدون ابهام: پیش‌نیازها همان چیزهایی هستند که برای اجرای واقعی سیستم لازم‌اند."
+    />
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-8">
+      {setupItems.map((item, i) => (
+        <div
+          class="p-5 rounded-xl border border-dashed border-primary/20 dark:border-neutral-700"
+          data-aos="fade-up-sm"
+          data-aos-delay={i * 80}
+          data-aos-once="true"
+        >
+          <item.icon class="w-5 h-5 text-primary mb-3" aria-hidden="true" />
+          <div class="text-sm font-bold text-neutral-800 dark:text-neutral-100 mb-1.5">{item.title}</div>
+          <div class="text-xs text-neutral-500 dark:text-neutral-400 leading-6">{item.desc}</div>
+        </div>
+      ))}
+    </div>
+    <p class="mt-6 text-center text-sm text-neutral-400 dark:text-neutral-500">
+      استقرار پیشنهادی: صندوق‌ها به‌صورت ترمینال تمام‌صفحه روی صندوق، نمایشگر بار روی نمایشگر بار و آشپزخانه هم
+      روی نمایشگر خودش.
+    </p>
+  </section>
+
+  <div class="w-full border-b border-dashed border-neutral-200 dark:border-neutral-700 my-8 site-container"></div>
+
+  <!-- 13. Roles -->
+  <section class="py-16 md:py-24 site-container">
+    <SectionHeader
+      title="هر کس صفحه خودش را دارد"
+      description="دسترسی‌ها جدا هستند؛ پرسنل فقط همان چیزی را می‌بینند که برای کارشان لازم است."
+    />
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-8">
+      {roles.map((role, i) => (
+        <div
+          class="p-6 rounded-xl bg-bg-secondary dark:bg-bg-secondary-dark border border-primary/10 dark:border-neutral-700"
+          data-aos="fade-up-sm"
+          data-aos-delay={i * 100}
+          data-aos-once="true"
+        >
+          <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary mb-4">
+            <role.icon class="w-5 h-5" aria-hidden="true" />
+          </span>
+          <h3 class="text-base font-bold text-neutral-800 dark:text-neutral-100 mb-2">{role.title}</h3>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400 leading-7">{role.desc}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- 14. Before / after -->
+  <section class="py-16 md:py-24 site-container">
+    <SectionHeader
+      title="قبل و بعد"
+      description="تفاوت را با کار روزمره بسنجید، نه با فهرست قابلیت‌ها."
+    />
+    <div class="mt-8 max-w-4xl mx-auto overflow-x-auto rounded-2xl border border-primary/10 dark:border-neutral-700">
+      <table class="w-full border-collapse text-start">
+        <thead>
+          <tr class="bg-bg-secondary dark:bg-bg-secondary-dark">
+            <th scope="col" class="px-4 py-3 text-start text-xs font-medium text-neutral-400 dark:text-neutral-500">موضوع</th>
+            <th scope="col" class="px-4 py-3 text-start text-xs font-medium text-neutral-400 dark:text-neutral-500">با کاغذ و اکسل</th>
+            <th scope="col" class="px-4 py-3 text-start text-xs font-medium text-primary dark:text-primary-light">با توست‌ایران</th>
+          </tr>
+        </thead>
+        <tbody>
+          {comparison.map((row) => (
+            <tr class="border-t border-dashed border-neutral-200 dark:border-neutral-700">
+              <th scope="row" class="px-4 py-3 text-start text-sm font-semibold text-neutral-800 dark:text-neutral-100">{row.topic}</th>
+              <td class="px-4 py-3 text-sm text-neutral-500 dark:text-neutral-400">{row.before}</td>
+              <td class="px-4 py-3 text-sm text-neutral-700 dark:text-neutral-200">
+                <span class="inline-flex items-start gap-2">
+                  <Check class="w-4 h-4 text-primary mt-1 flex-shrink-0" aria-hidden="true" />
+                  {row.after}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="w-full border-b border-dashed border-neutral-200 dark:border-neutral-700 my-8 site-container"></div>
+
+  <!-- 15. FAQ -->
+  <FAQ
+    id="faq"
+    title="پرسش‌های متداول"
+    description="سؤال‌هایی که معمولاً قبل از راه‌اندازی پرسیده می‌شود."
+    items={faqItems}
+  />
+
+  <!-- 16. Final CTA -->
+  <section
+    class="py-12 md:py-20 site-container rounded-xl bg-bg-secondary dark:bg-bg-secondary-dark border border-primary/10 dark:border-neutral-700"
+    data-aos="fade-up-xs"
+    data-aos-once="true"
+  >
+    <div class="max-w-2xl mx-auto text-center">
+      <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-5">
+        <ShieldCheck class="w-6 h-6" aria-hidden="true" />
+      </span>
+      <h2 class="text-3xl md:text-4xl font-brand mb-4">روی منوی واقعی خودتان امتحان کنید</h2>
+      <p class="text-neutral-600 dark:text-neutral-300 mb-8 leading-8">
+        یک دمو ۳۰ دقیقه‌ای: با منو، رسپی و مواد اولیه کافه خودتان یک شیفت کامل را با هم می‌بندیم و گزارش همان
+        روز را با هم می‌خوانیم.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <Button url="/contact" type="fill" size="lg">
+          درخواست دمو <ArrowLeft size={18} />
+        </Button>
+        <Button url="/features" size="lg">مشاهده همه قابلیت‌ها</Button>
+      </div>
+      <p class="mt-6 text-xs text-neutral-400 dark:text-neutral-500">
+        یا سؤالات خودتان را از{" "}
+        <a href="/contact" class="text-primary dark:text-primary-light hover:underline">صفحه تماس</a> بفرستید.
+      </p>
+    </div>
+  </section>
+
+</Layout>

@@ -5,7 +5,21 @@ import {
   type QueryClient,
 } from "@tanstack/react-query";
 import { menuService } from "@/services/menu.service";
-import { addonKeys, categoryKeys, menuItemKeys } from "./keys";
+import type {
+  AddOptionToGroupRequest,
+  CategoryOrderItem,
+  CreateCategoryRequest,
+  CreateMenuItemRequest,
+  CreateModifierGroupRequest,
+  CreateModifierRequest,
+  UpdateCategoryRequest,
+  UpdateMenuItemRequest,
+  UpdateModifierGroupRequest,
+  UpdateModifierRequest,
+  UpsertRecipeRequest,
+} from "@/services/menu.service";
+import type { MenuItemDto } from "@/lib/types";
+import { categoryKeys, menuItemKeys, modifierGroupKeys, recipeKeys } from "./keys";
 
 /* --------------------------------- reads --------------------------------- */
 
@@ -31,10 +45,19 @@ export function useMenuItem(id: string | null) {
   });
 }
 
-export function useAddons(activeOnly = true) {
+export function useModifierGroups(menuItemId: string | null) {
   return useQuery({
-    queryKey: addonKeys.list(activeOnly),
-    queryFn: () => menuService.addons(activeOnly),
+    queryKey: modifierGroupKeys.byItem(menuItemId ?? "none"),
+    queryFn: () => menuService.modifierGroups(menuItemId as string),
+    enabled: Boolean(menuItemId),
+  });
+}
+
+export function useRecipe(menuItemId: string | null) {
+  return useQuery({
+    queryKey: recipeKeys.byItem(menuItemId ?? "none"),
+    queryFn: () => menuService.recipe(menuItemId as string),
+    enabled: Boolean(menuItemId),
   });
 }
 
@@ -48,13 +71,10 @@ function invalidateCategoriesAndMenu(queryClient: QueryClient) {
 }
 
 function invalidateMenuItems(queryClient: QueryClient) {
-  return () =>
+  return () => {
     queryClient.invalidateQueries({ queryKey: menuItemKeys.all });
-}
-
-function invalidateAddons(queryClient: QueryClient) {
-  return () =>
-    queryClient.invalidateQueries({ queryKey: addonKeys.all });
+    queryClient.invalidateQueries({ queryKey: modifierGroupKeys.all });
+  };
 }
 
 /* ------------------------------- categories ------------------------------ */
@@ -63,7 +83,7 @@ export function useCreateCategory() {
   const queryClient = useQueryClient();
   const invalidate = invalidateCategoriesAndMenu(queryClient);
   return useMutation({
-    mutationFn: menuService.createCategory,
+    mutationFn: (payload: CreateCategoryRequest) => menuService.createCategory(payload),
     onSuccess: invalidate,
   });
 }
@@ -77,7 +97,7 @@ export function useUpdateCategory() {
       payload,
     }: {
       id: string;
-      payload: Parameters<typeof menuService.updateCategory>[1];
+      payload: Omit<UpdateCategoryRequest, "id">;
     }) => menuService.updateCategory(id, payload),
     onSuccess: invalidate,
   });
@@ -92,11 +112,15 @@ export function useDeleteCategory() {
   });
 }
 
+/** Persists the dragged order; index becomes the 1-based display priority. */
 export function useReorderCategories() {
   const queryClient = useQueryClient();
   const invalidate = invalidateCategoriesAndMenu(queryClient);
   return useMutation({
-    mutationFn: menuService.reorderCategories,
+    mutationFn: (orderedIds: string[]) =>
+      menuService.reorderCategories(
+        orderedIds.map((id, index) => ({ id, displayPriority: index + 1 }) satisfies CategoryOrderItem),
+      ),
     onSuccess: invalidate,
   });
 }
@@ -107,7 +131,7 @@ export function useCreateMenuItem() {
   const queryClient = useQueryClient();
   const invalidate = invalidateCategoriesAndMenu(queryClient);
   return useMutation({
-    mutationFn: menuService.createMenuItem,
+    mutationFn: (payload: CreateMenuItemRequest) => menuService.createMenuItem(payload),
     onSuccess: invalidate,
   });
 }
@@ -121,7 +145,7 @@ export function useUpdateMenuItem() {
       payload,
     }: {
       id: string;
-      payload: Parameters<typeof menuService.updateMenuItem>[1];
+      payload: Omit<UpdateMenuItemRequest, "id">;
     }) => menuService.updateMenuItem(id, payload),
     onSuccess: invalidate,
   });
@@ -140,14 +164,18 @@ export function useReorderMenuItems() {
   const queryClient = useQueryClient();
   const invalidate = invalidateCategoriesAndMenu(queryClient);
   return useMutation({
-    mutationFn: ({
-      categoryId,
-      orderedIds,
-    }: {
-      categoryId: string;
-      orderedIds: string[];
-    }) => menuService.reorderMenuItems(categoryId, orderedIds),
+    mutationFn: (items: MenuItemDto[]) => menuService.reorderMenuItems(items),
     onSuccess: invalidate,
+  });
+}
+
+/** Kitchen/bar availability switch used during service. */
+export function useToggleSoldOut() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isSoldOut }: { id: string; isSoldOut: boolean }) =>
+      menuService.toggleSoldOut(id, isSoldOut),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: menuItemKeys.all }),
   });
 }
 
@@ -157,7 +185,7 @@ export function useCreateModifier() {
   const queryClient = useQueryClient();
   const invalidate = invalidateMenuItems(queryClient);
   return useMutation({
-    mutationFn: menuService.createModifier,
+    mutationFn: (payload: CreateModifierRequest) => menuService.createModifier(payload),
     onSuccess: invalidate,
   });
 }
@@ -171,7 +199,7 @@ export function useUpdateModifier() {
       payload,
     }: {
       id: string;
-      payload: Parameters<typeof menuService.updateModifier>[1];
+      payload: Omit<UpdateModifierRequest, "id">;
     }) => menuService.updateModifier(id, payload),
     onSuccess: invalidate,
   });
@@ -186,69 +214,47 @@ export function useDeleteModifier() {
   });
 }
 
-/* -------------------------------- add-ons -------------------------------- */
+/* ----------------------------- add-on groups ----------------------------- */
 
-export function useCreateAddon() {
+export function useCreateModifierGroup() {
   const queryClient = useQueryClient();
-  const invalidate = invalidateAddons(queryClient);
+  const invalidate = invalidateMenuItems(queryClient);
   return useMutation({
-    mutationFn: menuService.createAddon,
+    mutationFn: (payload: CreateModifierGroupRequest) => menuService.createModifierGroup(payload),
     onSuccess: invalidate,
   });
 }
 
-export function useUpdateAddon() {
+export function useUpdateModifierGroup() {
   const queryClient = useQueryClient();
-  const invalidate = invalidateAddons(queryClient);
+  const invalidate = invalidateMenuItems(queryClient);
   return useMutation({
     mutationFn: ({
       id,
       payload,
     }: {
       id: string;
-      payload: Parameters<typeof menuService.updateAddon>[1];
-    }) => menuService.updateAddon(id, payload),
+      payload: Omit<UpdateModifierGroupRequest, "id">;
+    }) => menuService.updateModifierGroup(id, payload),
     onSuccess: invalidate,
   });
 }
 
-export function useDeleteAddon() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: menuService.deleteAddon,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: addonKeys.all });
-      queryClient.invalidateQueries({ queryKey: menuItemKeys.all });
-    },
-  });
-}
-
-export function useAttachAddon() {
+export function useDeleteModifierGroup() {
   const queryClient = useQueryClient();
   const invalidate = invalidateMenuItems(queryClient);
   return useMutation({
-    mutationFn: ({
-      menuItemId,
-      addonId,
-    }: {
-      menuItemId: string;
-      addonId: string;
-    }) => menuService.attachAddon(menuItemId, addonId),
+    mutationFn: menuService.deleteModifierGroup,
     onSuccess: invalidate,
   });
 }
 
-export function useDetachAddon() {
+export function useAddOptionToGroup() {
   const queryClient = useQueryClient();
   const invalidate = invalidateMenuItems(queryClient);
   return useMutation({
-    mutationFn: ({
-      menuItemId,
-      addonId,
-    }: {
-      menuItemId: string;
-      addonId: string;
-    }) => menuService.detachAddon(menuItemId, addonId),
+    mutationFn: ({ groupId, payload }: { groupId: string; payload: AddOptionToGroupRequest }) =>
+      menuService.addOptionToGroup(groupId, payload),
     onSuccess: invalidate,
   });
 }
@@ -259,7 +265,16 @@ export function useUpsertRecipe() {
   const queryClient = useQueryClient();
   const invalidate = invalidateMenuItems(queryClient);
   return useMutation({
-    mutationFn: menuService.upsertRecipe,
+    mutationFn: (payload: UpsertRecipeRequest) => menuService.upsertRecipe(payload),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteRecipe() {
+  const queryClient = useQueryClient();
+  const invalidate = invalidateMenuItems(queryClient);
+  return useMutation({
+    mutationFn: menuService.deleteRecipe,
     onSuccess: invalidate,
   });
 }

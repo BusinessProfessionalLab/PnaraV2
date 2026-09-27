@@ -1,0 +1,32 @@
+[
+	{
+		"name": "خانه",
+		"url": "/"
+	},
+	{
+		"name": "قابلیت‌ها",
+		"children": [
+			{ "name": "صندوق لمسی و فروش", "url": "/features#pos" },
+			{ "name": "نمایشگر بار و آشپزخانه", "url": "/features#kds" },
+			{ "name": "منو، افزودنی و رسپی", "url": "/features#menu" },
+			{ "name": "انبار و مواد اولیه", "url": "/features#inventory" },
+			{ "name": "گزارش‌ها و سود", "url": "/features#reports" },
+			{ "name": "شیفت و صندوق نقدی", "url": "/features#shift" },
+			{ "name": "مشتریان و باشگاه وفاداری", "url": "/features#customers" },
+			{ "name": "پرسنل و سطح دسترسی", "url": "/features#staff" },
+			{ "name": "سخت‌افزار و اتصال‌ها", "url": "/features#hardware" }
+		]
+	},
+	{
+		"name": "نسخه‌ها",
+		"url": "/changelog"
+	},
+	{
+		"name": "درباره",
+		"url": "/about"
+	},
+	{
+		"name": "تماس",
+		"url": "/contact"
+	}
+]

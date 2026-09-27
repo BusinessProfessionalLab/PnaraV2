@@ -14,7 +14,7 @@ export function ThemeEngine() {
 
   useEffect(() => {
     if (!data) return;
-    applyTheme(data.primaryColor);
+    if (data.primaryColor) applyTheme(data.primaryColor);
     useCartStore.getState().setVatRate(data.vatRate);
   }, [data]);
 

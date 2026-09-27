@@ -28,7 +28,7 @@ export const useAuthStore = create<AuthState>()(
       hasPermission: (code) => {
         const s = get().session;
         if (!s) return false;
-        return s.roles.includes("SuperAdmin") || s.permissions.includes(code);
+        return (s.roles ?? []).includes("SuperAdmin") || (s.permissions ?? []).includes(code);
       },
       logout: () => {
         setSessionCookie(false);

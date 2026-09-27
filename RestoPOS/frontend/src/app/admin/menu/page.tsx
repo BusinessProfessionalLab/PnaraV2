@@ -9,7 +9,7 @@ export default function Page() {
     <div data-tour="menu-page" className="space-y-6">
       <PageHeader
         title="منو و رسپی"
-        description="مدیریت منوی فروشگاه: ترتیب نمایش، دسته‌بندی‌ها، محصولات و افزودنی‌های مشترک"
+        description="مدیریت منوی فروشگاه: ترتیب نمایش، دسته‌بندی‌ها، محصولات و گروه‌های افزودنی"
         actions={
           <Button asChild variant="outline">
             <Link href="/pos">

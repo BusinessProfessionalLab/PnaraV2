@@ -29,38 +29,72 @@ import {
 } from "@/components/ui/select";
 import {
   useCreateInventoryItem,
+  useCreatePurchaseInvoice,
   useInventory,
   useInventoryTransactions,
-  useReceiveStock,
   useRecordWaste,
   useStockAlerts,
 } from "@/queries/inventory";
 import { formatToman } from "@/lib/currency";
 import { errorMessage } from "@/api/errors";
 import { cn } from "@/lib/cn";
-import type { UnitOfMeasure } from "@/lib/types";
+import type { BaseUnit, StorageLocation, WasteReason } from "@/lib/types";
 
-const UNITS: UnitOfMeasure[] = ["Gr", "Ml", "Kg", "Liter", "Count"];
-const UNIT_LABEL: Record<string, string> = {
-  Gr: "گرم",
-  Ml: "میلی‌لیتر",
-  Kg: "کیلوگرم",
+const UNITS: BaseUnit[] = ["Gram", "Milliliter", "Piece", "Portion", "Can", "Kilogram", "Liter"];
+
+const UNIT_LABEL: Record<BaseUnit, string> = {
+  Gram: "گرم",
+  Milliliter: "میلی‌لیتر",
+  Piece: "عدد",
+  Portion: "پرس",
+  Can: "قوطی",
+  Kilogram: "کیلوگرم",
   Liter: "لیتر",
-  Count: "عدد",
+};
+
+const LOCATIONS: StorageLocation[] = ["CentralStorage", "KitchenLine", "Bar", "ColdRoom", "DryStorage"];
+
+const LOCATION_LABEL: Record<StorageLocation, string> = {
+  CentralStorage: "انبار مرکزی",
+  KitchenLine: "خط آشپزخانه",
+  Bar: "بار",
+  ColdRoom: "سردخانه",
+  DryStorage: "انبار خشک",
+};
+
+const WASTE_REASONS: WasteReason[] = [
+  "Expired",
+  "PreparationDefect",
+  "Spoilage",
+  "StaffMeal",
+  "SpillBreakage",
+];
+
+const WASTE_REASON_LABEL: Record<WasteReason, string> = {
+  Expired: "تاریخ مصرف گذشته",
+  PreparationDefect: "خطای آماده‌سازی",
+  Spoilage: "فساد",
+  StaffMeal: "غذای پرسنل",
+  SpillBreakage: "ریختن / شکستن",
 };
 
 const TX_META: Record<string, { label: string; variant: "success" | "danger" | "neutral" | "default" }> = {
-  InboundPurchase: { label: "خرید", variant: "success" },
-  Waste: { label: "ضایعات", variant: "danger" },
+  Purchase: { label: "خرید", variant: "success" },
   RecipeDeduction: { label: "مصرف رسپی", variant: "neutral" },
-  ReverseDeduction: { label: "برگشت", variant: "default" },
-  Adjustment: { label: "تعدیل", variant: "neutral" },
+  OrderCancelReturn: { label: "برگشت سفارش", variant: "default" },
+  Waste: { label: "ضایعات", variant: "danger" },
+  StockCountAdjustment: { label: "تعدیل شمارش", variant: "neutral" },
+  InternalTransfer: { label: "انتقال داخلی", variant: "neutral" },
+  OpeningBalance: { label: "موجودی اولیه", variant: "success" },
+  ManualAdjustment: { label: "تعدیل دستی", variant: "neutral" },
 };
 
 export function InventoryHub() {
-  const items = useInventory();
+  const items = useInventory({ pageSize: 200 });
+  const stock = items.data?.items ?? [];
   const alerts = useStockAlerts();
-  const txs = useInventoryTransactions();
+  const txs = useInventoryTransactions({ pageSize: 100 });
+  const transactions = txs.data?.items ?? [];
 
   return (
     <div className="space-y-5">
@@ -81,7 +115,7 @@ export function InventoryHub() {
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-bold">{a.name}</div>
                   <div className="mt-0.5 text-xs text-muted-foreground tabular-nums">
-                    {a.sku} · نقطه سفارش {a.reorderPoint}
+                    {a.sku} · حداقل موجودی {a.minimumAlertStock}
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">
@@ -112,7 +146,7 @@ export function InventoryHub() {
             </div>
           </div>
           <div className="p-5">
-            <InboundForm items={items.data ?? []} />
+            <InboundForm items={stock} />
           </div>
         </Card>
         <Card className="overflow-hidden">
@@ -126,7 +160,7 @@ export function InventoryHub() {
             </div>
           </div>
           <div className="p-5">
-            <WasteForm items={items.data ?? []} />
+            <WasteForm items={stock} />
           </div>
         </Card>
       </div>
@@ -140,7 +174,7 @@ export function InventoryHub() {
           </div>
           {items.data ? (
             <Badge variant="neutral" className="tabular-nums">
-              {items.data.length} کالا
+              {items.data.totalCount} کالا
             </Badge>
           ) : null}
         </div>
@@ -148,7 +182,7 @@ export function InventoryHub() {
           <div className="p-5">
             <SkeletonTable rows={6} cols={6} />
           </div>
-        ) : (items.data ?? []).length === 0 ? (
+        ) : stock.length === 0 ? (
           <div className="p-5">
             <EmptyState
               icon={Boxes}
@@ -164,13 +198,13 @@ export function InventoryHub() {
                   <TableHead>کالا</TableHead>
                   <TableHead className="hidden md:table-cell">SKU</TableHead>
                   <TableHead>موجودی</TableHead>
-                  <TableHead className="hidden md:table-cell">نقطه سفارش</TableHead>
-                  <TableHead className="hidden md:table-cell">قیمت خرید</TableHead>
+                  <TableHead className="hidden md:table-cell">حداقل موجودی</TableHead>
+                  <TableHead className="hidden md:table-cell">بهای میانگین</TableHead>
                   <TableHead>وضعیت</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(items.data ?? []).map((i) => (
+                {stock.map((i) => (
                   <TableRow key={i.id}>
                     <TableCell className="font-semibold">{i.name}</TableCell>
                     <TableCell className="hidden font-mono text-[13px] text-muted-foreground tabular-nums md:table-cell" dir="ltr">
@@ -178,17 +212,19 @@ export function InventoryHub() {
                     </TableCell>
                     <TableCell className="tabular-nums">
                       <span className="font-bold">{Math.max(0, i.currentStock)}</span>{" "}
-                      <span className="text-xs text-muted-foreground">{UNIT_LABEL[i.unitOfMeasure] ?? i.unitOfMeasure}</span>
+                      <span className="text-xs text-muted-foreground">{UNIT_LABEL[i.baseUnit]}</span>
                     </TableCell>
-                    <TableCell className="hidden tabular-nums text-muted-foreground md:table-cell">{i.reorderPoint} {UNIT_LABEL[i.unitOfMeasure] ?? i.unitOfMeasure}</TableCell>
-                    <TableCell className="hidden tabular-nums md:table-cell">{formatToman(i.costPrice)}</TableCell>
+                    <TableCell className="hidden tabular-nums text-muted-foreground md:table-cell">
+                      {i.minimumAlertStock} {UNIT_LABEL[i.baseUnit]}
+                    </TableCell>
+                    <TableCell className="hidden tabular-nums md:table-cell">
+                      {formatToman(i.weightedAverageCostRials)}
+                    </TableCell>
                     <TableCell>
                       {i.currentStock <= 0 ? (
-                        <Badge variant="danger">Ù†Ø§Ù…ÙˆØ¬ÙˆØ¯</Badge>
+                        <Badge variant="danger">ناموجود</Badge>
                       ) : i.isLowStock ? (
                         <Badge variant="danger">رو به اتمام</Badge>
-                      ) : i.currentStock <= 0 ? (
-                        <Badge variant="danger">ناموجود</Badge>
                       ) : (
                         <Badge variant="success">سالم</Badge>
                       )}
@@ -210,18 +246,18 @@ export function InventoryHub() {
           <div className="p-5">
             <SkeletonTable rows={5} cols={3} />
           </div>
-        ) : (txs.data ?? []).length === 0 ? (
+        ) : transactions.length === 0 ? (
           <div className="p-5">
             <EmptyState compact icon={PackagePlus} title="تراکنشی ثبت نشده" description="گردش خرید و مصرف مواد اینجا نمایش داده می‌شود" />
           </div>
         ) : (
           <ul className="divide-y divide-border/70">
-            {(txs.data ?? []).slice(0, 20).map((t) => {
-              const meta = TX_META[t.type] ?? { label: t.type, variant: "neutral" as const };
+            {transactions.slice(0, 20).map((t) => {
+              const meta = TX_META[t.transactionType] ?? { label: t.transactionType, variant: "neutral" as const };
               return (
                 <li key={t.id} className="flex items-center gap-3 px-5 py-3">
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                    {t.type === "Waste" ? (
+                    {t.transactionType === "Waste" ? (
                       <ArrowUpRight className="size-3.5" aria-hidden />
                     ) : (
                       <ArrowDownToLine className="size-3.5" aria-hidden />
@@ -232,7 +268,7 @@ export function InventoryHub() {
                       <span className="text-sm font-semibold">{t.itemName}</span>
                       <Badge variant={meta.variant}>{meta.label}</Badge>
                       <span className="text-[13px] font-medium tabular-nums text-foreground">
-                        {t.quantity > 0 ? `+${t.quantity}` : t.quantity}
+                        {t.quantityDelta > 0 ? `+${t.quantityDelta}` : t.quantityDelta}
                       </span>
                     </div>
                     {t.notes ? (
@@ -240,7 +276,7 @@ export function InventoryHub() {
                     ) : null}
                   </div>
                   <span className="text-[11px] tabular-nums text-muted-foreground">
-                    {t.occurredAt}
+                    {t.createdAtUtc}
                   </span>
                 </li>
               );
@@ -276,13 +312,18 @@ function ModePill({
   );
 }
 
-function InboundForm({ items }: { items: { id: string; name: string }[] }) {
+function InboundForm({
+  items,
+}: {
+  items: { id: string; name: string | null; baseUnit: BaseUnit }[];
+}) {
   const createItem = useCreateInventoryItem();
-  const receive = useReceiveStock();
+  const createPurchase = useCreatePurchaseInvoice();
   const [mode, setMode] = useState<"new" | "buy">("buy");
   const [name, setName] = useState("");
   const [sku, setSku] = useState("");
-  const [unit, setUnit] = useState<UnitOfMeasure>("Gr");
+  const [unit, setUnit] = useState<BaseUnit>("Gram");
+  const [location, setLocation] = useState<StorageLocation>("CentralStorage");
   const [id, setId] = useState("");
   const [qty, setQty] = useState("");
   const [cost, setCost] = useState("");
@@ -294,23 +335,43 @@ function InboundForm({ items }: { items: { id: string; name: string }[] }) {
         await createItem.mutateAsync({
           name,
           sku,
-          unitOfMeasure: unit,
-          reorderPoint: Number(reorder),
-          safetyStock: Number(reorder) / 2,
+          barcode: null,
+          category: null,
+          baseUnit: unit,
+          minimumAlertStock: Number(reorder),
+          optimalStock: Number(reorder) * 2,
           openingStock: Number(qty),
-          costPrice: Number(cost) * 10,
+          openingUnitCostRials: Number(cost) * 10,
+          storageLocation: location,
+          conversions: null,
         });
       } else {
-        if (!id) {
+        const item = items.find((entry) => entry.id === id);
+        if (!item) {
           toast.error("کالا را انتخاب کنید.");
           return;
         }
-        await receive.mutateAsync({
-          inventoryItemId: id,
-          quantity: Number(qty),
-          unitCost: Number(cost) * 10,
+        await createPurchase.mutateAsync({
+          invoiceNumber: null,
+          supplierId: null,
+          supplierName: null,
+          supplierPhone: null,
+          supplierContactPerson: null,
+          supplierAddress: null,
+          taxRials: 0,
+          discountRials: 0,
+          paymentStatus: "Unpaid",
           notes: "فاکتور خرید",
-          batchReference: `PO-${Date.now()}`,
+          items: [
+            {
+              inventoryItemId: item.id,
+              quantity: Number(qty),
+              unitPriceRials: Number(cost) * 10,
+              purchaseUnit: item.baseUnit,
+              namedPurchaseUnit: null,
+              lineDiscountRials: 0,
+            },
+          ],
         });
       }
       toast.success("انبار به‌روز شد");
@@ -323,7 +384,7 @@ function InboundForm({ items }: { items: { id: string; name: string }[] }) {
 
   const valid =
     mode === "buy" ? Boolean(id && qty && cost) : Boolean(name && sku && qty && cost);
-  const pending = mode === "new" ? createItem.isPending : receive.isPending;
+  const pending = mode === "new" ? createItem.isPending : createPurchase.isPending;
 
   return (
     <div className="space-y-4">
@@ -346,9 +407,9 @@ function InboundForm({ items }: { items: { id: string; name: string }[] }) {
               <Input placeholder="کد کالا" dir="ltr" value={sku} onChange={(e) => setSku(e.target.value)} />
             </Field>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <Field label="واحد اندازه‌گیری">
-              <Select value={unit} onValueChange={(v) => setUnit(v as UnitOfMeasure)}>
+              <Select value={unit} onValueChange={(v) => setUnit(v as BaseUnit)}>
                 <SelectTrigger>
                   <SelectValue placeholder="واحد" />
                 </SelectTrigger>
@@ -361,7 +422,21 @@ function InboundForm({ items }: { items: { id: string; name: string }[] }) {
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="نقطه سفارش مجدد">
+            <Field label="محل نگهداری">
+              <Select value={location} onValueChange={(v) => setLocation(v as StorageLocation)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="محل نگهداری" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LOCATIONS.map((l) => (
+                    <SelectItem key={l} value={l}>
+                      {LOCATION_LABEL[l]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="حداقل موجودی">
               <Input type="number" inputMode="numeric" value={reorder} onChange={(e) => setReorder(e.target.value)} />
             </Field>
           </div>
@@ -410,16 +485,31 @@ function InboundForm({ items }: { items: { id: string; name: string }[] }) {
   );
 }
 
-function WasteForm({ items }: { items: { id: string; name: string }[] }) {
+function WasteForm({
+  items,
+}: {
+  items: { id: string; name: string | null }[];
+}) {
   const waste = useRecordWaste();
   const [id, setId] = useState("");
   const [qty, setQty] = useState("");
-  const [notes, setNotes] = useState("ضایعات / ریخت‌وپاش");
+  const [reason, setReason] = useState<WasteReason>("SpillBreakage");
+  const [notes, setNotes] = useState("");
 
   async function submit() {
     if (!id || !qty) return;
     try {
-      await waste.mutateAsync({ inventoryItemId: id, quantity: Number(qty), notes });
+      await waste.mutateAsync({
+        notes: notes || null,
+        items: [
+          {
+            inventoryItemId: id,
+            quantityInBase: Number(qty),
+            reason,
+            notes: notes || null,
+          },
+        ],
+      });
       toast.success("ضایعات ثبت شد");
       setQty("");
     } catch (error) {
@@ -447,10 +537,24 @@ function WasteForm({ items }: { items: { id: string; name: string }[] }) {
         <Field label="مقدار خروج">
           <Input type="number" inputMode="numeric" value={qty} onChange={(e) => setQty(e.target.value)} />
         </Field>
-        <Field label="توضیح">
-          <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <Field label="دلیل ضایعات">
+          <Select value={reason} onValueChange={(v) => setReason(v as WasteReason)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {WASTE_REASONS.map((r) => (
+                <SelectItem key={r} value={r}>
+                  {WASTE_REASON_LABEL[r]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
       </div>
+      <Field label="توضیح">
+        <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+      </Field>
       <Button
         variant="destructive"
         className="w-full sm:w-auto"

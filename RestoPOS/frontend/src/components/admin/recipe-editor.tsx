@@ -7,15 +7,17 @@ import { errorMessage } from "@/api/errors";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { InventoryItemDto, MenuItemDto, RecipeLineDto, UnitOfMeasure } from "@/lib/types";
+import type { BaseUnit, InventoryItemListDto, MenuItemDto, RecipeLineDto } from "@/lib/types";
 import { useUpsertRecipe } from "@/queries/menu";
 
-const unitLabels: Record<UnitOfMeasure, string> = {
-  Gr: "گرم",
-  Kg: "کیلوگرم",
-  Ml: "میلی‌لیتر",
+const unitLabels: Record<BaseUnit, string> = {
+  Gram: "گرم",
+  Kilogram: "کیلوگرم",
+  Milliliter: "میلی‌لیتر",
   Liter: "لیتر",
-  Count: "عدد",
+  Piece: "عدد",
+  Portion: "پرس",
+  Can: "قوطی",
 };
 
 function makeRowKey() {
@@ -27,7 +29,7 @@ type IngredientRow = {
   key: string;
   inventoryItemId: string;
   quantity: string;
-  unit: UnitOfMeasure;
+  unit: BaseUnit;
 };
 
 export function RecipeEditor({
@@ -36,7 +38,7 @@ export function RecipeEditor({
   onLinesChange,
 }: {
   item: MenuItemDto | null;
-  inventory: InventoryItemDto[];
+  inventory: InventoryItemListDto[];
   onLinesChange?: (lines: RecipeLineDto[]) => void;
 }) {
   const saveRecipe = useUpsertRecipe();
@@ -73,8 +75,7 @@ export function RecipeEditor({
       await saveRecipe.mutateAsync({
         menuItemId: item.id,
         menuItemModifierId: null,
-        addonId: null,
-        name: item.recipe?.name ?? `BOM ${item.title}`,
+        name: item.recipe?.name ?? `BOM ${item.title ?? ""}`,
         lines: rows.map(({ inventoryItemId, quantity, unit }) => ({ inventoryItemId, quantity: Number(quantity), unit })),
       });
       setDirty(false);
@@ -102,7 +103,7 @@ export function RecipeEditor({
               <Field label="ماده اولیه">
                 <Select value={row.inventoryItemId} onValueChange={(id) => changeRow(row.key, {
                   inventoryItemId: id,
-                  unit: inventory.find((entry) => entry.id === id)?.unitOfMeasure ?? row.unit,
+                  unit: inventory.find((entry) => entry.id === id)?.baseUnit ?? row.unit,
                 })}>
                   <SelectTrigger aria-label={`ماده اولیه ${index + 1}`}><SelectValue placeholder="انتخاب از انبار…" /></SelectTrigger>
                   <SelectContent>
@@ -119,10 +120,10 @@ export function RecipeEditor({
                   onChange={(event) => changeRow(row.key, { quantity: event.target.value })} />
               </Field>
               <Field label="واحد">
-                <Select value={row.unit} onValueChange={(unit) => changeRow(row.key, { unit: unit as UnitOfMeasure })}>
+                <Select value={row.unit} onValueChange={(unit) => changeRow(row.key, { unit: unit as BaseUnit })}>
                   <SelectTrigger aria-label={`واحد ماده اولیه ${index + 1}`}><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(Object.entries(unitLabels) as [UnitOfMeasure, string][]).map(([unit, label]) => <SelectItem key={unit} value={unit}>{label}</SelectItem>)}
+                    {(Object.entries(unitLabels) as [BaseUnit, string][]).map(([unit, label]) => <SelectItem key={unit} value={unit}>{label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </Field>
@@ -137,7 +138,7 @@ export function RecipeEditor({
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" disabled={available.length === 0 || rows.some((row) => !row.inventoryItemId)}
             onClick={() => {
-              setRows((current) => [...current, { key: makeRowKey(), inventoryItemId: "", quantity: "1", unit: "Gr" }]);
+              setRows((current) => [...current, { key: makeRowKey(), inventoryItemId: "", quantity: "1", unit: "Gram" }]);
               setDirty(true);
             }}>
             <Plus className="size-4" aria-hidden />افزودن ماده اولیه

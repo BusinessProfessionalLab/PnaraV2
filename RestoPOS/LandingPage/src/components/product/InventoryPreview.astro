@@ -1,0 +1,192 @@
+---
+/**
+ * Inventory screen mockup (`/admin/inventory`).
+ *
+ * Mirrors the real screen: the reorder-point alert cards, the live stock table
+ * with its exact columns (کالا / SKU / موجودی / حداقل موجودی / بهای میانگین /
+ * وضعیت) and the stock transaction feed with the product's real transaction
+ * types — weighted-average purchase in, recipe deduction out, waste out.
+ */
+import { TriangleAlert, ArrowDownToLine, ArrowUpRight, Boxes } from "@lucide/astro";
+import { formatToman, fa } from "@/lib/fa";
+
+const stock = [
+  {
+    name: "دانه اسپرسو (Dark Roast)",
+    sku: "ESB-001",
+    stock: 1.4,
+    unit: "کیلوگرم",
+    min: 2,
+    avgRial: 32_000_000,
+    status: "low",
+  },
+  {
+    name: "شیر پرچرب ۱ لیتری",
+    sku: "MLK-101",
+    stock: 24,
+    unit: "لیتر",
+    min: 12,
+    avgRial: 3_100_000,
+    status: "ok",
+  },
+  {
+    name: "شیر بادام",
+    sku: "AML-210",
+    stock: 0,
+    unit: "لیتر",
+    min: 6,
+    avgRial: 8_900_000,
+    status: "out",
+  },
+  {
+    name: "پودر کاکائو",
+    sku: "CCO-330",
+    stock: 2.6,
+    unit: "کیلوگرم",
+    min: 1,
+    avgRial: 14_500_000,
+    status: "ok",
+  },
+];
+
+const statusMeta = {
+  ok: { label: "سالم", cls: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+  low: { label: "رو به اتمام", cls: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+  out: { label: "ناموجود", cls: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+};
+
+const transactions = [
+  { name: "دانه اسپرسو (Dark Roast)", type: "خرید", delta: "+۵ کیلوگرم", dir: "in" },
+  { name: "شیر پرچرب ۱ لیتری", type: "مصرف رسپی", delta: "−۰٫۳۶ لیتر", dir: "out" },
+  { name: "پودر کاکائو", type: "ضایعات", delta: "−۱٫۲ کیلوگرم", dir: "waste" },
+];
+
+const dust = {
+  in: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  out: "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300",
+  waste: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+};
+---
+
+<div class="flex flex-col bg-bg-primary/20 dark:bg-neutral-950/20">
+  <!-- Reorder-point alerts -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 sm:p-4">
+    {
+      stock
+        .filter((s) => s.status !== "ok")
+        .map((s) => (
+          <div class="rounded-xl border border-amber-400/30 bg-amber-400/[0.06] p-3 flex items-start gap-2.5">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-400/15 text-amber-600 dark:text-amber-400">
+              <TriangleAlert class="w-4 h-4" aria-hidden="true" />
+            </span>
+            <div class="min-w-0 flex-1">
+              <div class="text-[11px] font-bold text-neutral-800 dark:text-neutral-100 truncate">{s.name}</div>
+              <div class="text-[10px] text-neutral-400 dark:text-neutral-500 tabular-nums">
+                {s.sku} · حداقل موجودی {fa(s.min)} {s.unit}
+              </div>
+              <div class="mt-1.5 flex items-center justify-between gap-2">
+                <span class="text-[10px] text-neutral-500 dark:text-neutral-400">
+                  موجودی فعلی:
+                  <span class="font-bold text-neutral-800 dark:text-neutral-100 tabular-nums">{fa(s.stock)}</span>
+                </span>
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-400/20 text-amber-800 dark:text-amber-200">
+                  کسری {fa(Math.max(0, s.min - s.stock))}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))
+    }
+  </div>
+
+  <!-- Live stock table -->
+  <div class="border-t border-neutral-200/70 dark:border-neutral-700/60">
+    <div class="flex items-center gap-2 px-4 py-3">
+      <Boxes class="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+      <span class="text-[12px] font-bold text-neutral-800 dark:text-neutral-100">موجودی زنده</span>
+      <span class="ms-auto px-2 py-0.5 rounded-md text-[10px] font-medium bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400 tabular-nums">
+        {fa(4)} کالا
+      </span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-start border-collapse">
+        <thead>
+          <tr class="border-y border-neutral-200/70 dark:border-neutral-700/60">
+            {
+              ["کالا", "SKU", "موجودی", "حداقل موجودی", "بهای میانگین", "وضعیت"].map((h) => (
+                <th
+                  class="px-3 py-2 text-[10px] font-medium text-neutral-400 dark:text-neutral-500 whitespace-nowrap text-start"
+                  scope="col"
+                >
+                  {h}
+                </th>
+              ))
+            }
+          </tr>
+        </thead>
+        <tbody>
+          {
+            stock.map((s) => (
+              <tr class="border-b border-neutral-200/50 dark:border-neutral-700/40">
+                <td class="px-3 py-2.5 text-[11px] font-semibold text-neutral-800 dark:text-neutral-100 whitespace-nowrap">
+                  {s.name}
+                </td>
+                <td class="px-3 py-2.5 font-latin text-[10px] text-neutral-400 dark:text-neutral-500" dir="ltr">
+                  {s.sku}
+                </td>
+                <td class="px-3 py-2.5 text-[11px] tabular-nums whitespace-nowrap">
+                  <span class="font-bold text-neutral-800 dark:text-neutral-100">{fa(s.stock)}</span>{" "}
+                  <span class="text-[10px] text-neutral-400 dark:text-neutral-500">{s.unit}</span>
+                </td>
+                <td class="px-3 py-2.5 text-[10px] text-neutral-400 dark:text-neutral-500 tabular-nums whitespace-nowrap">
+                  {fa(s.min)} {s.unit}
+                </td>
+                <td class="px-3 py-2.5 text-[10px] text-neutral-500 dark:text-neutral-400 tabular-nums whitespace-nowrap">
+                  {formatToman(s.avgRial)}
+                </td>
+                <td class="px-3 py-2.5">
+                  <span class={`px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap ${statusMeta[s.status].cls}`}>
+                    {statusMeta[s.status].label}
+                  </span>
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="px-4 py-2.5 border-t border-dashed border-neutral-200/70 dark:border-neutral-700/60">
+      <span class="text-[10px] text-neutral-400 dark:text-neutral-500">
+        بهای میانگین با هر فاکتور خرید، موزون به‌روز می‌شود — همین عدد مبنای گزارش سود است.
+      </span>
+    </div>
+  </div>
+
+  <!-- Stock transactions -->
+  <div class="border-t border-neutral-200/70 dark:border-neutral-700/60">
+    <div class="px-4 py-3">
+      <span class="text-[12px] font-bold text-neutral-800 dark:text-neutral-100">گردش انبار</span>
+    </div>
+    <ul class="divide-y divide-neutral-200/50 dark:divide-neutral-700/40">
+      {
+        transactions.map((t) => (
+          <li class="flex items-center gap-3 px-4 py-2.5">
+            <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400">
+              {t.dir === "in" ? (
+                <ArrowDownToLine class="w-3.5 h-3.5" aria-hidden="true" />
+              ) : (
+                <ArrowUpRight class="w-3.5 h-3.5" aria-hidden="true" />
+              )}
+            </span>
+            <div class="min-w-0 flex-1 flex flex-wrap items-center gap-2">
+              <span class="text-[11px] font-semibold text-neutral-800 dark:text-neutral-100 truncate">{t.name}</span>
+              <span class={`px-1.5 py-0.5 rounded text-[9px] font-bold ${dust[t.dir]}`}>{t.type}</span>
+              <span class="text-[10px] font-medium text-neutral-700 dark:text-neutral-200 tabular-nums">{t.delta}</span>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</div>

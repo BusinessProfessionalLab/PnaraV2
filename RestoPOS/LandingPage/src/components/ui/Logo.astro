@@ -1,0 +1,29 @@
+---
+import { ReceiptText } from "@lucide/astro";
+import { siteConfig } from "@/config/site";
+
+/**
+ * Product wordmark: a Rial/ticket mark plus the Persian brand name and the
+ * Latin wordmark. Text-based on purpose — no bitmap logo to keep in sync.
+ */
+const { className = "" } = Astro.props;
+---
+
+<a
+  href="/"
+  class={`group relative z-30 flex items-center gap-2.5 shrink-0 ${className}`}
+  aria-label={`${siteConfig.title} — صفحه اصلی`}
+>
+  <span
+    class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white shadow-[0px_2px_3px_0_rgba(45,109,195,0.35)] transition-transform duration-300 group-hover:-translate-y-0.5"
+    aria-hidden="true"
+  >
+    <ReceiptText class="h-[18px] w-[18px]" stroke-width={2} />
+  </span>
+  <span class="flex flex-col leading-none">
+    <span class="text-[15px] font-bold text-neutral-800 dark:text-neutral-100">{siteConfig.title}</span>
+    <span class="font-latin mt-1 text-[9px] font-medium tracking-[0.16em] text-neutral-400 dark:text-neutral-500"
+      >TOASTIRAN POS</span
+    >
+  </span>
+</a>

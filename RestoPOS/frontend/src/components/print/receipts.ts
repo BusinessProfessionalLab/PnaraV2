@@ -3,9 +3,9 @@ import { toShamsiDateTime } from "@/lib/jalali";
 import type { OrderDto, StoreSettingsDto, TicketStation } from "@/lib/types";
 
 function itemsFor(order: OrderDto, station?: TicketStation) {
-  if (station === "Kitchen") return order.kitchenItems;
-  if (station === "Bar") return order.barItems;
-  return order.items;
+  if (station === "Kitchen") return order.kitchenItems ?? [];
+  if (station === "Bar") return order.barItems ?? [];
+  return order.items ?? [];
 }
 
 export function receiptHtml(
@@ -25,7 +25,7 @@ export function receiptHtml(
 
   const lines = rows
     .map((item) => {
-      const mods = item.modifiers.map((m) => `<div class="mod">• ${m.name}${m.quantity > 1 ? ` × ${m.quantity}` : ""}</div>`).join("");
+      const mods = (item.modifiers ?? []).map((m) => `<div class="mod">• ${m.name}${m.quantity > 1 ? ` × ${m.quantity}` : ""}</div>`).join("");
       const notes = item.notes ? `<div class="note">یادداشت: ${item.notes}</div>` : "";
       const price = kind === "customer" ? `<span>${formatToman(item.lineTotal)}</span>` : "";
       return `<div class="row"><div class="title">${item.quantity} × ${item.title} ${price}</div>${mods}${notes}</div>`;
@@ -50,7 +50,7 @@ export function receiptHtml(
   .center { text-align: center; }
 </style></head><body>
   ${settings.logoUrl && kind === "customer" ? `<img class="logo" src="${settings.logoUrl}" alt="logo"/>` : ""}
-  <h1>${kind === "customer" ? settings.storeName : `*** ${title} ***`}</h1>
+  <h1>${kind === "customer" ? (settings.storeName ?? "فروشگاه") : `*** ${title} ***`}</h1>
   ${kind === "customer" && settings.receiptHeader ? `<div class="center">${settings.receiptHeader}</div>` : ""}
   <div class="meta center">شماره ${order.orderNumber}</div>
   <div class="meta center">${order.createdAtShamsi || toShamsiDateTime(new Date(order.createdAt))}</div>

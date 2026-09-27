@@ -1,0 +1,285 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import PageHeader from "@/components/elements/PageHeader.astro";
+import Button from "@/components/ui/Button.astro";
+import Badge from "@/components/ui/Badge.astro";
+import { siteConfig } from "@/config/site";
+import { fa } from "@/lib/fa";
+import {
+  ArrowLeft, CalendarRange, Scale, Server, ShieldCheck, Printer,
+  CreditCard, MonitorSmartphone, Database, UtensilsCrossed, Boxes,
+  ChartColumn, Clock3, CircleSlash
+} from "@lucide/astro";
+
+/** Shipped releases, mirrored from the product's own release history. */
+const releases = [
+  {
+    version: "۱.۱.۰",
+    date: "۱۴۰۵/۰۳/۲۸",
+    title: "منو، رسپی و باشگاه مشتریان",
+    desc: "برای هر آیتم منو مواد اولیه و مقدار مصرف تعریف می‌شود تا موجودی انبار خودکار کسر شود. باشگاه مشتریان با امتیاز وفاداری و تخفیف روی دسته و آیتم هم در همین نسخه آمد.",
+  },
+  {
+    version: "۱.۲.۰",
+    date: "۱۴۰۵/۰۴/۲۴",
+    title: "نمایشگرها و ظاهر برند",
+    desc: "دستورها بر اساس ایستگاه کار به نمایشگر بار و آشپزخانه جدا شدند. رنگ برند از تنظیمات انتخاب می‌شود و در صندوق، نمایشگرها و پنل اعمال می‌گردد؛ تم تیره هم به کل برنامه اضافه شد.",
+  },
+  {
+    version: "۱.۳.۰",
+    date: "۱۴۰۵/۰۵/۱۹",
+    title: "جستجو و سفارش‌های ناتمام",
+    desc: "جستجوی صندوق علاوه بر عنوان و دسته، کد و نام مواد اولیه را هم پوشش می‌دهد. پیش‌نویس فاکتور و ردیف سفارش‌های در انتظار پرداخت اضافه شد و دکمه‌های صندوق برای لمس بزرگ‌تر شدند.",
+  },
+  {
+    version: "۱.۴.۰",
+    date: "۱۴۰۵/۰۶/۱۳",
+    title: "تجربه صندوق، بازطراحی شد",
+    desc: "کارت‌های محصولات یکدست و خواناتر شدند، بارگذاری تصاویر منو سبک‌تر شد و صفحه تاریخچه نسخه‌ها از نوار کناری پنل مدیریت باز شد.",
+  },
+];
+
+const decisions = [
+  {
+    icon: Scale,
+    title: "ریال ذخیره می‌شود، تومان دیده می‌شود",
+    desc: "همه مبالغ به ریال با دقت کامل ذخیره و همه‌جا به تومان نمایش داده می‌شوند. یک‌بار درست ذخیره کنید، جای دیگری تبدیل نکنید — این کار خطای گرد‌کردن را حذف می‌کند.",
+  },
+  {
+    icon: CalendarRange,
+    title: "تقویم شمسی، از بلیت تا گزارش",
+    desc: "تاریخ و ساعت در صندوق، فیش‌ها، تاریخ عضویت مشتری و بازه گزارش‌ها همه شمسی است. لازم نیست تاریخ‌ها را در ذهن تبدیل کنید.",
+  },
+  {
+    icon: CreditCard,
+    title: "کارتخوان‌های ایرانی، درجه‌یک",
+    desc: "لایه پرداخت با کارتخوان‌های PC-POS داخلی روی LAN و COM حرف می‌زند؛ شماره پیگیری برمی‌گردد و تسویه بعد از تأیید تراکنش ثبت می‌شود.",
+  },
+  {
+    icon: Server,
+    title: "روی زیرساخت خودتان",
+    desc: `${siteConfig.product.runtime} و ${siteConfig.product.database} روی سرور خودتان اجرا می‌شود. داده‌های فروش، مشتری و انبار شما در پایگاه داده خودتان می‌ماند.`,
+  },
+];
+
+const scope = [
+  { title: "چند شعبه و گزارش تجمیعی", desc: "نسخه فعلی تک‌فروشگاهی است؛ هر شعبه نصب و تنظیمات خودش را دارد." },
+  { title: "کمپین پیامکی و بازاریابی", desc: "باشگاه مشتریان سوابق و امتیاز را نگه می‌دارد؛ ارسال پیام و کمپین در آن نیست." },
+  { title: "حسابداری رسمی و اسناد مالی", desc: "گردش انبار و گزارش سود وجود دارد؛ دفتر مالی و ترازنامه ندارد." },
+];
+
+const prerequisites = [
+  { icon: Server, label: `${siteConfig.product.runtime} SDK` },
+  { icon: Database, label: siteConfig.product.database },
+  { icon: MonitorSmartphone, label: "مرورگر روی صفحه لمسی" },
+  { icon: Printer, label: "پرینتر حرارتی ESC/POS" },
+  { icon: CreditCard, label: "کارتخوان PC-POS" },
+];
+---
+
+<Layout
+  title="درباره توست‌ایران — صندوق و انبار کافه برای بازار ایران"
+  description="توست‌ایران برای بازار ایران ساخته شده: مبالغ به ریال ذخیره و به تومان نمایش داده می‌شوند، تقویم شمسی است و با کارتخوان‌های PC-POS و پرینتر حرارتی داخلی کار می‌کند."
+  keywords="درباره توست‌ایران, صندوق کافه ایرانی, نرم‌افزار کافه بازار ایران, PC-POS, پرینتر حرارتی, انبار رستوران"
+>
+  <section class="site-container my-12">
+    <PageHeader
+      title="کافه‌ها را می‌شناسیم، نرم‌افزار هم می‌نویسیم"
+      description="توست‌ایران یک صندوق لمسی و سیستم انبار برای کافه و رستوران است که از پایه برای بازار ایران ساخته شده — نه نسخه ترجمه‌شده یک محصول خارجی."
+    />
+  </section>
+
+  <!-- Why it exists -->
+  <section class="site-container max-w-3xl mx-auto pb-16">
+    <div class="space-y-5 text-neutral-600 dark:text-neutral-300 leading-9" data-aos="fade-up-xs" data-aos-once="true">
+      <p>
+        بیشتر ابزارهایی که برای مدیریت کافه استفاده می‌شود، یا یک دفتر کاغذی است یا مجموعه‌ای از فایل‌های اکسل که
+        هیچ‌کدام به هم وصل نیستند. منو در یکی، انبار در دیگری، فروش در سومی. نتیجه‌اش این است که هیچ‌وقت یک عدد
+        قابل اتکا برای «امروز چقدر سود کردم» ندارید.
+      </p>
+      <p>
+        توست‌ایران را ساختیم تا این زنجیره را یک‌جا نگه داریم: آیتم منو رسپی دارد، رسپی به مواد اولیه وصل است،
+        فاکتور خرید بهای میانگین را به‌روز می‌کند، ارسال سفارش انبار را کسر می‌کند، لغو سفارش آن را برمی‌گرداند و
+        تسویه باشگاه مشتریان را جلو می‌برد. گزارش سود، خروجی همین زنجیره است — نه یک تخمین.
+      </p>
+      <p>
+        این‌که محصول برای ایران ساخته شده، فقط یک توضیح بازاری نیست: مبالغ به ریال ذخیره و به تومان نمایش داده
+        می‌شوند، تاریخ‌ها شمسی‌اند، لایه پرداخت با کارتخوان‌های PC-POS داخلی حرف می‌زند و فیش‌ها روی پرینتر
+        حرارتی همین بازار چاپ می‌شوند.
+      </p>
+    </div>
+  </section>
+
+  <div class="w-full border-b border-dashed border-neutral-200 dark:border-neutral-700 my-8 site-container"></div>
+
+  <!-- Decisions -->
+  <section class="py-16 md:py-20 site-container">
+    <div class="max-w-2xl mx-auto text-center mb-10">
+      <h2 class="text-3xl md:text-4xl font-brand mb-4">تصمیم‌هایی که به نفع کافه گرفته شد</h2>
+      <p class="text-neutral-600 dark:text-neutral-300 leading-8">
+        این چهار مورد را عمداً این‌طور ساختیم، چون در عمل همین‌ها وقت و پول کافه را نگه می‌دارند.
+      </p>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
+      {decisions.map((item, i) => (
+        <div
+          class="p-6 rounded-xl bg-bg-secondary dark:bg-bg-secondary-dark border border-primary/10 dark:border-neutral-700"
+          data-aos="fade-up-sm"
+          data-aos-delay={i * 100}
+          data-aos-once="true"
+        >
+          <span class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary mb-4">
+            <item.icon class="w-5 h-5" aria-hidden="true" />
+          </span>
+          <h3 class="text-base font-bold text-neutral-800 dark:text-neutral-100 mb-2">{item.title}</h3>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400 leading-7">{item.desc}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <div class="w-full border-b border-dashed border-neutral-200 dark:border-neutral-700 my-8 site-container"></div>
+
+  <!-- Under the hood + setup -->
+  <section id="setup" class="py-16 md:py-20 site-container scroll-mt-24">
+    <div class="flex flex-col lg:flex-row gap-10 lg:gap-16">
+      <div class="flex-1 min-w-0" data-aos="fade-up-xs" data-aos-once="true">
+        <h2 class="text-3xl md:text-4xl font-brand mb-4">زیر پوست سیستم</h2>
+        <p class="text-neutral-600 dark:text-neutral-300 leading-8 mb-6">
+          سیستم روی معماری لایه‌ای و الگوی CQRS بنا شده است: هر عمل کاربر یک دستور یا پرس‌وجوی مستقل است. بعد از
+          ثبت سفارش، رویدادهای دامنه منتشر می‌شوند؛ یکی انبار را طبق رسپی کسر می‌کند و دیگری باشگاه مشتریان را
+          به‌روز می‌کند.
+        </p>
+        <ul class="space-y-3">
+          {[
+            "موتور رسپی (BOM): کسر خودکار در ارسال سفارش و برگشت کسر در لغو آن",
+            "پیش‌نویس‌ها به‌طور کامل حذف می‌شوند تا داده یتیم نماند",
+            "مجوزهای دانه‌دانه در سطح API و در توکن کاربر اعمال می‌شوند",
+            "عملیات حساس ثبت و حسابرسی می‌شود؛ حذف‌ها نرم هستند",
+            "دیسپچر ESC/POS برای فیش مشتری و فیش ایستگاه‌ها",
+            "پل PC-POS برای شروع تراکنش، پیگیری و تأیید تسویه روی شبکه یا COM",
+          ].map((point) => (
+            <li class="flex items-start gap-2">
+              <ShieldCheck class="w-4 h-4 text-primary mt-1 flex-shrink-0" aria-hidden="true" />
+              <span class="text-sm text-neutral-600 dark:text-neutral-300 leading-7">{point}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div class="mt-8 flex flex-wrap gap-2">
+          {prerequisites.map((item) => (
+            <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-dashed border-primary/25 dark:border-neutral-700 text-xs text-neutral-600 dark:text-neutral-300">
+              <item.icon class="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+              {item.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div class="flex-1 min-w-0" data-aos="fade-up-sm" data-aos-delay="150" data-aos-once="true">
+        <div class="rounded-2xl border border-primary/10 dark:border-neutral-700 bg-bg-secondary dark:bg-bg-secondary-dark p-6">
+          <h3 class="text-lg font-bold text-neutral-800 dark:text-neutral-100 mb-5">زنجیره‌ای که یک‌جا نگه داشته می‌شود</h3>
+          <ol class="space-y-4">
+            {[
+              { icon: UtensilsCrossed, title: "منو و رسپی", desc: "مصرف مواد اولیه هر آیتم و افزودنی" },
+              { icon: Boxes, title: "انبار", desc: "کسر خودکار، ضایعات با علت، بهای میانگین موزون" },
+              { icon: MonitorSmartphone, title: "فروش", desc: "صندوق لمسی، بلیت ایستگاه‌ها، تسویه" },
+              { icon: ChartColumn, title: "گزارش سود", desc: "درآمد، هزینه تمام‌شده و حاشیه هر آیتم" },
+              { icon: Clock3, title: "شیفت", desc: "نقد مورد انتظار، نقد شمارش‌شده، اختلاف" },
+            ].map((row, i) => (
+              <li class="flex items-start gap-3">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary font-brand text-sm">
+                  {fa(i + 1)}
+                </span>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <row.icon class="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+                    <span class="text-sm font-bold text-neutral-800 dark:text-neutral-100">{row.title}</span>
+                  </div>
+                  <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400 leading-6">{row.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="w-full border-b border-dashed border-neutral-200 dark:border-neutral-700 my-8 site-container"></div>
+
+  <!-- Release history -->
+  <section class="py-16 md:py-20 site-container">
+    <div class="max-w-2xl mx-auto text-center mb-10">
+      <h2 class="text-3xl md:text-4xl font-brand mb-4">مسیر نسخه‌ها</h2>
+      <p class="text-neutral-600 dark:text-neutral-300 leading-8">
+        نسخه فعلی {siteConfig.product.version} است. این‌ها نسخه‌هایی‌اند که به کافه‌ها رسیده‌اند.
+      </p>
+    </div>
+
+    <div class="max-w-3xl mx-auto relative">
+      <div class="absolute top-2 bottom-2 end-[7px] w-px bg-neutral-200 dark:bg-neutral-700"></div>
+      <ol class="space-y-8">
+        {releases.map((release, i) => (
+          <li class="relative pe-10" data-aos="fade-up-sm" data-aos-delay={i * 80} data-aos-once="true">
+            <div class="absolute end-0 top-1.5 w-4 h-4 rounded-full bg-primary border-2 border-bg-primary dark:border-bg-primary-dark"></div>
+            <div class="mb-2 flex items-center gap-3 flex-wrap">
+              <Badge variant="primary" size="sm">{release.version}</Badge>
+              <span class="text-xs text-neutral-400 dark:text-neutral-500 tabular-nums">{release.date}</span>
+            </div>
+            <h3 class="text-base font-bold text-neutral-800 dark:text-neutral-100 mb-1">{release.title}</h3>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400 leading-7">{release.desc}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+
+    <div class="mt-10 text-center">
+      <Button url="/changelog">تغییرات کامل نسخه‌ها</Button>
+    </div>
+  </section>
+
+  <div class="w-full border-b border-dashed border-neutral-200 dark:border-neutral-700 my-8 site-container"></div>
+
+  <!-- Explicit scope -->
+  <section class="py-16 md:py-20 site-container">
+    <div class="max-w-2xl mx-auto text-center mb-10">
+      <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-5">
+        <CircleSlash class="w-6 h-6" aria-hidden="true" />
+      </span>
+      <h2 class="text-3xl md:text-4xl font-brand mb-4">چه چیزی در آن نیست</h2>
+      <p class="text-neutral-600 dark:text-neutral-300 leading-8">
+        بهتر است قبل از تصمیم بدانید کجا را پوشش نمی‌دهد.
+      </p>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-4xl mx-auto">
+      {scope.map((item, i) => (
+        <div
+          class="p-5 rounded-xl border border-dashed border-neutral-300 dark:border-neutral-700"
+          data-aos="fade-up-sm"
+          data-aos-delay={i * 100}
+          data-aos-once="true"
+        >
+          <div class="text-sm font-bold text-neutral-800 dark:text-neutral-100 mb-1.5">{item.title}</div>
+          <div class="text-xs text-neutral-500 dark:text-neutral-400 leading-6">{item.desc}</div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-12 md:py-20 site-container rounded-xl bg-bg-secondary dark:bg-bg-secondary-dark border border-primary/10 dark:border-neutral-700" data-aos="fade-up-xs" data-aos-once="true">
+    <div class="max-w-2xl mx-auto text-center">
+      <h2 class="text-3xl md:text-4xl font-brand mb-4">سؤالی دارید که اینجا جواب نگرفت؟</h2>
+      <p class="text-neutral-600 dark:text-neutral-300 mb-8 leading-8">
+        بپرسید. اگر چیزی در سیستم نیست، همان را صریح می‌گوییم.
+      </p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <Button url="/contact" type="fill" size="lg">
+          تماس با ما <ArrowLeft size={18} />
+        </Button>
+        <Button url="/features" size="lg">مرور قابلیت‌ها</Button>
+      </div>
+    </div>
+  </section>
+</Layout>

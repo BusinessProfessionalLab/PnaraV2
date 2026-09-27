@@ -1,0 +1,318 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import Button from "@/components/ui/Button.astro";
+import { siteConfig } from "@/config/site";
+import { Send, Mail, Clock3, LifeBuoy, Sparkles, MapPin } from "@lucide/astro";
+
+const contactTopics = [
+  { value: "demo", label: "درخواست دمو" },
+  { value: "hardware", label: "پیش‌نیاز سخت‌افزار و راه‌اندازی" },
+  { value: "pricing", label: "قیمت و شرایط خرید" },
+  { value: "support", label: "پشتیبانی و رفع اشکال" },
+  { value: "other", label: "موضوع دیگر" },
+];
+
+const channels = [
+  {
+    icon: Mail,
+    label: "ایمیل",
+    text: siteConfig.mail,
+    href: `mailto:${siteConfig.mail}`,
+  },
+  {
+    icon: LifeBuoy,
+    label: "پیش از خرید",
+    text: "پیش‌نیازها و سؤال فنی",
+    href: "/features#hardware",
+  },
+  {
+    icon: MapPin,
+    label: "راه‌اندازی",
+    text: "نصب روی سرور و تجهیزات فروشگاه",
+    href: "/about#setup",
+  },
+];
+
+const expectations = [
+  { icon: Clock3, title: "زمان پاسخ", desc: "پیام‌ها معمولاً در همان روز کاری پاسخ داده می‌شوند." },
+  {
+    icon: Sparkles,
+    title: "در دمو چه می‌بینید",
+    desc: "منوی خودتان را ثبت می‌کنیم، یک سفارش واقعی می‌زنیم و گزارش همان شیفت را با هم می‌خوانیم.",
+  },
+  {
+    icon: LifeBuoy,
+    title: "برای پشتیبانی فنی",
+    desc: "اگر مشکل در اجراست، مدل پرینتر و کارتخوان و متن خطا را بنویسید تا سریع‌تر بررسی شود.",
+  },
+];
+---
+
+<Layout
+  title="تماس و درخواست دمو — توست‌ایران"
+  description="برای درخواست دمو، بررسی پیش‌نیاز سخت‌افزار یا سؤال درباره صندوق و انبار کافه با ما تماس بگیرید. در دمو، منوی کافه خودتان را روی سیستم امتحان می‌کنیم."
+  keywords="تماس توست‌ایران, درخواست دمو صندوق کافه, پشتیبانی صندوق رستوران"
+>
+  <main class="site-container py-12 md:py-20">
+    <section class="grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,1.1fr)] lg:items-start">
+      <div data-aos="fade-up-xs" data-aos-once="true">
+        <p
+          class="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-xs font-medium text-primary dark:border-primary-light/20 dark:bg-primary-light/10 dark:text-primary-light"
+        >
+          <Sparkles size={14} />
+          تماس
+        </p>
+        <h1 class="max-w-xl font-brand text-4xl leading-tight sm:text-5xl lg:text-6xl">
+          کافه‌تان را روی سیستم امتحان کنیم
+        </h1>
+        <p class="mt-5 max-w-lg text-base leading-8 text-neutral-600 dark:text-neutral-300">
+          برای دمو لازم نیست چیزی آماده کنید؛ فقط بگویید کافه چند قلم منو دارد و چه تجهیزاتی دارید. اگر
+          نمی‌دانید سیستم به چه چیزی نیاز دارد، همین‌جا بپرسید.
+        </p>
+
+        <div class="mt-10 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+          {
+            channels.map(({ icon: Icon, label, text, href }, index) => (
+              <a
+                href={href}
+                target={href.startsWith("http") || href.startsWith("mailto") ? "_self" : "_self"}
+                class="group flex items-center gap-4 rounded-xl border border-neutral-200 bg-bg-secondary/75 p-4 transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-[0_14px_35px_rgba(25,34,47,0.08)] dark:border-neutral-700 dark:bg-bg-secondary-dark/75 dark:hover:border-primary-light/35 dark:hover:shadow-[0_14px_35px_rgba(0,0,0,0.22)]"
+                data-aos="fade-up-xs"
+                data-aos-delay={`${index * 100}`}
+                data-aos-once="true"
+              >
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-primary shadow-sm ring-1 ring-neutral-200/70 transition-colors group-hover:bg-primary group-hover:text-white dark:bg-neutral-900/60 dark:text-primary-light dark:ring-neutral-700 dark:group-hover:bg-primary-light dark:group-hover:text-neutral-950">
+                  <Icon size={18} />
+                </span>
+                <span class="min-w-0">
+                  <span class="block text-sm font-semibold text-neutral-800 dark:text-neutral-100">{label}</span>
+                  <span class="mt-0.5 block truncate text-sm text-neutral-500 transition-colors group-hover:text-primary dark:text-neutral-400 dark:group-hover:text-primary-light" dir={href.startsWith("mailto") ? "ltr" : undefined}>
+                    {text}
+                  </span>
+                </span>
+              </a>
+            ))
+          }
+        </div>
+
+        <div
+          class="mt-8 border-y border-dashed border-neutral-200 py-6 dark:border-neutral-700"
+          data-aos="fade-up-xs"
+          data-aos-delay="200"
+          data-aos-once="true"
+        >
+          <div class="grid gap-5">
+            {
+              expectations.map(({ icon: Icon, title, desc }) => (
+                <div class="flex gap-3">
+                  <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon size={16} />
+                  </span>
+                  <div>
+                    <h2 class="text-sm font-bold text-neutral-800 dark:text-neutral-100">{title}</h2>
+                    <p class="mt-1 text-sm leading-7 text-neutral-500 dark:text-neutral-400">{desc}</p>
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="mx-auto w-full max-w-xl lg:max-w-none" data-aos="fade-up-xs" data-aos-delay="100" data-aos-once="true">
+        <div
+          class="rounded-2xl border border-neutral-200 bg-bg-secondary/85 p-5 shadow-[0_18px_60px_rgba(25,34,47,0.08)] backdrop-blur dark:border-neutral-700 dark:bg-bg-secondary-dark/85 dark:shadow-[0_18px_60px_rgba(0,0,0,0.22)] sm:p-8"
+        >
+          <div
+            class="mb-7 flex flex-col gap-4 border-b border-dashed border-neutral-200 pb-6 dark:border-neutral-700 sm:flex-row sm:items-start sm:justify-between"
+          >
+            <div>
+              <p class="text-xs font-medium text-primary dark:text-primary-light">فرم درخواست</p>
+              <h2 class="mt-3 font-brand text-3xl sm:text-4xl">درخواست دمو</h2>
+              <p class="mt-3 text-sm leading-7 text-neutral-500 dark:text-neutral-400">
+                فرم را پر کنید تا برای هماهنگی زمان دمو تماس بگیریم.
+              </p>
+            </div>
+            <span
+              class="inline-flex w-fit rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-xs font-medium text-primary dark:border-primary-light/20 dark:bg-primary-light/10 dark:text-primary-light"
+            >
+              فرم نمایشی
+            </span>
+          </div>
+
+          <form id="contact-form" class="space-y-5">
+            <div class="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label for="name" class="mb-2 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  نام و نام خانوادگی
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  autocomplete="name"
+                  required
+                  placeholder="مثلاً مریم رضایی"
+                  class="contact-field"
+                />
+              </div>
+
+              <div>
+                <label for="store" class="mb-2 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  نام کافه یا رستوران
+                </label>
+                <input
+                  type="text"
+                  id="store"
+                  name="store"
+                  autocomplete="organization"
+                  required
+                  placeholder="مثلاً کافه ونوشه"
+                  class="contact-field"
+                />
+              </div>
+            </div>
+
+            <div class="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label for="phone" class="mb-2 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  شماره موبایل
+                </label>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  inputmode="tel"
+                  autocomplete="tel"
+                  required
+                  dir="ltr"
+                  placeholder="0912 000 0000"
+                  class="contact-field text-start"
+                />
+              </div>
+
+              <div>
+                <label for="city" class="mb-2 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  شهر
+                </label>
+                <input type="text" id="city" name="city" placeholder="مثلاً تهران" class="contact-field" />
+              </div>
+            </div>
+
+            <div>
+              <label for="subject" class="mb-2 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                موضوع
+              </label>
+              <select id="subject" name="subject" required class="contact-field">
+                <option value="">یک موضوع انتخاب کنید</option>
+                {contactTopics.map((topic) => (
+                  <option value={topic.value}>{topic.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label for="message" class="mb-2 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                توضیح
+              </label>
+              <textarea
+                id="message"
+                name="message"
+                required
+                rows="5"
+                placeholder="چند قلم منو دارید؟ صندوق فعلی‌تان چیست و چه پرینتر و کارتخوانی دارید؟"
+                class="contact-field resize-none"
+              ></textarea>
+            </div>
+
+            <div
+              class="rounded-xl border border-dashed border-primary/20 bg-primary/5 p-4 text-sm leading-7 text-neutral-600 dark:border-primary-light/20 dark:bg-primary-light/10 dark:text-neutral-300"
+            >
+              <strong class="font-semibold text-primary dark:text-primary-light">فرم نمایشی است.</strong><br />
+              تا زمانی که این فرم به سرویس ایمیل یا API متصل نشده، پیام ارسال نمی‌شود. فعلاً برای تماس مستقیم از
+              <a href={`mailto:${siteConfig.mail}`} class="mx-1 text-primary hover:underline dark:text-primary-light" dir="ltr">{siteConfig.mail}</a>
+              استفاده کنید.
+            </div>
+
+            <div class="form-submit-btn">
+              <Button type="fill" className="w-full max-w-none justify-center" url="javascript:void(0);">
+                ثبت درخواست دمو <Send size={16} class="-scale-x-100" />
+              </Button>
+            </div>
+
+            <div
+              id="form-success"
+              class="hidden rounded-xl border border-green-200 bg-green-50 p-4 text-center text-sm font-medium text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300"
+            >
+              درخواست ثبت شد. برای هماهنگی زمان دمو با شما تماس می‌گیریم.
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+</Layout>
+
+<style>
+  .contact-field {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-neutral-200);
+    background: color-mix(in srgb, var(--color-bg-secondary) 82%, transparent);
+    padding: 0.875rem 1rem;
+    color: var(--color-neutral-800);
+    outline: none;
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      background-color 180ms ease;
+  }
+
+  .contact-field::placeholder {
+    color: var(--color-neutral-400);
+  }
+
+  .contact-field:focus {
+    border-color: var(--color-primary);
+    background: var(--color-bg-secondary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 22%, transparent);
+  }
+
+  :global(.dark) .contact-field {
+    border-color: var(--color-neutral-700);
+    background: color-mix(in srgb, var(--color-bg-secondary-dark) 82%, transparent);
+    color: var(--color-neutral-100);
+  }
+
+  :global(.dark) .contact-field::placeholder {
+    color: var(--color-neutral-500);
+  }
+
+  :global(.dark) .contact-field:focus {
+    border-color: var(--color-primary-light);
+    background: var(--color-bg-secondary-dark);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-light) 18%, transparent);
+  }
+</style>
+
+<script>
+  const form = document.getElementById("contact-form") as HTMLFormElement | null;
+  const successMsg = document.getElementById("form-success");
+  const submitBtn = form?.querySelector(".form-submit-btn a") as HTMLAnchorElement | null;
+
+  submitBtn?.addEventListener("click", (event) => {
+    event.preventDefault();
+
+    if (!form?.checkValidity()) {
+      form?.reportValidity();
+      return;
+    }
+
+    successMsg?.classList.remove("hidden");
+    form.reset();
+
+    setTimeout(() => {
+      successMsg?.classList.add("hidden");
+    }, 6000);
+  });
+</script>

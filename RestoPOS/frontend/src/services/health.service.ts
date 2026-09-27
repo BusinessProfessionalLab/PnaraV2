@@ -1,9 +1,9 @@
 import { apiClient } from "@/api/client";
 
-export type HealthStatus = { product: string; status: string };
-
-/** Server health probe used by the POS connection badge. */
+/**
+ * Server health probe used by the POS connection badge. Both probes are
+ * documented without a response body, so only the HTTP outcome matters.
+ */
 export const healthService = {
-  check: () =>
-    apiClient.get<HealthStatus>("/api/health").then((r) => r.data),
+  check: () => apiClient.get<void>("/api/health").then((r) => r.data),
 };

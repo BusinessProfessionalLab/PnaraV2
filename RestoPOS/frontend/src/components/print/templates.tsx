@@ -17,7 +17,7 @@ export function CustomerReceipt({ order, settings }: { order: OrderDto; settings
       <p className="text-center text-xs">{order.createdAtShamsi || toShamsiDateTime(new Date(order.createdAt))}</p>
       <p className="text-xs">میز {order.tableNumber || "—"} · {order.customerPhone || "میهمان"}</p>
       <hr className="my-2 border-dashed border-black" />
-      {order.items.map((item) => (
+      {(order.items ?? []).map((item) => (
         <div key={item.id} className="mb-1 text-xs">
           <div className="flex justify-between font-bold">
             <span>
@@ -25,7 +25,7 @@ export function CustomerReceipt({ order, settings }: { order: OrderDto; settings
             </span>
             <span>{formatToman(item.lineTotal)}</span>
           </div>
-          {item.modifiers.map((m) => (
+          {(item.modifiers ?? []).map((m) => (
             <div key={m.id} className="pr-3">
               • {m.name}
             </div>
@@ -51,7 +51,7 @@ export function KitchenTicket({
   order: OrderDto;
   station: "kitchen" | "bar";
 }) {
-  const items = station === "bar" ? order.barItems : order.kitchenItems;
+  const items = station === "bar" ? (order.barItems ?? []) : (order.kitchenItems ?? []);
   const elapsed = order.submittedAt
     ? Math.max(0, Math.round((Date.now() - new Date(order.submittedAt).getTime()) / 60000))
     : 0;
@@ -66,7 +66,7 @@ export function KitchenTicket({
           <div className="text-lg font-black">
             {item.quantity} × {item.title}
           </div>
-          {item.modifiers.map((m) => (
+          {(item.modifiers ?? []).map((m) => (
             <div key={m.id} className="text-sm">
               • {m.name}
             </div>

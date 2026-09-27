@@ -69,7 +69,7 @@ export function KdsBoard({ station }: { station: "kitchen" | "bar" }) {
 
   const tickets = (orders.data ?? []).filter((o) => {
     if (!["Submitted", "InPreparation", "Ready"].includes(o.status)) return false;
-    const items = station === "bar" ? o.barItems : o.kitchenItems;
+    const items = station === "bar" ? (o.barItems ?? []) : (o.kitchenItems ?? []);
     return items.length > 0;
   });
 
@@ -160,7 +160,7 @@ export function KdsBoard({ station }: { station: "kitchen" | "bar" }) {
 
           {tickets.map((order) => {
             const meta = STATUS_META[order.status] ?? { label: order.status, badge: "neutral" as const };
-            const items = isBar ? order.barItems : order.kitchenItems;
+            const items = isBar ? (order.barItems ?? []) : (order.kitchenItems ?? []);
             const elapsed = Date.now() - new Date(order.submittedAt ?? order.createdAt).getTime();
             const minutes = Math.max(0, Math.floor(elapsed / 60_000));
             return (
@@ -197,9 +197,9 @@ export function KdsBoard({ station }: { station: "kitchen" | "bar" }) {
                           <span className="tabular-nums">{item.quantity}×</span> {item.title}
                         </span>
                       </div>
-                      {item.modifiers.length > 0 ? (
+                      {(item.modifiers ?? []).length > 0 ? (
                         <div className="mt-1 space-y-0.5">
-                          {item.modifiers.map((m) => (
+                          {(item.modifiers ?? []).map((m) => (
                             <div key={m.id} className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
                               <Radio className="size-3 rotate-90 text-border-strong" aria-hidden />
                               {m.name}

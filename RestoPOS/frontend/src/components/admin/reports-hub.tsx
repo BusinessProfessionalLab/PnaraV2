@@ -1,32 +1,19 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Fragment, useMemo, useState } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { useMemo, useState } from "react";
 import { Input, Label } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ReportAmChart, type ReportChartPoint } from "@/components/admin/report-amcharts";
 import { api } from "@/lib/api";
-import { formatToman, rialToToman } from "@/lib/currency";
+import { formatToman, formatTomanAmount } from "@/lib/currency";
 import { daysAgoUtc } from "@/lib/jalali";
 import type { TimePeriodPreset, TimelineInterval } from "@/lib/types";
 
 const COLORS = ["#C41E3A", "#1F2937", "#D97706", "#059669", "#2563EB", "#7C3AED"];
+const CUSTOMER_RETURN_COLORS = ["#059669", "#94A3B8"];
 const UNIT_LABELS: Record<string, string> = {
   Gram: "گرم",
   Milliliter: "میلی‌لیتر",
@@ -120,9 +107,8 @@ export function ReportsHub() {
     enabled: Boolean(summary.data?.fromUtc && summary.data?.toUtc),
   });
 
-  const heatmapGrid = useMemo(() => {
+  const heatmapChart = useMemo(() => {
     const cells = new Map<string, { orderCount: number; netSales: number; density: number; dayFa: string }>();
-    let maxDensity = 1;
     for (const row of heatmap.data ?? []) {
       const key = `${row.dayOfWeek}-${row.hour}`;
       cells.set(key, {
@@ -131,13 +117,26 @@ export function ReportsHub() {
         density: row.densityScore,
         dayFa: row.dayOfWeekFa,
       });
-      maxDensity = Math.max(maxDensity, row.densityScore);
     }
     const days = Array.from({ length: 7 }, (_, d) => {
       const sample = (heatmap.data ?? []).find((r) => r.dayOfWeek === d);
       return { day: d, label: sample?.dayOfWeekFa ?? `روز ${d}` };
     });
-    return { cells, maxDensity, days };
+    const hours = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, "0"));
+    const rows = days.flatMap(({ day, label }) =>
+      hours.map((hour) => {
+        const cell = cells.get(`${day}-${Number(hour)}`);
+        const orderCount = cell?.orderCount ?? 0;
+        const amount = cell?.netSales ?? 0;
+        return {
+          day: label,
+          hour,
+          value: cell?.density ?? 0,
+          tooltip: `${formatToman(amount)} · ${orderCount.toLocaleString("fa-IR")} سفارش`,
+        };
+      }),
+    );
+    return { days, dayLabels: days.map((day) => day.label), hours, rows };
   }, [heatmap.data]);
 
   const timelinePoints = useMemo(
@@ -153,12 +152,13 @@ export function ReportsHub() {
 
   const paymentMix = useMemo(
     () =>
-      (payments.data?.methods ?? []).map((m) => ({
+      (payments.data?.methods ?? []).map((m, index) => ({
         method: m.method,
         name: m.methodLabelFa,
         amount: m.amount.rials,
         count: m.paymentCount,
         share: m.percentageShare,
+        chartColor: COLORS[index % COLORS.length],
       })),
     [payments.data],
   );
@@ -201,6 +201,7 @@ export function ReportsHub() {
         amount: item.revenue.rials,
         value: productMetric === "amount" ? item.revenue.rials : item.quantity,
         band: item.band,
+        chartColor: item.band === "Star" ? "#059669" : item.band === "Underperforming" ? "#C41E3A" : "#D97706",
       }));
   }, [menuPerf.data, productMetric]);
 
@@ -231,28 +232,33 @@ export function ReportsHub() {
     [inventory.data],
   );
 
-  const customerReturnData = [
-    { name: "مشتری بازگشتی", value: customerReturns.data?.returningCustomerCount ?? 0 },
-    { name: "خرید اول", value: customerReturns.data?.firstTimeCustomerCount ?? 0 },
-  ];
+  const customerReturnData = useMemo(
+    () => [
+      { name: "مشتری بازگشتی", value: customerReturns.data?.returningCustomerCount ?? 0 },
+      { name: "خرید اول", value: customerReturns.data?.firstTimeCustomerCount ?? 0 },
+    ],
+    [customerReturns.data],
+  );
+  const categoryShareData = useMemo(
+    () => (catDetail.data ?? []).map((category) => ({ name: category.categoryName, value: category.revenue.rials })),
+    [catDetail.data],
+  );
 
   const cmp = summary.data?.comparisonWithPreviousPeriod;
   const totalPayments = payments.data?.totalSettled.rials ?? summary.data?.netSales.rials ?? 0;
   const totalVat = summary.data?.totalVat.rials ?? 0;
   const grossSales = totalPayments - totalVat;
 
-  function handleTimelineChartClick(state: unknown) {
+  function handleTimelinePointClick(point: ReportChartPoint) {
     if (drilldownDay || interval !== "Daily") return;
-    const point = (state as {
-      activePayload?: { payload?: { bucketStartUtc?: string; label?: string } }[];
-    } | null)?.activePayload?.[0]?.payload;
-    if (!point?.bucketStartUtc) return;
-    const start = new Date(point.bucketStartUtc);
+    const bucketStartUtc = point.bucketStartUtc;
+    if (typeof bucketStartUtc !== "string") return;
+    const start = new Date(bucketStartUtc);
     if (Number.isNaN(start.getTime())) return;
     setDrilldownDay({
       fromUtc: start.toISOString(),
       toUtc: new Date(start.getTime() + 24 * 60 * 60 * 1000 - 1).toISOString(),
-      label: point.label || "روز انتخاب‌شده",
+      label: typeof point.label === "string" ? point.label : "روز انتخاب‌شده",
     });
   }
 
@@ -355,57 +361,37 @@ export function ReportsHub() {
           ) : null}
         </div>
         <div className="h-80 min-w-0">
-          <ResponsiveContainer>
-            <LineChart data={timelinePoints} onClick={handleTimelineChartClick}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-              <YAxis tickFormatter={(v) => String(rialToToman(Number(v)))} width={56} />
-              <Tooltip formatter={(v) => [formatToman(Number(v)), "مجموع پرداختی‌ها"]} />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="netSales"
-                name="مجموع پرداختی‌ها"
-                stroke="#C41E3A"
-                strokeWidth={2}
-                dot={interval === "Daily" && !drilldownDay ? { r: 3, cursor: "pointer" } : false}
-                activeDot={{ r: 6, cursor: "pointer" }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <ReportAmChart
+            mode="line"
+            data={timelinePoints}
+            categoryField="label"
+            valueField="netSales"
+            label="روند فروش"
+            color="#C41E3A"
+            valueScale={0.1}
+            formatValue={(value) => formatTomanAmount(value)}
+            formatAxisValue={(value) => Math.round(value).toLocaleString("fa-IR")}
+            onPointClick={!drilldownDay && interval === "Daily" ? handleTimelinePointClick : undefined}
+          />
         </div>
       </Card>
 
       <Card className="p-4">
         <h2 className="mb-1 font-black">نقشهٔ حرارتی مبلغ فروش بر اساس روز و ساعت (۷×۲۴)</h2>
         <p className="mb-3 text-xs text-muted-foreground">هر خانه مبلغ پرداخت‌شده در همان ساعت و روز هفته را نشان می‌دهد؛ رنگ پررنگ‌تر یعنی فروش بیشتر.</p>
-        <div className="overflow-x-auto">
-          <div className="inline-grid min-w-full gap-0.5" style={{ gridTemplateColumns: `72px repeat(24, minmax(18px, 1fr))` }}>
-            <div />
-            {Array.from({ length: 24 }, (_, h) => (
-              <div key={h} className="text-center text-[9px] text-muted-foreground">
-                {h}
-              </div>
-            ))}
-            {heatmapGrid.days.map(({ day, label }) => (
-              <Fragment key={day}>
-                <div className="flex items-center pe-1 text-xs font-bold">{label}</div>
-                {Array.from({ length: 24 }, (_, hour) => {
-                  const cell = heatmapGrid.cells.get(`${day}-${hour}`);
-                  const density = cell?.density ?? 0;
-                  const alpha = 0.08 + (density / heatmapGrid.maxDensity) * 0.92;
-                  return (
-                    <div
-                      key={`${day}-${hour}`}
-                      className="aspect-square rounded-sm"
-                      style={{ background: `rgba(196,30,58,${alpha})` }}
-                      title={`${label} ${hour}:00 — ${cell?.orderCount ?? 0} سفارش · ${formatToman(cell?.netSales ?? 0)}`}
-                    />
-                  );
-                })}
-              </Fragment>
-            ))}
-          </div>
+        <div className="h-72 min-w-0">
+          <ReportAmChart
+            mode="heatmap"
+            data={heatmapChart.rows}
+            categoryField="hour"
+            valueField="value"
+            label="نقشه حرارتی فروش روز و ساعت"
+            tooltipField="tooltip"
+            xField="hour"
+            yField="day"
+            xCategories={heatmapChart.hours}
+            yCategories={heatmapChart.dayLabels}
+          />
         </div>
       </Card>
 
@@ -438,20 +424,17 @@ export function ReportsHub() {
           </div>
           {visiblePaymentMix.length ? (
             <div className="h-56 min-w-0">
-              <ResponsiveContainer>
-                <BarChart data={visiblePaymentMix} layout="vertical" margin={{ left: 4, right: 12 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" tickFormatter={(v) => String(rialToToman(Number(v)))} />
-                  <YAxis type="category" dataKey="name" width={105} tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v) => [formatToman(Number(v)), "مبلغ پرداخت"]} />
-                  <Bar dataKey="amount" name="مبلغ پرداخت" radius={[0, 5, 5, 0]}>
-                    {visiblePaymentMix.map((method) => {
-                      const colorIndex = paymentMix.findIndex((item) => item.method === method.method);
-                      return <Cell key={method.method} fill={COLORS[colorIndex % COLORS.length]} />;
-                    })}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <ReportAmChart
+                mode="bar"
+                data={visiblePaymentMix}
+                categoryField="name"
+                valueField="amount"
+                label="ترکیب روش‌های پرداخت"
+                colorField="chartColor"
+                valueScale={0.1}
+                formatValue={(value) => formatTomanAmount(value)}
+                formatAxisValue={(value) => Math.round(value).toLocaleString("fa-IR")}
+              />
             </div>
           ) : (
             <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">یک روش پرداخت را نمایش دهید</div>
@@ -492,17 +475,16 @@ export function ReportsHub() {
           </div>
           <p className="text-xs text-muted-foreground">مشتری بازگشتی: خرید قبلی پیش از این بازه یا بیش از یک سفارش در بازه</p>
           <div className="h-64 min-w-0">
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie data={customerReturnData} dataKey="value" nameKey="name" innerRadius={52} outerRadius={90} label>
-                  {customerReturnData.map((_, i) => (
-                    <Cell key={i} fill={i === 0 ? "#059669" : "#94A3B8"} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(v) => [Number(v), "تعداد مشتری"]} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            <ReportAmChart
+              mode="pie"
+              data={customerReturnData}
+              categoryField="name"
+              valueField="value"
+              label="نرخ بازگشت مشتریان"
+              donut
+              colors={CUSTOMER_RETURN_COLORS}
+              formatValue={(value) => `${Math.round(value).toLocaleString("fa-IR")} مشتری`}
+            />
           </div>
         </Card>
         <Card className="p-4">
@@ -511,29 +493,19 @@ export function ReportsHub() {
             <MetricToggle value={productMetric} onChange={setProductMetric} />
           </div>
           <div className="h-80 min-w-0">
-            <ResponsiveContainer>
-              <BarChart data={productChartData} layout="vertical" margin={{ left: 4, right: 12 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                <XAxis
-                  type="number"
-                  tickFormatter={(v) => productMetric === "amount" ? String(rialToToman(Number(v))) : String(v)}
-                />
-                <YAxis type="category" dataKey="title" width={125} tick={{ fontSize: 10 }} />
-                <Tooltip
-                  formatter={(v) => productMetric === "amount"
-                    ? [formatToman(Number(v)), "فروش"]
-                    : [Number(v), "تعداد فروش"]}
-                />
-                <Bar dataKey="value" name={productMetric === "amount" ? "فروش" : "تعداد فروش"}>
-                  {productChartData.map((item) => (
-                    <Cell
-                      key={item.menuItemId}
-                      fill={item.band === "Star" ? "#059669" : item.band === "Underperforming" ? "#C41E3A" : "#D97706"}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <ReportAmChart
+              mode="bar"
+              data={productChartData}
+              categoryField="title"
+              valueField="value"
+              label="فروش محصولات از پرفروش تا کم‌فروش"
+              colorField="chartColor"
+              valueScale={productMetric === "amount" ? 0.1 : 1}
+              formatValue={(value) => productMetric === "amount"
+                ? formatTomanAmount(value)
+                : `${Math.round(value).toLocaleString("fa-IR")} عدد`}
+              formatAxisValue={(value) => Math.round(value).toLocaleString("fa-IR")}
+            />
           </div>
         </Card>
       </div>
@@ -613,54 +585,39 @@ export function ReportsHub() {
           </div>
           {!selectedCategory ? <p className="mb-1 text-xs text-muted-foreground">برای دیدن محصولات روی یک دسته کلیک کنید</p> : null}
           <div className="h-80 min-w-0">
-            <ResponsiveContainer>
-              <BarChart
-                data={categoryChartData}
-                layout="vertical"
-                margin={{ left: 4, right: 12 }}
-                onClick={(state) => {
-                  if (selectedCategoryId) return;
-                  const payload = (state as { activePayload?: { payload?: { categoryId?: string } }[] } | null)
-                    ?.activePayload?.[0]?.payload;
-                  if (payload?.categoryId) setSelectedCategoryId(payload.categoryId);
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                <XAxis
-                  type="number"
-                  tickFormatter={(v) => categoryMetric === "amount" ? String(rialToToman(Number(v))) : String(v)}
-                />
-                <YAxis type="category" dataKey="name" width={125} tick={{ fontSize: 10 }} />
-                <Tooltip
-                  formatter={(v) => categoryMetric === "amount"
-                    ? [formatToman(Number(v)), "فروش"]
-                    : [Number(v), "تعداد فروش"]}
-                />
-                <Bar dataKey="value" name={categoryMetric === "amount" ? "فروش" : "تعداد فروش"} fill="#2563EB" cursor="pointer" />
-              </BarChart>
-            </ResponsiveContainer>
+            <ReportAmChart
+              mode="bar"
+              data={categoryChartData}
+              categoryField="name"
+              valueField="value"
+              label="فروش دسته‌بندی‌ها و محصولات"
+              color="#2563EB"
+              valueScale={categoryMetric === "amount" ? 0.1 : 1}
+              formatValue={(value) => categoryMetric === "amount"
+                ? formatTomanAmount(value)
+                : `${Math.round(value).toLocaleString("fa-IR")} عدد`}
+              formatAxisValue={(value) => Math.round(value).toLocaleString("fa-IR")}
+              onPointClick={(point) => {
+                if (!selectedCategoryId && typeof point.categoryId === "string") {
+                  setSelectedCategoryId(point.categoryId);
+                }
+              }}
+            />
           </div>
         </Card>
         <Card className="p-4">
           <h2 className="mb-2 font-black">سهم فروش هر دسته</h2>
           <div className="h-80 min-w-0">
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie
-                  data={(catDetail.data ?? []).map((category) => ({ name: category.categoryName, value: category.revenue.rials }))}
-                  dataKey="value"
-                  nameKey="name"
-                  outerRadius={105}
-                  label
-                >
-                  {(catDetail.data ?? []).map((category, i) => (
-                    <Cell key={category.categoryId} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(v) => formatToman(Number(v))} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            <ReportAmChart
+              mode="pie"
+              data={categoryShareData}
+              categoryField="name"
+              valueField="value"
+              label="سهم فروش بر اساس دسته‌بندی"
+              colors={COLORS}
+              valueScale={0.1}
+              formatValue={(value) => formatTomanAmount(value)}
+            />
           </div>
         </Card>
       </div>
@@ -781,15 +738,16 @@ export function ReportsHub() {
         <h3 className="mb-2 font-bold">حاشیه سود به تفکیک دسته‌بندی</h3>
         <div className="mb-4 grid gap-4 lg:grid-cols-2">
           <div className="h-72 min-w-0">
-            <ResponsiveContainer>
-              <BarChart data={categoryProfit} layout="vertical" margin={{ left: 4, right: 12 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                <XAxis type="number" tickFormatter={(v) => `${Number(v).toFixed(0)}٪`} />
-                <YAxis type="category" dataKey="categoryName" width={120} tick={{ fontSize: 10 }} />
-                <Tooltip formatter={(v) => [`${Number(v).toFixed(1)}٪`, "حاشیه سود"]} />
-                <Bar dataKey="margin" name="حاشیه سود" fill="#059669" />
-              </BarChart>
-            </ResponsiveContainer>
+            <ReportAmChart
+              mode="bar"
+              data={categoryProfit}
+              categoryField="categoryName"
+              valueField="margin"
+              label="حاشیه سود بر اساس دسته‌بندی"
+              color="#059669"
+              formatValue={(value) => `${value.toFixed(1)}٪`}
+              formatAxisValue={(value) => `${Math.round(value).toLocaleString("fa-IR")}٪`}
+            />
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -851,15 +809,16 @@ export function ReportsHub() {
         <h2 className="mb-1 font-black">حجم موجودی مواد اولیهٔ انبار</h2>
         <p className="mb-3 text-xs text-muted-foreground">نمودار ۱۸ قلم با بیشترین موجودی را نشان می‌دهد؛ هر قلم با واحد پایهٔ خودش نمایش داده می‌شود.</p>
         <div className="h-[30rem] min-w-0">
-          <ResponsiveContainer>
-            <BarChart data={stockChartData} layout="vertical" margin={{ left: 4, right: 12 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" />
-              <YAxis type="category" dataKey="name" width={145} tick={{ fontSize: 10 }} />
-              <Tooltip formatter={(v, _name, item) => [`${Number(v).toLocaleString("fa-IR")} ${UNIT_LABELS[item.payload?.unit] ?? item.payload?.unit ?? ""}`, "موجودی"]} />
-              <Bar dataKey="stock" name="موجودی" fill="#2563EB" />
-            </BarChart>
-          </ResponsiveContainer>
+          <ReportAmChart
+            mode="bar"
+            data={stockChartData}
+            categoryField="name"
+            valueField="stock"
+            label="موجودی مواد اولیه در انبار"
+            color="#2563EB"
+            formatValue={(value, point) => `${value.toLocaleString("fa-IR")} ${UNIT_LABELS[String(point.unit)] ?? String(point.unit ?? "")}`}
+            formatAxisValue={(value) => Math.round(value).toLocaleString("fa-IR")}
+          />
         </div>
         <h3 className="mb-2 mt-5 font-bold">فهرست موجودی مواد اولیه</h3>
         <div className="overflow-x-auto">

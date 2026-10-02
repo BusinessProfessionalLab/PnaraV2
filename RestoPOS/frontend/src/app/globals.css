@@ -366,11 +366,6 @@
   }
 }
 
-/* Recharts text follows the current theme's muted foreground */
-.recharts-text {
-  fill: var(--color-muted-foreground);
-}
-
 /* Animate presence from an edge (RTL-aware: start = right) */
 .animate-from-end {
   --slide-from: 28px;

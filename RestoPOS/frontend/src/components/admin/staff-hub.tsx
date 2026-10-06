@@ -8,6 +8,13 @@ import { Input, Label } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { api } from "@/lib/api";
 import type { RoleDto, StaffDto } from "@/lib/types";
 
@@ -63,6 +70,14 @@ function StaffPanel() {
 
   const roleNames = useMemo(() => (roles.data ?? []).map((r) => r.name), [roles.data]);
 
+  // Keep the selected role valid: default to the first registered role once
+  // the list loads, instead of a hard-coded "Cashier" that may not exist.
+  useEffect(() => {
+    if (roleNames.length > 0 && !roleNames.includes(role)) {
+      setRole(roleNames[0]);
+    }
+  }, [roleNames, role]);
+
   return (
     <div className="grid gap-4 lg:grid-cols-[360px_1fr_360px]">
       <Card className="space-y-2 p-4">
@@ -70,20 +85,31 @@ function StaffPanel() {
         <Input placeholder="نام کاربری" value={userName} onChange={(e) => setUserName(e.target.value)} />
         <Input placeholder="نام کامل" value={fullName} onChange={(e) => setFullName(e.target.value)} />
         <Input placeholder="رمز" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <Input
-          placeholder="نقش: Cashier / Manager / Kitchen"
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-          list="staff-role-options"
-        />
-        <datalist id="staff-role-options">
-          {roleNames.map((n) => (
-            <option key={n} value={n} />
-          ))}
-        </datalist>
+        <Label>نقش</Label>
+        <Select value={role} onValueChange={setRole} disabled={roles.isLoading || roleNames.length === 0}>
+          <SelectTrigger>
+            <SelectValue placeholder={roles.isLoading ? "در حال بارگذاری نقش‌ها…" : "انتخاب نقش"} />
+          </SelectTrigger>
+          <SelectContent>
+            {roleNames.map((n) => (
+              <SelectItem key={n} value={n}>
+                {n}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {roles.isLoading ? (
+          <p className="text-xs text-muted-foreground">در حال بارگذاری نقش‌ها…</p>
+        ) : null}
+        {roles.isError ? (
+          <p className="text-xs text-danger">بارگذاری نقش‌ها ناموفق بود. بررسی کنید به تب «نقش‌ها» نقش اضافه شده و دسترسی لازم را دارید.</p>
+        ) : null}
+        {!roles.isLoading && !roles.isError && roleNames.length === 0 ? (
+          <p className="text-xs text-danger">هنوز نقشی ثبت نشده است. ابتدا از تب «نقش‌ها» یک نقش بسازید.</p>
+        ) : null}
         <Button
           onClick={() => createMut.mutate()}
-          disabled={!userName || !fullName || !password || createMut.isPending}
+          disabled={!userName || !fullName || !password || !role || createMut.isPending}
         >
           ثبت
         </Button>

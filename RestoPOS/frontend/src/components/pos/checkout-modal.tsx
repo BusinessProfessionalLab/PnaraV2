@@ -103,8 +103,15 @@ export function CheckoutModal({
   const payCardToCard = usePayCardToCard();
   const settleWithPos = useSettleWithPos();
 
+  const payableToman = rialToToman(amount);
+  const change = Math.max(0, (Number(received) || 0) - payableToman);
+
   const finish = async (order: OrderDto) => {
-    if (settings.data) printOrderTickets(order, settings.data, width);
+    try {
+      if (settings.data) printOrderTickets(order, settings.data, width);
+    } catch {
+      // Printing must never hide a successful settlement.
+    }
     cart.clear();
     onOpenChange(false);
     toast.success("تسویه انجام شد و فیش‌ها ارسال شدند");
@@ -112,8 +119,14 @@ export function CheckoutModal({
 
   const cashMut = useMutation({
     mutationFn: async () => {
+      const tendered = Number(received) || 0;
+      if (tendered < payableToman) {
+        throw new Error("مبلغ دریافتی کمتر از مبلغ قابل پرداخت است.");
+      }
       const order = await syncCartToServer();
-      return payCash.mutateAsync({ orderId: order.id, amount });
+      // Always settle the server-side total (fresh after sync), never the
+      // stale `amount` prop snapshot from when the dialog opened.
+      return payCash.mutateAsync({ orderId: order.id, amount: order.grandTotal });
     },
     onSuccess: (order) => finish(order),
     onError: (error) => toast.error(errorMessage(error)),
@@ -121,11 +134,15 @@ export function CheckoutModal({
 
   const c2cMut = useMutation({
     mutationFn: async () => {
+      const tracking = refNo.trim();
+      if (!tracking) {
+        throw new Error("شماره پیگیری را وارد کنید.");
+      }
       const order = await syncCartToServer();
       return payCardToCard.mutateAsync({
         orderId: order.id,
-        amount,
-        referenceNumber: refNo,
+        amount: order.grandTotal,
+        referenceNumber: tracking,
       });
     },
     onSuccess: (order) => finish(order),
@@ -143,9 +160,6 @@ export function CheckoutModal({
     onError: (error) => toast.error(errorMessage(error)),
     onSettled: () => setWaiting(false),
   });
-
-  const payableToman = rialToToman(amount);
-  const change = Math.max(0, (Number(received) || 0) - payableToman);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -213,6 +227,11 @@ export function CheckoutModal({
                 <span>بقیه</span>
                 <span className="font-bold tabular-nums">{formatTomanAmount(change)}</span>
               </div>
+              {(Number(received) || 0) < payableToman ? (
+                <p className="text-xs font-medium text-danger">
+                  مبلغ دریافتی کمتر از مبلغ قابل پرداخت است.
+                </p>
+              ) : null}
               <Button
                 className="w-full"
                 size="lg"

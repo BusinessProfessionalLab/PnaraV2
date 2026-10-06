@@ -113,23 +113,69 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}, retry = 
   const access = getAccessToken();
   if (access) headers.set("Authorization", `Bearer ${access}`);
 
-  const res = await fetch(path, { ...init, headers });
+  let res: Response;
+  try {
+    res = await fetch(path, { ...init, headers });
+  } catch {
+    throw new ApiError(0, "خطا در ارتباط با سرور. اتصال اینترنت و روشن بودن سرور را بررسی کنید.");
+  }
   if (res.status === 401 && retry) {
     const ok = await tryRefresh();
     if (ok) return apiFetch<T>(path, init, false);
   }
   const body = await parse(res);
   if (!res.ok) {
-    const message =
-      (body && typeof body === "object" && "detail" in body && String((body as { detail: unknown }).detail)) ||
-      (body && typeof body === "object" && "title" in body && String((body as { title: unknown }).title)) ||
-      (body && typeof body === "object" && "errors" in body && Array.isArray((body as ApiResult<unknown>).errors)
-        ? (body as ApiResult<unknown>).errors!.join(" | ")
-        : null) ||
-      res.statusText;
-    throw new ApiError(res.status, message, body);
+    throw new ApiError(res.status, friendlyFetchMessage(res.status, body, res.statusText), body);
   }
   return body as T;
+}
+
+function hasFa(text: string): boolean {
+  return /[\u0600-\u06FF]/.test(text);
+}
+
+function friendlyFetchMessage(status: number, body: unknown, statusText: string): string {
+  if (status === 401) return "نشست شما منقضی شده است. لطفاً دوباره وارد شوید.";
+  if (status === 403) return "شما مجوز این عملیات را ندارید.";
+  if (status === 404) {
+    const detail = extractDetail(body);
+    return detail && hasFa(detail) ? detail : "اطلاعات موردنظر یافت نشد. لطفاً صفحه را تازه‌سازی کنید.";
+  }
+  const detail = extractDetail(body);
+  if (detail && hasFa(detail)) return detail;
+  if (status === 400 || status === 422) {
+    return "اطلاعات وارد شده معتبر نیست. لطفاً ورودی‌ها را بررسی کنید.";
+  }
+  if (status >= 500) return "خطای داخلی سرور. لطفاً چند لحظه دیگر دوباره تلاش کنید.";
+  if (detail && detail.trim()) {
+    // Backend technical English (e.g. "Bad Request", FluentValidation text) — hide it.
+    if (/^[A-Za-z0-9 _.'"\-:,;()[\]]+$/.test(detail.trim())) {
+      return "عملیات انجام نشد. لطفاً دوباره تلاش کنید.";
+    }
+    return detail;
+  }
+  return statusText || "عملیات انجام نشد. لطفاً دوباره تلاش کنید.";
+}
+
+function extractDetail(body: unknown): string | undefined {
+  if (!body || typeof body !== "object") return typeof body === "string" ? body : undefined;
+  const obj = body as Record<string, unknown>;
+  if (typeof obj.detail === "string" && obj.detail.trim()) return obj.detail;
+  // Backend ExceptionHandlingMiddleware: errors = [{PropertyName, ErrorMessage}]
+  if (Array.isArray(obj.errors)) {
+    const msgs = (obj.errors as unknown[])
+      .map((e) =>
+        typeof e === "string"
+          ? e
+          : e && typeof e === "object" && "ErrorMessage" in (e as object)
+            ? String((e as { ErrorMessage: unknown }).ErrorMessage)
+            : "",
+      )
+      .filter((s) => s.trim());
+    if (msgs.length) return msgs.join(" | ");
+  }
+  if (typeof obj.title === "string" && obj.title.trim()) return obj.title;
+  return undefined;
 }
 
 export function unwrapResult<T>(result: ApiResult<T> | T): T {

@@ -20,7 +20,32 @@ public sealed record ListPaymentsByOrderQuery(Guid OrderId) : IRequest<IReadOnly
 
 public sealed class ConfirmCashPaymentCommandValidator : AbstractValidator<ConfirmCashPaymentCommand>
 {
-    public ConfirmCashPaymentCommandValidator() => RuleFor(x => x.Amount).GreaterThan(0);
+    public ConfirmCashPaymentCommandValidator()
+    {
+        RuleFor(x => x.OrderId).NotEmpty().WithMessage("شناسه سفارش نامعتبر است.");
+        RuleFor(x => x.Amount).GreaterThan(0).WithMessage("مبلغ باید بیشتر از صفر باشد.");
+    }
+}
+
+public sealed class RecordCardToCardCommandValidator : AbstractValidator<RecordCardToCardCommand>
+{
+    public RecordCardToCardCommandValidator()
+    {
+        RuleFor(x => x.OrderId).NotEmpty().WithMessage("شناسه سفارش نامعتبر است.");
+        RuleFor(x => x.Amount).GreaterThan(0).WithMessage("مبلغ باید بیشتر از صفر باشد.");
+        RuleFor(x => x.ReferenceNumber).NotEmpty().WithMessage("شماره پیگیری را وارد کنید.");
+        RuleFor(x => x.ReferenceNumber).MinimumLength(3).WithMessage("شماره پیگیری معتبر نیست.");
+    }
+}
+
+public sealed class RecordOnlineGatewayCommandValidator : AbstractValidator<RecordOnlineGatewayCommand>
+{
+    public RecordOnlineGatewayCommandValidator()
+    {
+        RuleFor(x => x.OrderId).NotEmpty().WithMessage("شناسه سفارش نامعتبر است.");
+        RuleFor(x => x.Amount).GreaterThan(0).WithMessage("مبلغ باید بیشتر از صفر باشد.");
+        RuleFor(x => x.ReferenceNumber).NotEmpty().WithMessage("شماره پیگیری را وارد کنید.");
+    }
 }
 
 public sealed class RefundPaymentCommandValidator : AbstractValidator<RefundPaymentCommand>
@@ -132,6 +157,10 @@ public sealed class ConfirmCashPaymentCommandHandler(
         if (order.Status is OrderStatus.Draft)
             order.Submit();
 
+        order.Recalculate();
+        if (request.Amount < order.GrandTotal)
+            throw new DomainException($"مبلغ پرداختی کمتر از مبلغ سفارش است. مبلغ سفارش: {order.GrandTotal}");
+
         var payment = new Payment
         {
             OrderId = order.Id,
@@ -160,13 +189,22 @@ public sealed class RecordCardToCardCommandHandler(
             return OrderMapping.ToDto(order);
         if (order.Status == OrderStatus.Draft)
             order.Submit();
+
+        order.Recalculate();
+        if (request.Amount < order.GrandTotal)
+            throw new DomainException($"مبلغ پرداختی کمتر از مبلغ سفارش است. مبلغ سفارش: {order.GrandTotal}");
+
+        var tracking = request.ReferenceNumber?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(tracking))
+            throw new DomainException("شماره پیگیری را وارد کنید.");
+
         var payment = new Payment
         {
             OrderId = order.Id,
             Channel = PaymentChannel.CardToCard,
             Amount = request.Amount,
             Status = PaymentStatus.Settled,
-            ReferenceNumber = request.ReferenceNumber,
+            ReferenceNumber = tracking,
             PaidAt = DateTime.UtcNow
         };
         db.Payments.Add(payment);
@@ -187,13 +225,21 @@ public sealed class RecordOnlineGatewayCommandHandler(
         var order = await OrderLoader.Load(db, request.OrderId, cancellationToken);
         if (order.Status == OrderStatus.Paid)
             return OrderMapping.ToDto(order);
+        order.Recalculate();
+        if (request.Amount < order.GrandTotal)
+            throw new DomainException($"مبلغ پرداختی کمتر از مبلغ سفارش است. مبلغ سفارش: {order.GrandTotal}");
+
+        var tracking = request.ReferenceNumber?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(tracking))
+            throw new DomainException("شماره پیگیری را وارد کنید.");
+
         var payment = new Payment
         {
             OrderId = order.Id,
             Channel = PaymentChannel.OnlineGateway,
             Amount = request.Amount,
             Status = PaymentStatus.Settled,
-            ReferenceNumber = request.ReferenceNumber,
+            ReferenceNumber = tracking,
             PaidAt = DateTime.UtcNow
         };
         db.Payments.Add(payment);

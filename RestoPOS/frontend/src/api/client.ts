@@ -23,7 +23,10 @@ declare module "axios" {
 }
 
 export const apiClient = axios.create({
-  baseURL: "http://192.168.100.249:5000",
+  // Empty baseURL → same-origin `/api/*` so Next.js rewrites (`API_PROXY_TARGET`
+  // → backend `http://127.0.0.1:5088`) handle routing. Never hard-code a LAN IP
+  // here: it breaks payments/orders on any machine that isn't that IP.
+  baseURL: env.apiBaseUrl || "",
   timeout: 30_000,
   headers: { "Content-Type": "application/json" },
 });

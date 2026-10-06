@@ -43,7 +43,7 @@ type FormState = typeof INITIAL_FORM;
 
 export function SettingsHub() {
   return (
-    <Tabs defaultValue="store" className="space-y-4">
+    <Tabs defaultValue="store" className="space-y-4" dir="rtl">
       <TabsList>
         <TabsTrigger value="store">فروشگاه</TabsTrigger>
         <TabsTrigger value="pos">کارتخوان‌ها</TabsTrigger>

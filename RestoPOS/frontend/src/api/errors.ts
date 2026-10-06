@@ -47,8 +47,73 @@ export function extractText(value: unknown): string | undefined {
 
 /** Human-readable message from any unknown thrown value (network errors included). */
 export function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
-  if (error instanceof Error) return error.message;
-  if (typeof error === "string") return error;
+  if (error instanceof ApiError) return friendlyApiMessage(error);
+  if (error instanceof Error) return friendlyGenericMessage(error.message);
+  if (typeof error === "string") return friendlyGenericMessage(error);
   return "خطا در ارتباط با سرور";
+}
+
+function hasPersian(text: string): boolean {
+  return /[\u0600-\u06FF]/.test(text);
+}
+
+/** Maps technical/English API failures to Persian user-facing messages. */
+function friendlyApiMessage(error: ApiError): string {
+  const raw = (error.message || "").trim();
+  const payload = error.payload as Record<string, unknown> | undefined;
+  const title = typeof payload?.title === "string" ? payload.title : undefined;
+
+  // No HTTP response at all (CORS / DNS / backend down / wrong baseURL).
+  if (error.status === 0) {
+    return "خطا در ارتباط با سرور. اتصال اینترنت و روشن بودن سرور را بررسی کنید.";
+  }
+  if (error.code === "ECONNABORTED" || /timeout/i.test(raw)) {
+    return "پاسخ سرور طول کشید. لطفاً دوباره تلاش کنید.";
+  }
+  switch (error.status) {
+    case 401:
+      return "نشست شما منقضی شده است. لطفاً دوباره وارد شوید.";
+    case 403:
+      return "شما مجوز این عملیات را ندارید.";
+    case 404:
+      return hasPersian(raw) ? raw : "اطلاعات موردنظر یافت نشد. لطفاً صفحه را تازه‌سازی کنید.";
+    case 409:
+      // Concurrency detail from backend is already Persian — keep it.
+      return hasPersian(raw) ? raw : "اطلاعات تغییر کرده است. لطفاً دوباره تلاش کنید.";
+    case 400:
+    case 422:
+      // FluentValidation default messages are English ("'Amount' must be...").
+      // Keep Persian domain messages, replace English noise with a generic one.
+      if (hasPersian(raw)) return raw;
+      if (title === "ValidationFailed") return "اطلاعات وارد شده معتبر نیست. لطفاً ورودی‌ها را بررسی کنید.";
+      return "درخواست نامعتبر است. لطفاً ورودی‌ها را بررسی کنید.";
+    default:
+      if (error.status >= 500) {
+        return hasPersian(raw) ? raw : "خطای داخلی سرور. لطفاً چند لحظه دیگر دوباره تلاش کنید.";
+      }
+      return friendlyGenericMessage(raw);
+  }
+}
+
+function friendlyGenericMessage(message: string): string {
+  const raw = (message || "").trim();
+  if (!raw) return "خطا در ارتباط با سرور";
+  if (hasPersian(raw)) return raw;
+  if (/failed to fetch|network ?error|load failed/i.test(raw)) {
+    return "خطا در ارتباط با سرور. اتصال اینترنت و روشن بودن سرور را بررسی کنید.";
+  }
+  if (/must be greater than/i.test(raw)) {
+    return "مبلغ وارد شده معتبر نیست. مبلغ باید بیشتر از صفر باشد.";
+  }
+  if (/validation/i.test(raw)) {
+    return "اطلاعات وارد شده معتبر نیست. لطفاً ورودی‌ها را بررسی کنید.";
+  }
+  if (/not found/i.test(raw)) {
+    return "اطلاعات موردنظر یافت نشد. لطفاً صفحه را تازه‌سازی کنید.";
+  }
+  // Unknown English technical text — never show it raw to the cashier.
+  if (/^[A-Za-z0-9 _.'"\-:,;()[\]]+$/.test(raw) && !hasPersian(raw)) {
+    return "عملیات انجام نشد. لطفاً دوباره تلاش کنید.";
+  }
+  return raw;
 }

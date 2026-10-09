@@ -24,7 +24,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { appConfig } from "@/config/app";
 import { TourTrigger } from "@/features/product-tour";
-import { useSettings } from "@/queries/settings";
+import { useSettings } from "@/api";
 import { useAuthStore } from "@/lib/auth-store";
 import { cn } from "@/lib/cn";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -54,7 +54,7 @@ const NAV: NavSection[] = [
   },
 ];
 
-function BrandMark({ className }: { className?: string }) {
+function BrandMark() {
   return (
     <div className="flex size-9 items-center justify-center rounded-xl bg-primary-soft text-primary">
       <Store className="size-[18px]" strokeWidth={2} aria-hidden />

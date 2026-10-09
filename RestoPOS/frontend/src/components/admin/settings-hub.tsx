@@ -12,7 +12,6 @@ import {
   CreditCard,
   Trash2,
 } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Label, Textarea } from "@/components/ui/input";
@@ -20,10 +19,16 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useSettings, useUpdateSettings } from "@/queries/settings";
+import {
+  useCreatePosDevice,
+  useDeletePosDevice,
+  usePosDevicesAdmin,
+  useSettings,
+  useTestPosDevice,
+  useUpdateSettings,
+} from "@/api";
 import { errorMessage } from "@/api/errors";
 import { applyTheme, readableForegroundOn } from "@/lib/theme";
-import { paymentsService } from "@/services/payments.service";
 import type { IranianPsp, PosProtocol } from "@/lib/types";
 
 const INITIAL_FORM = {
@@ -247,8 +252,7 @@ function StoreSettingsPanel() {
 }
 
 function PosDevicesPanel() {
-  const qc = useQueryClient();
-  const devices = useQuery({ queryKey: ["pos-devices-admin"], queryFn: paymentsService.listPosDevicesAdmin });
+  const devices = usePosDevicesAdmin();
   const [name, setName] = useState("");
   const [terminalId, setTerminalId] = useState("");
   const [merchantId, setMerchantId] = useState("");
@@ -257,9 +261,13 @@ function PosDevicesPanel() {
   const [ip, setIp] = useState("");
   const [port, setPort] = useState("8080");
 
-  const createMut = useMutation({
-    mutationFn: () =>
-      paymentsService.createPosDevice({
+  const createMut = useCreatePosDevice();
+  const deleteMut = useDeletePosDevice();
+  const testMut = useTestPosDevice();
+
+  const submitDevice = () =>
+    createMut.mutate(
+      {
         name,
         protocol,
         psp,
@@ -270,32 +278,33 @@ function PosDevicesPanel() {
         terminalId,
         merchantId: merchantId || "",
         isActive: true,
-      }),
-    onSuccess: () => {
-      toast.success("کارتخوان اضافه شد");
-      qc.invalidateQueries({ queryKey: ["pos-devices-admin"] });
-      setName("");
-      setTerminalId("");
-      setMerchantId("");
-      setIp("");
-    },
-    onError: (e) => toast.error(errorMessage(e)),
-  });
+      },
+      {
+        onSuccess: () => {
+          toast.success("کارتخوان اضافه شد");
+          setName("");
+          setTerminalId("");
+          setMerchantId("");
+          setIp("");
+        },
+        onError: (e) => toast.error(errorMessage(e)),
+      },
+    );
 
-  const deleteMut = useMutation({
-    mutationFn: (id: string) => paymentsService.deletePosDevice(id),
-    onSuccess: () => {
-      toast.success("حذف شد");
-      qc.invalidateQueries({ queryKey: ["pos-devices-admin"] });
-    },
-    onError: (e) => toast.error(errorMessage(e)),
-  });
+  const removeDevice = (id: string) =>
+    deleteMut.mutate(id, {
+      onSuccess: () => toast.success("حذف شد"),
+      onError: (e) => toast.error(errorMessage(e)),
+    });
 
-  const testMut = useMutation({
-    mutationFn: (id: string) => paymentsService.testPosDevice(id),
-    onSuccess: (res) => toast.success(typeof res === "string" ? res : res?.message || "اتصال موفق"),
-    onError: (e) => toast.error(errorMessage(e)),
-  });
+  const testConnection = (id: string) =>
+    testMut.mutate(id, {
+      onSuccess: (res) =>
+        toast.success(
+          typeof res === "string" ? res : res?.message || "اتصال موفق",
+        ),
+      onError: (e) => toast.error(errorMessage(e)),
+    });
 
   return (
     <div className="space-y-4">
@@ -333,7 +342,7 @@ function PosDevicesPanel() {
           <Input placeholder="IP" value={ip} onChange={(e) => setIp(e.target.value)} dir="ltr" />
           <Input placeholder="Port" value={port} onChange={(e) => setPort(e.target.value)} dir="ltr" />
         </div>
-        <Button onClick={() => createMut.mutate()} disabled={createMut.isPending || !name || !terminalId}>
+        <Button onClick={submitDevice} disabled={createMut.isPending || !name || !terminalId}>
           ثبت کارتخوان
         </Button>
       </Card>
@@ -349,10 +358,10 @@ function PosDevicesPanel() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => testMut.mutate(d.id)}>
+                <Button size="sm" variant="outline" onClick={() => testConnection(d.id)}>
                   تست
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => deleteMut.mutate(d.id)}>
+                <Button size="sm" variant="outline" onClick={() => removeDevice(d.id)}>
                   <Trash2 className="size-4" aria-hidden />
                 </Button>
               </div>

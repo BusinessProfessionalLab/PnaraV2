@@ -1,6 +1,5 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,21 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { api } from "@/lib/api";
+import {
+  useCreateDiningArea,
+  useCreateDiningTable,
+  useDeleteDiningArea,
+  useDeleteDiningTable,
+  useDiningArea,
+  useDiningAreas,
+  useDiningTable,
+  useDiningTables,
+  useTablesByArea,
+  useTransferTable,
+  useUpdateDiningArea,
+  useUpdateDiningTable,
+  useUpdateTableStatus,
+} from "@/api";
 import type { DiningAreaDto, DiningTableDto, TableStatus } from "@/lib/types";
 
 const TABLE_STATUSES: { value: TableStatus; label: string }[] = [
@@ -36,14 +49,6 @@ function statusVariant(s: TableStatus | string): "success" | "danger" | "warning
   }
 }
 
-function invalidateTables(qc: ReturnType<typeof useQueryClient>) {
-  qc.invalidateQueries({ queryKey: ["dining-areas"] });
-  qc.invalidateQueries({ queryKey: ["dining-tables"] });
-  qc.invalidateQueries({ queryKey: ["dining-area"] });
-  qc.invalidateQueries({ queryKey: ["dining-table"] });
-  qc.invalidateQueries({ queryKey: ["tables-by-area"] });
-}
-
 export function TablesHub() {
   return (
     <Tabs defaultValue="areas" className="space-y-4" dir="rtl">
@@ -64,36 +69,34 @@ export function TablesHub() {
 /* ───────────────────── سالن‌ها ───────────────────── */
 
 function AreasTab() {
-  const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [displayPriority, setDisplayPriority] = useState("0");
   const [isActive, setIsActive] = useState(true);
 
-  const areas = useQuery({
-    queryKey: ["dining-areas", "all"],
-    queryFn: () => api.diningAreas(false),
-  });
+  const areas = useDiningAreas(false);
+  const createMut = useCreateDiningArea();
 
-  const createMut = useMutation({
-    mutationFn: () =>
-      api.createDiningArea({
+  const submitArea = () =>
+    createMut.mutate(
+      {
         name: name.trim(),
         description: description.trim() || null,
         displayPriority: Number(displayPriority) || 0,
         isActive,
-      }),
-    onSuccess: () => {
-      toast.success("سالن ثبت شد");
-      setName("");
-      setDescription("");
-      setDisplayPriority("0");
-      setIsActive(true);
-      invalidateTables(qc);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+      },
+      {
+        onSuccess: () => {
+          toast.success("سالن ثبت شد");
+          setName("");
+          setDescription("");
+          setDisplayPriority("0");
+          setIsActive(true);
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
 
   const sorted = useMemo(
     () => [...(areas.data ?? [])].sort((a, b) => a.displayPriority - b.displayPriority || a.name.localeCompare(b.name, "fa")),
@@ -125,7 +128,7 @@ function AreasTab() {
           فعال
         </label>
         <Button
-          onClick={() => createMut.mutate()}
+          onClick={submitArea}
           disabled={!name.trim() || createMut.isPending}
         >
           ثبت سالن
@@ -173,14 +176,7 @@ function AreasTab() {
 
       <Card className="p-4">
         {selectedId ? (
-          <AreaDetail
-            areaId={selectedId}
-            onDeleted={() => {
-              setSelectedId(null);
-              invalidateTables(qc);
-            }}
-            onUpdated={() => invalidateTables(qc)}
-          />
+          <AreaDetail areaId={selectedId} onDeleted={() => setSelectedId(null)} />
         ) : (
           <p className="text-sm text-muted-foreground">یک سالن را برای ویرایش انتخاب کنید.</p>
         )}
@@ -192,16 +188,11 @@ function AreasTab() {
 function AreaDetail({
   areaId,
   onDeleted,
-  onUpdated,
 }: {
   areaId: string;
   onDeleted: () => void;
-  onUpdated: () => void;
 }) {
-  const detail = useQuery({
-    queryKey: ["dining-area", areaId],
-    queryFn: () => api.diningAreaById(areaId),
-  });
+  const detail = useDiningArea(areaId);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -217,30 +208,31 @@ function AreaDetail({
     setIsActive(a.isActive);
   }, [detail.data]);
 
-  const updateMut = useMutation({
-    mutationFn: () =>
-      api.updateDiningArea(areaId, {
-        name: name.trim(),
-        description: description.trim() || null,
-        displayPriority: Number(displayPriority) || 0,
-        isActive,
-      }),
-    onSuccess: () => {
-      toast.success("سالن به‌روز شد");
-      onUpdated();
-      detail.refetch();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const updateMut = useUpdateDiningArea();
+  const deleteMut = useDeleteDiningArea();
 
-  const deleteMut = useMutation({
-    mutationFn: () => api.deleteDiningArea(areaId),
-    onSuccess: () => {
-      toast.success("سالن حذف شد");
-      onDeleted();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const saveArea = () =>
+    updateMut.mutate(
+      {
+        id: areaId,
+        payload: {
+          name: name.trim(),
+          description: description.trim() || null,
+          displayPriority: Number(displayPriority) || 0,
+          isActive,
+        },
+      },
+      { onSuccess: () => toast.success("سالن به‌روز شد"), onError: (e: Error) => toast.error(e.message) },
+    );
+
+  const removeArea = () =>
+    deleteMut.mutate(areaId, {
+      onSuccess: () => {
+        toast.success("سالن حذف شد");
+        onDeleted();
+      },
+      onError: (e: Error) => toast.error(e.message),
+    });
 
   if (detail.isLoading) return <p className="text-sm text-muted-foreground">در حال بارگذاری…</p>;
   if (!detail.data) return <p className="text-sm text-muted-foreground">سالن یافت نشد</p>;
@@ -264,10 +256,10 @@ function AreaDetail({
         <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
         فعال
       </label>
-      <Button className="w-full" onClick={() => updateMut.mutate()} disabled={!name.trim() || updateMut.isPending}>
+      <Button className="w-full" onClick={saveArea} disabled={!name.trim() || updateMut.isPending}>
         ذخیره تغییرات
       </Button>
-      <Button className="w-full" variant="destructive" onClick={() => deleteMut.mutate()} disabled={deleteMut.isPending}>
+      <Button className="w-full" variant="destructive" onClick={removeArea} disabled={deleteMut.isPending}>
         حذف سالن
       </Button>
     </div>
@@ -277,7 +269,6 @@ function AreaDetail({
 /* ───────────────────── میزها ───────────────────── */
 
 function TablesTab() {
-  const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterAreaId, setFilterAreaId] = useState<string>("all");
   const [diningAreaId, setDiningAreaId] = useState("");
@@ -289,34 +280,21 @@ function TablesTab() {
   const [transferFrom, setTransferFrom] = useState("");
   const [transferTo, setTransferTo] = useState("");
 
-  const areas = useQuery({
-    queryKey: ["dining-areas", "all"],
-    queryFn: () => api.diningAreas(false),
-  });
+  const areas = useDiningAreas(false);
+  const allTables = useDiningTables(false);
+  const byArea = useTablesByArea(filterAreaId === "all" ? null : filterAreaId, false);
 
-  const allTables = useQuery({
-    queryKey: ["dining-tables", "all"],
-    queryFn: () => api.diningTables(false),
-  });
-
-  const byArea = useQuery({
-    queryKey: ["tables-by-area", filterAreaId],
-    queryFn: () => api.tablesByArea(filterAreaId, false),
-    enabled: filterAreaId !== "all",
-  });
-
-  const tables = filterAreaId === "all" ? allTables.data ?? [] : byArea.data ?? [];
   const tablesLoading = filterAreaId === "all" ? allTables.isLoading : byArea.isLoading;
 
-  const sorted = useMemo(
-    () =>
-      [...tables].sort(
-        (a, b) =>
-          a.displayPriority - b.displayPriority ||
-          a.code.localeCompare(b.code, "fa", { numeric: true }),
-      ),
-    [tables],
-  );
+  const sorted = useMemo(() => {
+    const tables =
+      filterAreaId === "all" ? (allTables.data ?? []) : (byArea.data ?? []);
+    return [...tables].sort(
+      (a, b) =>
+        a.displayPriority - b.displayPriority ||
+        a.code.localeCompare(b.code, "fa", { numeric: true }),
+    );
+  }, [filterAreaId, allTables.data, byArea.data]);
 
   const areaOptions = useMemo(
     () => [...(areas.data ?? [])].sort((a, b) => a.displayPriority - b.displayPriority),
@@ -327,38 +305,44 @@ function TablesTab() {
     if (!diningAreaId && areaOptions.length) setDiningAreaId(areaOptions[0].id);
   }, [areaOptions, diningAreaId]);
 
-  const createMut = useMutation({
-    mutationFn: () =>
-      api.createDiningTable({
+  const createMut = useCreateDiningTable();
+  const transferMut = useTransferTable();
+
+  const submitTable = () =>
+    createMut.mutate(
+      {
         diningAreaId,
         code: code.trim(),
         name: name.trim() || null,
         capacity: Number(capacity) || 1,
         displayPriority: Number(displayPriority) || 0,
         isActive,
-      }),
-    onSuccess: () => {
-      toast.success("میز ثبت شد");
-      setCode("");
-      setName("");
-      setCapacity("4");
-      setDisplayPriority("0");
-      setIsActive(true);
-      invalidateTables(qc);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+      },
+      {
+        onSuccess: () => {
+          toast.success("میز ثبت شد");
+          setCode("");
+          setName("");
+          setCapacity("4");
+          setDisplayPriority("0");
+          setIsActive(true);
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
 
-  const transferMut = useMutation({
-    mutationFn: () => api.transferTable(transferFrom, transferTo),
-    onSuccess: () => {
-      toast.success("انتقال میز انجام شد");
-      setTransferFrom("");
-      setTransferTo("");
-      invalidateTables(qc);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const submitTransfer = () =>
+    transferMut.mutate(
+      { fromTableId: transferFrom, toTableId: transferTo },
+      {
+        onSuccess: () => {
+          toast.success("انتقال میز انجام شد");
+          setTransferFrom("");
+          setTransferTo("");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
 
   const allForSelect = allTables.data ?? [];
 
@@ -405,7 +389,7 @@ function TablesTab() {
             فعال
           </label>
           <Button
-            onClick={() => createMut.mutate()}
+            onClick={submitTable}
             disabled={!diningAreaId || !code.trim() || createMut.isPending}
           >
             ثبت میز
@@ -485,11 +469,7 @@ function TablesTab() {
             <TableDetail
               tableId={selectedId}
               areas={areaOptions}
-              onDeleted={() => {
-                setSelectedId(null);
-                invalidateTables(qc);
-              }}
-              onUpdated={() => invalidateTables(qc)}
+              onDeleted={() => setSelectedId(null)}
             />
           ) : (
             <p className="text-sm text-muted-foreground">یک میز را برای ویرایش انتخاب کنید.</p>
@@ -536,7 +516,7 @@ function TablesTab() {
           </div>
           <Button
             disabled={!transferFrom || !transferTo || transferFrom === transferTo || transferMut.isPending}
-            onClick={() => transferMut.mutate()}
+            onClick={submitTransfer}
           >
             انتقال
           </Button>
@@ -550,17 +530,12 @@ function TableDetail({
   tableId,
   areas,
   onDeleted,
-  onUpdated,
 }: {
   tableId: string;
   areas: DiningAreaDto[];
   onDeleted: () => void;
-  onUpdated: () => void;
 }) {
-  const detail = useQuery({
-    queryKey: ["dining-table", tableId],
-    queryFn: () => api.diningTableById(tableId),
-  });
+  const detail = useDiningTable(tableId);
 
   const [diningAreaId, setDiningAreaId] = useState("");
   const [code, setCode] = useState("");
@@ -582,43 +557,46 @@ function TableDetail({
     setStatus(t.status);
   }, [detail.data]);
 
-  const updateMut = useMutation({
-    mutationFn: () =>
-      api.updateDiningTable(tableId, {
-        diningAreaId,
-        code: code.trim(),
-        name: name.trim() || null,
-        capacity: Number(capacity) || 1,
-        displayPriority: Number(displayPriority) || 0,
-        isActive,
-      }),
-    onSuccess: () => {
-      toast.success("میز به‌روز شد");
-      onUpdated();
-      detail.refetch();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const updateMut = useUpdateDiningTable();
+  const statusMut = useUpdateTableStatus();
+  const deleteMut = useDeleteDiningTable();
 
-  const statusMut = useMutation({
-    mutationFn: (next: TableStatus) => api.updateTableStatus(tableId, next),
-    onSuccess: (_, next) => {
-      toast.success(`وضعیت به «${statusLabel(next)}» تغییر کرد`);
-      setStatus(next);
-      onUpdated();
-      detail.refetch();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const saveTable = () =>
+    updateMut.mutate(
+      {
+        id: tableId,
+        payload: {
+          diningAreaId,
+          code: code.trim(),
+          name: name.trim() || null,
+          capacity: Number(capacity) || 1,
+          displayPriority: Number(displayPriority) || 0,
+          isActive,
+        },
+      },
+      { onSuccess: () => toast.success("میز به‌روز شد"), onError: (e: Error) => toast.error(e.message) },
+    );
 
-  const deleteMut = useMutation({
-    mutationFn: () => api.deleteDiningTable(tableId),
-    onSuccess: () => {
-      toast.success("میز حذف شد");
-      onDeleted();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const changeStatus = (next: TableStatus) =>
+    statusMut.mutate(
+      { id: tableId, status: next },
+      {
+        onSuccess: () => {
+          toast.success(`وضعیت به «${statusLabel(next)}» تغییر کرد`);
+          setStatus(next);
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
+
+  const removeTable = () =>
+    deleteMut.mutate(tableId, {
+      onSuccess: () => {
+        toast.success("میز حذف شد");
+        onDeleted();
+      },
+      onError: (e: Error) => toast.error(e.message),
+    });
 
   if (detail.isLoading) return <p className="text-sm text-muted-foreground">در حال بارگذاری…</p>;
   if (!detail.data) return <p className="text-sm text-muted-foreground">میز یافت نشد</p>;
@@ -634,7 +612,7 @@ function TableDetail({
         <Label>وضعیت</Label>
         <Select
           value={status}
-          onValueChange={(v) => statusMut.mutate(v as TableStatus)}
+          onValueChange={(v) => changeStatus(v as TableStatus)}
           disabled={statusMut.isPending}
         >
           <SelectTrigger>
@@ -688,12 +666,12 @@ function TableDetail({
       </label>
       <Button
         className="w-full"
-        onClick={() => updateMut.mutate()}
+        onClick={saveTable}
         disabled={!diningAreaId || !code.trim() || updateMut.isPending}
       >
         ذخیره تغییرات
       </Button>
-      <Button className="w-full" variant="destructive" onClick={() => deleteMut.mutate()} disabled={deleteMut.isPending}>
+      <Button className="w-full" variant="destructive" onClick={removeTable} disabled={deleteMut.isPending}>
         حذف میز
       </Button>
     </div>

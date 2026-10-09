@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   Banknote,
@@ -38,9 +38,21 @@ import { Input, Label } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton, SkeletonTable } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { stockAlertKeys } from "@/queries/keys";
-import { useStockAlerts } from "@/queries/inventory";
-import { api } from "@/lib/api";
+import { reportKeys, stockAlertKeys } from "@/api/keys";
+import {
+  useCategorySalesDetail,
+  useCustomerReturnRate,
+  useDashboardSummary,
+  useMenuItemsPerformance,
+  usePaymentBreakdown,
+  usePeakHoursHeatmap,
+  useProfitMargin,
+  useReportStaff,
+  useSalesTimeline,
+  useShiftZReport,
+  useStockAlerts,
+  useTerminalReports,
+} from "@/api";
 import { formatToman, formatTomanAmount } from "@/lib/currency";
 import { daysAgoUtc } from "@/lib/jalali";
 import type { TimePeriodPreset, TimelineInterval } from "@/lib/types";
@@ -138,63 +150,44 @@ export function ReportsHub() {
 
   /* Data — each tab enables only the queries it shows, so the first paint
      fires 5 requests instead of 12. Switching tabs reuses the cache. */
-  const summary = useQuery({
-    queryKey: ["rep-summary", preset, customFrom, customTo],
-    queryFn: () => api.dashboardSummary(preset, customFrom, customTo),
-  });
+  const summary = useDashboardSummary(preset, customFrom, customTo);
   const timelinePreset: TimePeriodPreset = drilldownDay ? "CustomRange" : preset;
   const timelineInterval: TimelineInterval = drilldownDay ? "Hourly" : interval;
   const timelineFrom = drilldownDay?.fromUtc ?? customFrom;
   const timelineTo = drilldownDay?.toUtc ?? customTo;
-  const timeline = useQuery({
-    queryKey: ["rep-timeline", timelinePreset, timelineInterval, timelineFrom, timelineTo],
-    queryFn: () => api.salesTimeline(timelinePreset, timelineInterval, timelineFrom, timelineTo),
+  const timeline = useSalesTimeline(
+    timelinePreset,
+    timelineInterval,
+    timelineFrom,
+    timelineTo,
+    { enabled: tab === "overview" },
+  );
+  const heatmap = usePeakHoursHeatmap(preset, customFrom, customTo, {
     enabled: tab === "overview",
   });
-  const heatmap = useQuery({
-    queryKey: ["rep-heatmap", preset, customFrom, customTo],
-    queryFn: () => api.peakHoursHeatmap(preset, customFrom, customTo),
-    enabled: tab === "overview",
-  });
-  const payments = useQuery({
-    queryKey: ["rep-pay", preset, customFrom, customTo],
-    queryFn: () => api.paymentBreakdown(preset, customFrom, customTo),
+  const payments = usePaymentBreakdown(preset, customFrom, customTo, {
     enabled: tab === "overview" || tab === "finance",
   });
-  const menuPerf = useQuery({
-    queryKey: ["rep-menu-perf", preset, customFrom, customTo],
-    queryFn: () => api.menuItemsPerformance(preset, 10, customFrom, customTo),
+  const menuPerf = useMenuItemsPerformance(preset, 10, customFrom, customTo, {
     enabled: tab === "overview" || tab === "sales",
   });
-  const catDetail = useQuery({
-    queryKey: ["rep-cat-detail", preset, customFrom, customTo],
-    queryFn: () => api.categorySalesDetail(preset, customFrom, customTo),
+  const catDetail = useCategorySalesDetail(preset, customFrom, customTo, {
     enabled: tab === "sales",
   });
-  const terminals = useQuery({
-    queryKey: ["rep-term", preset, customFrom, customTo],
-    queryFn: () => api.terminalReports(preset, customFrom, customTo),
+  const terminals = useTerminalReports(preset, customFrom, customTo, {
     enabled: tab === "finance",
   });
-  const zReport = useQuery({
-    queryKey: ["rep-z", preset, customFrom, customTo],
-    queryFn: () => api.shiftZReport(preset, undefined, customFrom, customTo),
+  const zReport = useShiftZReport(preset, undefined, customFrom, customTo, {
     enabled: tab === "finance",
   });
-  const profit = useQuery({
-    queryKey: ["rep-profit", preset, customFrom, customTo],
-    queryFn: () => api.profitMargin(preset, customFrom, customTo),
+  const profit = useProfitMargin(preset, customFrom, customTo, {
     enabled: tab === "finance",
   });
-  const customerReturns = useQuery({
-    queryKey: ["rep-customer-returns", preset, customFrom, customTo],
-    queryFn: () => api.customerReturnRate(preset, customFrom, customTo),
+  const customerReturns = useCustomerReturnRate(preset, customFrom, customTo, {
     enabled: tab === "people",
   });
   const alerts = useStockAlerts();
-  const staff = useQuery({
-    queryKey: ["rep-s", summary.data?.fromUtc, summary.data?.toUtc],
-    queryFn: () => api.reportStaff(summary.data!.fromUtc, summary.data!.toUtc),
+  const staff = useReportStaff(summary.data?.fromUtc ?? "", summary.data?.toUtc ?? "", {
     enabled: tab === "people" && Boolean(summary.data?.fromUtc && summary.data?.toUtc),
   });
 
@@ -411,9 +404,7 @@ export function ReportsHub() {
   }
 
   function refreshAll() {
-    qc.invalidateQueries({
-      predicate: (q) => typeof q.queryKey[0] === "string" && (q.queryKey[0] as string).startsWith("rep"),
-    });
+    qc.invalidateQueries({ queryKey: reportKeys.all });
     qc.invalidateQueries({ queryKey: stockAlertKeys.all });
   }
 

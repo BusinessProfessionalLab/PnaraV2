@@ -1,50 +1,47 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { api } from "@/lib/api";
+import {
+  useAdjustLoyalty,
+  useCreateCustomer,
+  useCustomer,
+  useCustomerOrders,
+  useCustomersPaged,
+  useDeleteCustomer,
+  useUpdateCustomer,
+} from "@/api";
 import { formatToman } from "@/lib/currency";
 
 export function CustomersHub() {
-  const qc = useQueryClient();
   const [term, setTerm] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [fullName, setFullName] = useState("");
 
-  const list = useQuery({
-    queryKey: ["customers", "paged", term],
-    queryFn: () => api.customersPaged(1, 50, term || undefined),
-  });
+  const list = useCustomersPaged(1, 50, term || undefined);
+  const detail = useCustomer(selectedId);
+  const orders = useCustomerOrders(selectedId);
 
-  const detail = useQuery({
-    queryKey: ["customer", selectedId],
-    queryFn: () => api.customerById(selectedId!),
-    enabled: !!selectedId,
-  });
+  const createMut = useCreateCustomer();
 
-  const orders = useQuery({
-    queryKey: ["customer-orders", selectedId],
-    queryFn: () => api.customerOrders(selectedId!),
-    enabled: !!selectedId,
-  });
-
-  const createMut = useMutation({
-    mutationFn: () => api.createCustomer({ phoneNumber: phone.trim(), fullName: fullName.trim() || null }),
-    onSuccess: (c) => {
-      toast.success("مشتری ثبت شد");
-      setPhone("");
-      setFullName("");
-      setSelectedId(c.id);
-      qc.invalidateQueries({ queryKey: ["customers"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const submitCustomer = () =>
+    createMut.mutate(
+      { phoneNumber: phone.trim(), fullName: fullName.trim() || null },
+      {
+        onSuccess: (c) => {
+          toast.success("مشتری ثبت شد");
+          setPhone("");
+          setFullName("");
+          setSelectedId(c.id);
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
 
   const customers = list.data?.items ?? [];
 
@@ -55,7 +52,7 @@ export function CustomersHub() {
         <div className="mb-4 grid max-w-xl gap-2 sm:grid-cols-[1fr_1fr_auto]">
           <Input placeholder="موبایل" value={phone} onChange={(e) => setPhone(e.target.value)} />
           <Input placeholder="نام کامل" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-          <Button disabled={!phone.trim() || createMut.isPending} onClick={() => createMut.mutate()}>
+          <Button disabled={!phone.trim() || createMut.isPending} onClick={submitCustomer}>
             ثبت مشتری
           </Button>
         </div>
@@ -114,14 +111,7 @@ export function CustomersHub() {
         ) : detail.data ? (
           <CustomerDetail
             customerId={selectedId}
-            onDeleted={() => {
-              setSelectedId(null);
-              qc.invalidateQueries({ queryKey: ["customers"] });
-            }}
-            onUpdated={() => {
-              qc.invalidateQueries({ queryKey: ["customers"] });
-              qc.invalidateQueries({ queryKey: ["customer", selectedId] });
-            }}
+            onDeleted={() => setSelectedId(null)}
           />
         ) : (
           <p className="text-sm text-muted-foreground">مشتری یافت نشد</p>
@@ -157,16 +147,11 @@ export function CustomersHub() {
 function CustomerDetail({
   customerId,
   onDeleted,
-  onUpdated,
 }: {
   customerId: string;
   onDeleted: () => void;
-  onUpdated: () => void;
 }) {
-  const detail = useQuery({
-    queryKey: ["customer", customerId],
-    queryFn: () => api.customerById(customerId),
-  });
+  const detail = useCustomer(customerId);
   const [phone, setPhone] = useState("");
   const [fullName, setFullName] = useState("");
   const [pointsDelta, setPointsDelta] = useState("");
@@ -178,38 +163,44 @@ function CustomerDetail({
     setFullName(detail.data.fullName ?? "");
   }, [detail.data]);
 
-  const updateMut = useMutation({
-    mutationFn: () =>
-      api.updateCustomer(customerId, {
-        phoneNumber: phone.trim(),
-        fullName: fullName.trim() || null,
-      }),
-    onSuccess: () => {
-      toast.success("مشتری به‌روز شد");
-      onUpdated();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const updateMut = useUpdateCustomer();
+  const deleteMut = useDeleteCustomer();
+  const loyaltyMut = useAdjustLoyalty();
 
-  const deleteMut = useMutation({
-    mutationFn: () => api.deleteCustomer(customerId),
-    onSuccess: () => {
-      toast.success("مشتری حذف شد");
-      onDeleted();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const saveCustomer = () =>
+    updateMut.mutate(
+      {
+        id: customerId,
+        payload: { phoneNumber: phone.trim(), fullName: fullName.trim() || null },
+      },
+      { onSuccess: () => toast.success("مشتری به‌روز شد"), onError: (e: Error) => toast.error(e.message) },
+    );
 
-  const loyaltyMut = useMutation({
-    mutationFn: () => api.adjustLoyalty(customerId, Number(pointsDelta), loyaltyNotes.trim() || undefined),
-    onSuccess: () => {
-      toast.success("امتیاز به‌روز شد");
-      setPointsDelta("");
-      setLoyaltyNotes("");
-      onUpdated();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const removeCustomer = () =>
+    deleteMut.mutate(customerId, {
+      onSuccess: () => {
+        toast.success("مشتری حذف شد");
+        onDeleted();
+      },
+      onError: (e: Error) => toast.error(e.message),
+    });
+
+  const applyLoyalty = () =>
+    loyaltyMut.mutate(
+      {
+        id: customerId,
+        pointsDelta: Number(pointsDelta),
+        notes: loyaltyNotes.trim() || undefined,
+      },
+      {
+        onSuccess: () => {
+          toast.success("امتیاز به‌روز شد");
+          setPointsDelta("");
+          setLoyaltyNotes("");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
 
   if (!detail.data) return null;
   const c = detail.data;
@@ -229,10 +220,10 @@ function CustomerDetail({
         <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
         <Label>نام کامل</Label>
         <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
-        <Button className="w-full" onClick={() => updateMut.mutate()} disabled={!phone.trim() || updateMut.isPending}>
+        <Button className="w-full" onClick={saveCustomer} disabled={!phone.trim() || updateMut.isPending}>
           ذخیره تغییرات
         </Button>
-        <Button className="w-full" variant="destructive" onClick={() => deleteMut.mutate()} disabled={deleteMut.isPending}>
+        <Button className="w-full" variant="destructive" onClick={removeCustomer} disabled={deleteMut.isPending}>
           حذف مشتری
         </Button>
       </div>
@@ -248,7 +239,7 @@ function CustomerDetail({
           className="w-full"
           variant="outline"
           disabled={!pointsDelta || Number.isNaN(Number(pointsDelta)) || loyaltyMut.isPending}
-          onClick={() => loyaltyMut.mutate()}
+          onClick={applyLoyalty}
         >
           اعمال امتیاز
         </Button>

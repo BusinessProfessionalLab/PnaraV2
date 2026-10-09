@@ -8,7 +8,7 @@ import {
   useCreateAddon,
   useDeleteAddon,
   useUpdateAddon,
-} from "@/queries/menu";
+} from "@/api";
 import { errorMessage } from "@/api/errors";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

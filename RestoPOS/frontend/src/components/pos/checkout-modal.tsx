@@ -28,8 +28,8 @@ import { useCartStore } from "@/lib/cart-store";
 import { formatToman, formatTomanAmount, rialToToman } from "@/lib/currency";
 import { syncCartToServer } from "@/lib/sync-cart";
 import { cn } from "@/lib/cn";
-import { usePayCardToCard, usePayCash, usePosDevices, useSettleWithPos } from "@/queries/payments";
-import { useSettings } from "@/queries/settings";
+import { usePayCardToCard, usePayCash, usePosDevices, useSettleWithPos } from "@/api";
+import { useSettings } from "@/api";
 import type { OrderDto } from "@/lib/types";
 
 type PaymentMethod = "Cash" | "LocalPC_POS" | "CardToCard";

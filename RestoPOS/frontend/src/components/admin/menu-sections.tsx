@@ -3,7 +3,7 @@
 import { ArrowLeft, Boxes, FolderTree, GripVertical, PackageOpen } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { useAddons, useCategories, useMenuItems } from "@/queries/menu";
+import { useAddons, useCategories, useMenuItems } from "@/api";
 
 export function MenuSections() {
   const categories = useCategories(true);

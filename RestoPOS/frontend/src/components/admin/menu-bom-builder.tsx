@@ -1,6 +1,5 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,15 +7,33 @@ import { Input, Label } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api } from "@/lib/api";
+import {
+  useCategories,
+  useCategory,
+  useCreateCategory,
+  useCreateMenuItem,
+  useCreateModifier,
+  useCreateModifierGroup,
+  useDeleteModifierGroup,
+  useDeleteRecipe,
+  useInventory,
+  useMenuItems,
+  useModifierGroups,
+  useRecipe,
+  useReorderCategories,
+  useToggleSoldOut,
+  useUpdateCategory,
+  useUpdateModifierGroup,
+  useAddModifierGroupOption,
+  useUpsertRecipe,
+} from "@/api";
 import { formatToman } from "@/lib/currency";
 import type { CategoryDto, MenuItemDto, TicketStation, UnitOfMeasure } from "@/lib/types";
 
 export function MenuBomBuilder() {
-  const qc = useQueryClient();
-  const cats = useQuery({ queryKey: ["categories", true], queryFn: () => api.categories(true) });
-  const items = useQuery({ queryKey: ["menu", false], queryFn: () => api.menuItems(false) });
-  const inv = useQuery({ queryKey: ["inventory"], queryFn: api.inventory });
+  const cats = useCategories(true);
+  const items = useMenuItems(false);
+  const inv = useInventory();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const selected = items.data?.find((i) => i.id === selectedId) ?? null;
@@ -26,22 +43,23 @@ export function MenuBomBuilder() {
     [cats.data],
   );
 
-  const catMut = useMutation({
-    mutationFn: (payload: { name: string }) =>
-      api.createCategory({
-        name: payload.name,
+  const catMut = useCreateCategory();
+  const reorderMut = useReorderCategories();
+  const soldOutMut = useToggleSoldOut();
+
+  const createCategory = (name: string) =>
+    catMut.mutate(
+      {
+        name,
         nameEn: null,
         displayPriority: (cats.data?.length ?? 0) + 1,
         isVisible: true,
         iconUrl: null,
         imageUrl: null,
         parentId: null,
-      }),
-    onSuccess: () => {
-      toast.success("دسته ساخته شد");
-      qc.invalidateQueries({ queryKey: ["categories"] });
-    },
-  });
+      },
+      { onSuccess: () => toast.success("دسته ساخته شد") },
+    );
 
   async function moveCat(id: string, dir: -1 | 1) {
     const list = [...sortedCats];
@@ -50,37 +68,20 @@ export function MenuBomBuilder() {
     if (idx < 0 || swapIdx < 0 || swapIdx >= list.length) return;
     [list[idx], list[swapIdx]] = [list[swapIdx], list[idx]];
     try {
-      await api.reorderCategories(list.map((c) => c.id));
+      await reorderMut.mutateAsync(list.map((c) => c.id));
       toast.success("ترتیب دسته‌ها ذخیره شد");
-      qc.invalidateQueries({ queryKey: ["categories"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "خطا در جابجایی");
     }
   }
 
-  const soldOutMut = useMutation({
-    mutationFn: ({ id, isSoldOut }: { id: string; isSoldOut: boolean }) => api.toggleSoldOut(id, isSoldOut),
-    onSuccess: () => {
-      toast.success("وضعیت اتمام به‌روز شد");
-      qc.invalidateQueries({ queryKey: ["menu"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   return (
     <div className="grid gap-4 lg:grid-cols-[280px_1fr_340px]">
       <Card className="p-4">
         <h2 className="mb-3 font-black">دسته‌ها</h2>
-        <CategoryForm onCreate={(name) => catMut.mutate({ name })} />
+        <CategoryForm onCreate={createCategory} />
         {editingCatId ? (
-          <CategoryEditForm
-            categoryId={editingCatId}
-            onClose={() => setEditingCatId(null)}
-            onSaved={() => {
-              setEditingCatId(null);
-              qc.invalidateQueries({ queryKey: ["categories"] });
-            }}
-          />
+          <CategoryEditForm categoryId={editingCatId} onClose={() => setEditingCatId(null)} />
         ) : null}
         <div className="mt-3 space-y-2">
           {sortedCats.map((c) => (
@@ -119,7 +120,15 @@ export function MenuBomBuilder() {
                 <Button
                   size="sm"
                   variant={item.isSoldOut ? "destructive" : "outline"}
-                  onClick={() => soldOutMut.mutate({ id: item.id, isSoldOut: !item.isSoldOut })}
+                  onClick={() =>
+                    soldOutMut.mutate(
+                      { id: item.id, isSoldOut: !item.isSoldOut },
+                      {
+                        onSuccess: () => toast.success("وضعیت اتمام به‌روز شد"),
+                        onError: (e: Error) => toast.error(e.message),
+                      },
+                    )
+                  }
                 >
                   {item.isSoldOut ? "اتمام یافت" : "موجود"}
                 </Button>
@@ -160,16 +169,11 @@ function CategoryForm({ onCreate }: { onCreate: (name: string) => void }) {
 function CategoryEditForm({
   categoryId,
   onClose,
-  onSaved,
 }: {
   categoryId: string;
   onClose: () => void;
-  onSaved: () => void;
 }) {
-  const detail = useQuery({
-    queryKey: ["category", categoryId],
-    queryFn: () => api.categoryById(categoryId),
-  });
+  const detail = useCategory(categoryId);
   const [name, setName] = useState("");
   const [nameEn, setNameEn] = useState("");
   const [priority, setPriority] = useState("1");
@@ -183,23 +187,31 @@ function CategoryEditForm({
     setVisible(detail.data.isVisible);
   }, [detail.data]);
 
-  const mut = useMutation({
-    mutationFn: () => {
-      const base: CategoryDto = detail.data!;
-      return api.updateCategory(categoryId, {
-        ...base,
-        name: name.trim(),
-        nameEn: nameEn.trim() || null,
-        displayPriority: Number(priority) || base.displayPriority,
-        isVisible: visible,
-      });
-    },
-    onSuccess: () => {
-      toast.success("دسته به‌روز شد");
-      onSaved();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const mut = useUpdateCategory();
+
+  const saveCategory = () => {
+    const base: CategoryDto | undefined = detail.data;
+    if (!base) return;
+    mut.mutate(
+      {
+        id: categoryId,
+        payload: {
+          ...base,
+          name: name.trim(),
+          nameEn: nameEn.trim() || null,
+          displayPriority: Number(priority) || base.displayPriority,
+          isVisible: visible,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success("دسته به‌روز شد");
+          onClose();
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
+  };
 
   if (detail.isLoading) return <p className="mt-3 text-xs text-muted-foreground">در حال بارگذاری دسته…</p>;
 
@@ -218,7 +230,7 @@ function CategoryEditForm({
         <input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} />
         قابل مشاهده
       </label>
-      <Button className="w-full" onClick={() => mut.mutate()} disabled={!name.trim() || mut.isPending}>
+      <Button className="w-full" onClick={saveCategory} disabled={!name.trim() || mut.isPending}>
         ذخیره دسته
       </Button>
     </div>
@@ -226,14 +238,15 @@ function CategoryEditForm({
 }
 
 function ProductForm({ categories }: { categories: { id: string; name: string }[] }) {
-  const qc = useQueryClient();
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [station, setStation] = useState<TicketStation>("Bar");
-  const mut = useMutation({
-    mutationFn: () =>
-      api.createMenuItem({
+  const mut = useCreateMenuItem();
+
+  const submitProduct = () =>
+    mut.mutate(
+      {
         title,
         description: null,
         basePrice: Number(price) * 10,
@@ -244,21 +257,23 @@ function ProductForm({ categories }: { categories: { id: string; name: string }[
         isActive: true,
         ticketStation: station,
         prepTimeMinutes: 4,
-      }),
-    onSuccess: () => {
-      toast.success("محصول ثبت شد");
-      qc.invalidateQueries({ queryKey: ["menu"] });
-      setTitle("");
-      setPrice("");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+      },
+      {
+        onSuccess: () => {
+          toast.success("محصول ثبت شد");
+          setTitle("");
+          setPrice("");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
+
   return (
     <form
       className="grid grid-cols-2 gap-2"
       onSubmit={(e) => {
         e.preventDefault();
-        mut.mutate();
+        submitProduct();
       }}
     >
       <Input placeholder="نام محصول" value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -299,72 +314,60 @@ function ItemEditor({
   item: MenuItemDto;
   inventory: { id: string; name: string; sku: string }[];
 }) {
-  const qc = useQueryClient();
   const [modName, setModName] = useState("");
   const [modPrice, setModPrice] = useState("");
   const [invId, setInvId] = useState("");
   const [qty, setQty] = useState("18");
   const [unit, setUnit] = useState<UnitOfMeasure>("Gr");
 
-  const recipeQ = useQuery({
-    queryKey: ["recipe", item.id],
-    queryFn: () => api.getRecipe(item.id),
-  });
-  const groupsQ = useQuery({
-    queryKey: ["modifier-groups", item.id],
-    queryFn: () => api.modifierGroups(item.id),
-  });
+  const recipeQ = useRecipe(item.id);
+  const groupsQ = useModifierGroups(item.id);
 
   const lines = useMemo(
     () => recipeQ.data?.lines ?? item.recipe?.lines ?? [],
     [recipeQ.data, item.recipe],
   );
 
-  const addMod = useMutation({
-    mutationFn: () =>
-      api.createModifier({
+  const addMod = useCreateModifier();
+  const saveBom = useUpsertRecipe();
+  const deleteBom = useDeleteRecipe();
+
+  const submitModifier = () =>
+    addMod.mutate(
+      {
         menuItemId: item.id,
         name: modName,
         extraPrice: Number(modPrice) * 10,
         ticketStation: item.ticketStation,
         displayPriority: item.modifiers.length + 1,
-      }),
-    onSuccess: () => {
-      toast.success("افزودنی ثبت شد");
-      qc.invalidateQueries({ queryKey: ["menu"] });
-      setModName("");
-      setModPrice("");
-    },
-  });
+      },
+      {
+        onSuccess: () => {
+          toast.success("افزودنی ثبت شد");
+          setModName("");
+          setModPrice("");
+        },
+      },
+    );
 
-  const saveBom = useMutation({
-    mutationFn: async () => {
-      const next = invId ? [...lines, { inventoryItemId: invId, quantity: Number(qty), unit }] : lines;
-      return api.upsertRecipe({
+  const submitBom = () => {
+    const next = invId ? [...lines, { inventoryItemId: invId, quantity: Number(qty), unit }] : lines;
+    saveBom.mutate(
+      {
         menuItemId: item.id,
         menuItemModifierId: null,
         name: `BOM ${item.title}`,
         lines: next,
-      });
-    },
-    onSuccess: () => {
-      toast.success("رسپی ذخیره شد");
-      qc.invalidateQueries({ queryKey: ["menu"] });
-      qc.invalidateQueries({ queryKey: ["recipe", item.id] });
-      setInvId("");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const deleteBom = useMutation({
-    mutationFn: (id: string) => api.deleteRecipe(id),
-    onSuccess: () => {
-      toast.success("رسپی حذف شد");
-      qc.invalidateQueries({ queryKey: ["menu"] });
-      qc.invalidateQueries({ queryKey: ["recipe", item.id] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+      },
+      {
+        onSuccess: () => {
+          toast.success("رسپی ذخیره شد");
+          setInvId("");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -384,7 +387,7 @@ function ItemEditor({
       <div className="grid grid-cols-2 gap-2">
         <Input placeholder="افزودنی" value={modName} onChange={(e) => setModName(e.target.value)} />
         <Input placeholder="قیمت تومان" value={modPrice} onChange={(e) => setModPrice(e.target.value)} />
-        <Button className="col-span-2" variant="outline" onClick={() => addMod.mutate()} disabled={!modName || !modPrice}>
+        <Button className="col-span-2" variant="outline" onClick={submitModifier} disabled={!modName || !modPrice}>
           افزودن Modifier
         </Button>
       </div>
@@ -393,7 +396,6 @@ function ItemEditor({
         menuItemId={item.id}
         ticketStation={item.ticketStation}
         groups={groupsQ.data ?? []}
-        onChanged={() => qc.invalidateQueries({ queryKey: ["modifier-groups", item.id] })}
       />
 
       <div>
@@ -446,14 +448,19 @@ function ItemEditor({
             </SelectContent>
           </Select>
         </div>
-        <Button className="mt-2 w-full" onClick={() => saveBom.mutate()}>
+        <Button className="mt-2 w-full" onClick={submitBom}>
           ذخیره BOM
         </Button>
         {recipeQ.data?.id ? (
           <Button
             className="mt-2 w-full"
             variant="destructive"
-            onClick={() => deleteBom.mutate(recipeQ.data!.id)}
+            onClick={() =>
+              deleteBom.mutate(recipeQ.data!.id, {
+                onSuccess: () => toast.success("رسپی حذف شد"),
+                onError: (e: Error) => toast.error(e.message),
+              })
+            }
           >
             حذف رسپی
           </Button>
@@ -467,7 +474,6 @@ function ModifierGroupsPanel({
   menuItemId,
   ticketStation,
   groups,
-  onChanged,
 }: {
   menuItemId: string;
   ticketStation: TicketStation;
@@ -481,7 +487,6 @@ function ModifierGroupsPanel({
     isActive: boolean;
     options: { id: string; name: string; extraPrice: number }[];
   }[];
-  onChanged: () => void;
 }) {
   const [name, setName] = useState("");
   const [minSel, setMinSel] = useState("0");
@@ -491,66 +496,75 @@ function ModifierGroupsPanel({
   const [optPrice, setOptPrice] = useState("");
   const [optGroupId, setOptGroupId] = useState("");
 
-  const createMut = useMutation({
-    mutationFn: () =>
-      api.createModifierGroup({
+  const createMut = useCreateModifierGroup();
+  const updateMut = useUpdateModifierGroup();
+  const deleteMut = useDeleteModifierGroup();
+  const addOptMut = useAddModifierGroupOption();
+
+  const createGroup = () =>
+    createMut.mutate(
+      {
         menuItemId,
         name: name.trim(),
         minSelections: Number(minSel) || 0,
         maxSelections: Number(maxSel) || 1,
         isRequired: required,
         displayPriority: groups.length + 1,
-      }),
-    onSuccess: () => {
-      toast.success("گروه افزودنی ساخته شد");
-      setName("");
-      onChanged();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+      },
+      {
+        onSuccess: () => {
+          toast.success("گروه افزودنی ساخته شد");
+          setName("");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
 
-  const updateMut = useMutation({
-    mutationFn: (g: (typeof groups)[0]) =>
-      api.updateModifierGroup(g.id, {
-        name: g.name,
-        minSelections: g.minSelections,
-        maxSelections: g.maxSelections,
-        isRequired: g.isRequired,
-        displayPriority: g.displayPriority,
-        isActive: !g.isActive,
-      }),
-    onSuccess: () => {
-      toast.success("گروه به‌روز شد");
-      onChanged();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const toggleGroup = (g: (typeof groups)[0]) =>
+    updateMut.mutate(
+      {
+        id: g.id,
+        payload: {
+          name: g.name,
+          minSelections: g.minSelections,
+          maxSelections: g.maxSelections,
+          isRequired: g.isRequired,
+          displayPriority: g.displayPriority,
+          isActive: !g.isActive,
+        },
+      },
+      {
+        onSuccess: () => toast.success("گروه به‌روز شد"),
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
 
-  const deleteMut = useMutation({
-    mutationFn: (id: string) => api.deleteModifierGroup(id),
-    onSuccess: () => {
-      toast.success("گروه حذف شد");
-      onChanged();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const removeGroup = (id: string) =>
+    deleteMut.mutate(id, {
+      onSuccess: () => toast.success("گروه حذف شد"),
+      onError: (e: Error) => toast.error(e.message),
+    });
 
-  const addOptMut = useMutation({
-    mutationFn: () =>
-      api.addModifierGroupOption(optGroupId, {
-        name: optName.trim(),
-        extraPrice: Number(optPrice) * 10,
-        ticketStation,
-        displayPriority: (groups.find((g) => g.id === optGroupId)?.options.length ?? 0) + 1,
-      }),
-    onSuccess: () => {
-      toast.success("گزینه اضافه شد");
-      setOptName("");
-      setOptPrice("");
-      onChanged();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const addOption = () =>
+    addOptMut.mutate(
+      {
+        groupId: optGroupId,
+        payload: {
+          name: optName.trim(),
+          extraPrice: Number(optPrice) * 10,
+          ticketStation,
+          displayPriority: (groups.find((g) => g.id === optGroupId)?.options.length ?? 0) + 1,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success("گزینه اضافه شد");
+          setOptName("");
+          setOptPrice("");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
 
   return (
     <div className="space-y-2 rounded-xl border p-3">
@@ -568,10 +582,10 @@ function ModifierGroupsPanel({
                 </div>
               </div>
               <div className="flex gap-1">
-                <Button size="sm" variant="outline" onClick={() => updateMut.mutate(g)}>
+                <Button size="sm" variant="outline" onClick={() => toggleGroup(g)}>
                   {g.isActive ? "غیرفعال" : "فعال"}
                 </Button>
-                <Button size="sm" variant="destructive" onClick={() => deleteMut.mutate(g.id)}>
+                <Button size="sm" variant="destructive" onClick={() => removeGroup(g.id)}>
                   حذف
                 </Button>
               </div>
@@ -596,7 +610,7 @@ function ModifierGroupsPanel({
           <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} />
           الزامی
         </label>
-        <Button className="col-span-2" variant="outline" disabled={!name.trim()} onClick={() => createMut.mutate()}>
+        <Button className="col-span-2" variant="outline" disabled={!name.trim()} onClick={createGroup}>
           ساخت گروه
         </Button>
       </div>
@@ -622,7 +636,7 @@ function ModifierGroupsPanel({
           className="col-span-2"
           variant="outline"
           disabled={!optGroupId || !optName.trim() || !optPrice}
-          onClick={() => addOptMut.mutate()}
+          onClick={addOption}
         >
           افزودن گزینه به گروه
         </Button>

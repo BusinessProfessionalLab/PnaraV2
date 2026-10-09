@@ -46,7 +46,7 @@ import {
   useMenuItems,
   useReorderCategories,
   useReorderMenuItems,
-} from "@/queries/menu";
+} from "@/api";
 import { errorMessage } from "@/api/errors";
 import { cn } from "@/lib/cn";
 

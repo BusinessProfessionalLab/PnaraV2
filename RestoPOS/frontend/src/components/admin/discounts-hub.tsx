@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { BadgePercent, Layers3, Percent, Save, Search } from "lucide-react";
-import { useCategories, useMenuItems, useUpdateCategory, useUpdateMenuItem } from "@/queries/menu";
+import { useCategories, useMenuItems, useUpdateCategory, useUpdateMenuItem } from "@/api";
 import { errorMessage } from "@/api/errors";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

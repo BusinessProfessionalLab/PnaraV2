@@ -8,8 +8,9 @@ import { getAccessToken } from "./auth-store";
 import type { OrderDto } from "./types";
 
 export function createKitchenConnection() {
+  const hubUrl = new URL(apiUrl("/hubs/kitchen"), window.location.origin).toString();
   return new HubConnectionBuilder()
-    .withUrl(apiUrl("/hubs/kitchen"), {
+    .withUrl(hubUrl, {
       accessTokenFactory: () => getAccessToken() ?? "",
     })
     .withAutomaticReconnect()

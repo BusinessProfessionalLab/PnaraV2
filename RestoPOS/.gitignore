@@ -18,7 +18,7 @@ logs/
 tickets/
 appsettings.*.local.json
 *.nupkg
-
+/artifacts
 # OS
 .DS_Store
 Thumbs.db

@@ -9,7 +9,8 @@ public sealed class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Ap
     public ApplicationDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlServer("Server=localhost;Database=ToastIranPOS;User Id=sa;Password=Your_password123;TrustServerCertificate=True")
+            .UseSqlServer(Environment.GetEnvironmentVariable("ConnectionStrings__SqlServer")
+                          ?? "Server=.\\SQLEXPRESS;Database=PnaraCafe;Integrated Security=True;Encrypt=True;TrustServerCertificate=True")
             .Options;
 
         return new ApplicationDbContext(options, new DesignTimeCurrentUser(), new NoOpDomainEventDispatcher());

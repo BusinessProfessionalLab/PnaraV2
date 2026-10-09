@@ -50,7 +50,7 @@ LAMIZ_TOKEN=<bearer> node import.mjs --run
 LAMIZ_USER=<userName> LAMIZ_PASS=<password> node import.mjs --run
 
 # optional override:
-LAMIZ_API_BASE=http://192.168.100.249:5000 node import.mjs --run
+LAMIZ_API_BASE=http://localhost:5088 node import.mjs --run
 ```
 
 Writes `data/import-summary.json` with the executed counts.

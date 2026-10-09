@@ -5,5 +5,5 @@ Content-Type: application/json
 
 {
   "userName": "admin",
-  "password": "Admin@12345"
+  "password": "SET_LOCAL_ADMIN_PASSWORD"
 }

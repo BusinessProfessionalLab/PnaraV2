@@ -11,7 +11,11 @@
  */
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { env } from "@/config/env";
-import { getAccessToken, getRefreshToken, useAuthStore } from "@/lib/auth-store";
+import {
+  getAccessToken,
+  getRefreshToken,
+  useAuthStore,
+} from "@/lib/auth-store";
 import type { AuthResponse } from "@/lib/types";
 import { ApiError, extractText } from "./errors";
 
@@ -26,7 +30,7 @@ export const apiClient = axios.create({
   // Empty baseURL → same-origin `/api/*` so Next.js rewrites (`API_PROXY_TARGET`
   // → backend `http://127.0.0.1:5088`) handle routing. Never hard-code a LAN IP
   // here: it breaks payments/orders on any machine that isn't that IP.
-  baseURL: env.apiBaseUrl || "",
+  baseURL: "http://192.168.100.249:5000",
   timeout: 30_000,
   headers: { "Content-Type": "application/json" },
 });
@@ -83,17 +87,26 @@ function refreshSession(): Promise<boolean> {
 
 /* --------------------------- error handling -------------------------- */
 
-function describeError(error: AxiosError): { status: number; message: string; payload?: unknown; code?: string } {
+function describeError(error: AxiosError): {
+  status: number;
+  message: string;
+  payload?: unknown;
+  code?: string;
+} {
   // Avoid axios.isCancel type-predicate narrowing AxiosError → never.
   if ((axios.isCancel as (v: unknown) => boolean)(error)) {
-    return { status: 0, message: error.message || "cancelled", code: "ERR_CANCELED" };
+    return {
+      status: 0,
+      message: error.message || "cancelled",
+      code: "ERR_CANCELED",
+    };
   }
   const response = error.response;
   const status = response?.status ?? 0;
   const payload = response?.data;
   const extracted = extractText(payload);
   const fallback =
-    status > 0 ? response?.statusText ?? error.message : error.message;
+    status > 0 ? (response?.statusText ?? error.message) : error.message;
 
   return {
     status,
@@ -107,11 +120,16 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: unknown) => {
     // Silent pass-through for cancelled requests (query signals).
-    if ((axios.isCancel as (v: unknown) => boolean)(error)) return Promise.reject(error);
+    if ((axios.isCancel as (v: unknown) => boolean)(error))
+      return Promise.reject(error);
 
     const axError = error as AxiosError;
     // One 401 → refresh → replay the original request.
-    if (axError.response?.status === 401 && axError.config && !(axError.config as InternalAxiosRequestConfig)._retry) {
+    if (
+      axError.response?.status === 401 &&
+      axError.config &&
+      !(axError.config as InternalAxiosRequestConfig)._retry
+    ) {
       const config = axError.config as InternalAxiosRequestConfig;
       config._retry = true;
       const refreshed = await refreshSession();

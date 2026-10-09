@@ -15,9 +15,12 @@ public static class ApplicationDbContextSeed
         ApplicationDbContext db,
         UserManager<ApplicationUser> users,
         RoleManager<ApplicationRole> roles,
-        ILogger logger)
+        ILogger logger,
+        string? bootstrapAdminPassword,
+        bool applyMigrations)
     {
-        await db.Database.MigrateAsync();
+        if (applyMigrations)
+            await db.Database.MigrateAsync();
 
         foreach (var (code, name, module) in Permissions.Catalog)
         {
@@ -45,6 +48,9 @@ public static class ApplicationDbContextSeed
 
         if (await users.FindByNameAsync("admin") is null)
         {
+            if (string.IsNullOrWhiteSpace(bootstrapAdminPassword))
+                throw new InvalidOperationException("A first admin account is required. Set BootstrapAdmin:Password during first-time setup.");
+
             var admin = new ApplicationUser
             {
                 Id = Guid.NewGuid(),
@@ -54,11 +60,15 @@ public static class ApplicationDbContextSeed
                 PersonnelCode = "0001",
                 IsActive = true
             };
-            var result = await users.CreateAsync(admin, "Admin@12345");
+            var result = await users.CreateAsync(admin, bootstrapAdminPassword);
             if (!result.Succeeded)
-                logger.LogError("Failed to seed admin: {Errors}", string.Join(",", result.Errors.Select(e => e.Description)));
+                throw new InvalidOperationException($"Failed to create the initial admin account: {string.Join(", ", result.Errors.Select(e => e.Description))}");
             else
-                await users.AddToRoleAsync(admin, "SuperAdmin");
+            {
+                var roleResult = await users.AddToRoleAsync(admin, "SuperAdmin");
+                if (!roleResult.Succeeded)
+                    throw new InvalidOperationException($"Failed to assign the initial admin role: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
+            }
         }
 
         if (!await db.StoreSettings.AnyAsync())
@@ -72,21 +82,6 @@ public static class ApplicationDbContextSeed
                 VatRate = 0.10m,
                 PrimaryColor = "#C41E3A",
                 SecondaryColor = "#1F2937"
-            });
-        }
-
-        if (!await db.PosDevices.AnyAsync())
-        {
-            db.PosDevices.Add(new PosDevice
-            {
-                Name = "کارتخوان صندوق ۱",
-                Protocol = PosProtocol.Lan,
-                Psp = IranianPsp.SamanKish,
-                IpAddress = "192.168.1.50",
-                Port = 1362,
-                TerminalId = "TERM0001",
-                MerchantId = "MERCH0001",
-                IsActive = true
             });
         }
 
@@ -162,7 +157,9 @@ public static class ApplicationDbContextSeed
         if (role is not null)
             return role;
         role = new ApplicationRole { Id = Guid.NewGuid(), Name = name, Description = description, IsSystemRole = system };
-        await roles.CreateAsync(role);
+        var result = await roles.CreateAsync(role);
+        if (!result.Succeeded)
+            throw new InvalidOperationException($"Failed to create role '{name}': {string.Join(", ", result.Errors.Select(e => e.Description))}");
         return role;
     }
 

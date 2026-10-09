@@ -1,6 +1,8 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
+using System.Security.Cryptography;
 
 namespace RestoPOS.API.Tests;
 
@@ -9,6 +11,11 @@ public class TestingWebApplicationFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+        builder.ConfigureAppConfiguration((_, configuration) =>
+            configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Jwt:Key"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
+            }));
     }
 }
 

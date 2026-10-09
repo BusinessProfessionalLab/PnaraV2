@@ -26,22 +26,29 @@ public sealed class EscPosThermalDispatcher(ILogger<EscPosThermalDispatcher> log
 
     private async Task DispatchAsync(byte[] payload, StoreSettings settings, string fileStem, CancellationToken cancellationToken)
     {
-        Directory.CreateDirectory("tickets");
-        await File.WriteAllBytesAsync(Path.Combine("tickets", $"{fileStem}.bin"), payload, cancellationToken);
-        await File.WriteAllTextAsync(Path.Combine("tickets", $"{fileStem}.txt"), Encoding.UTF8.GetString(payload.Where(b => b >= 32 || b is 10 or 13).ToArray()), cancellationToken);
+        var dataDirectory = Environment.GetEnvironmentVariable("PNARA_DATA_DIRECTORY")
+            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Pnara");
+        var ticketDirectory = Path.Combine(dataDirectory, "tickets");
+        Directory.CreateDirectory(ticketDirectory);
+        var safeFileStem = string.Concat(fileStem.Select(character =>
+            char.IsAsciiLetterOrDigit(character) || character is '-' or '_' ? character : '_'));
+        await File.WriteAllBytesAsync(Path.Combine(ticketDirectory, $"{safeFileStem}.bin"), payload, cancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(ticketDirectory, $"{safeFileStem}.txt"), Encoding.UTF8.GetString(payload.Where(b => b >= 32 || b is 10 or 13).ToArray()), cancellationToken);
 
         if (string.IsNullOrWhiteSpace(settings.ThermalPrinterHost))
         {
-            logger.LogInformation("Thermal printer host is empty; ticket stored at tickets/{File}.txt", fileStem);
+            logger.LogInformation("Thermal printer host is empty; ticket stored at {TicketDirectory}/{File}.txt", ticketDirectory, safeFileStem);
             return;
         }
 
         try
         {
             using var client = new TcpClient();
-            await client.ConnectAsync(settings.ThermalPrinterHost, settings.ThermalPrinterPort, cancellationToken);
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(5));
+            await client.ConnectAsync(settings.ThermalPrinterHost, settings.ThermalPrinterPort, timeout.Token);
             await using var stream = client.GetStream();
-            await stream.WriteAsync(payload, cancellationToken);
+            await stream.WriteAsync(payload, timeout.Token);
         }
         catch (Exception ex)
         {

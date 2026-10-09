@@ -24,7 +24,7 @@
  *   LAMIZ_TOKEN=<bearer> node import.mjs --run       # execute
  *   # or login directly:
  *   LAMIZ_USER=<u> LAMIZ_PASS=<p> node import.mjs --run
- *   LAMIZ_API_BASE=http://host:5000                  # optional, defaults below
+ *   LAMIZ_API_BASE=http://localhost:5088             # optional local API override
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -36,7 +36,7 @@ const dataset = JSON.parse(
   readFileSync(join(here, "data", "lamiz-menu.json"), "utf8"),
 );
 
-const BASE = process.env.LAMIZ_API_BASE ?? "http://192.168.100.249:5000";
+const BASE = process.env.LAMIZ_API_BASE ?? "http://localhost:5088";
 const RUN = process.argv.includes("--run");
 const DRY = !RUN;
 

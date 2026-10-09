@@ -1,5 +1,7 @@
 # مستندات جامع سیستم Pnara
 
+> **Deployment source of truth:** [The Windows deployment guide](deployment.md) and [installer guide](../installer/README.md) describe the current executable behavior. This older document contains historical feature descriptions; its claims about PC-POS/USB hardware support and the development seed are superseded by those guides.
+
 **محصول:** Pnara
 
 **نسخه سند:** ۱.۰  
@@ -140,7 +142,7 @@ dotnet run --project src/API
 ```
 
 Swagger: `http://localhost:5088/swagger`  
-حساب اولیه توسعه: `admin` / `Admin@12345` — در تولید حتماً عوض شود.
+حساب اولیه از طریق seed ایجاد می‌شود و رمز آن از ورودی administrator یا `BootstrapAdmin:Password` دریافت می‌شود؛ هیچ رمز ثابت در مخزن تعریف نشده است.
 
 Seed یک فروشگاه نمونه، دسته قهوه، لاته با BOM، موجودی دانه/شیر و کارتخوان «صندوق ۱» می‌سازد.
 

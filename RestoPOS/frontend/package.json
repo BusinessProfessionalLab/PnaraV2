@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@amcharts/amcharts5": "^5.20.8",
@@ -37,7 +38,7 @@
     "framer-motion": "^13.1.1",
     "jalaali-js": "^2.0.1",
     "lucide-react": "^1.35.0",
-    "next": "^15.5.4",
+    "next": "15.5.27",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "sonner": "^2.0.8",
@@ -50,9 +51,12 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^15.5.4",
+    "eslint-config-next": "15.5.27",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.8.3"
+  },
+  "overrides": {
+    "postcss": "^8.5.26"
   }
 }

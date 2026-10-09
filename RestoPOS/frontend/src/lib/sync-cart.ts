@@ -1,5 +1,8 @@
 import { ApiError } from "@/api/errors";
-import { ordersService, type DraftOrderItem } from "@/services/orders.service";
+import {
+  ordersApi,
+  type DraftOrderItem,
+} from "@/api/controllers/orders/orders.api";
 import { useCartStore } from "./cart-store";
 import type { OrderDto } from "./types";
 
@@ -34,7 +37,7 @@ async function syncCartToServerInternal(): Promise<OrderDto> {
   }));
 
   if (cart.serverOrderId && !cart.dirty) {
-    const order = await ordersService.getOrder(cart.serverOrderId);
+    const order = await ordersApi.getOrder(cart.serverOrderId);
     if (order.status !== "Draft" || order.items.length > 0) return order;
 
     // Older servers ignored the items sent with the create-draft request. If
@@ -42,7 +45,7 @@ async function syncCartToServerInternal(): Promise<OrderDto> {
     // through the existing add-item endpoint before returning it for payment.
     let restored = await addItemsToEmptyDraft(order, items);
     if (snapshot.discountPercent || snapshot.discountAmount) {
-      restored = await ordersService.applyDiscount(
+      restored = await ordersApi.applyDiscount(
         restored.id,
         snapshot.discountPercent,
         snapshot.discountAmount,
@@ -62,14 +65,14 @@ async function syncCartToServerInternal(): Promise<OrderDto> {
   };
 
   const syncOnce = async (retryCount = 0): Promise<OrderDto> => {
-    const draft = await ordersService.createDraft(draftPayload);
+    const draft = await ordersApi.createDraft(draftPayload);
 
     try {
       // Keep this fallback for deployments where the API has not yet been
       // updated to accept items on CreateDraftOrderCommand.
       let last = await addItemsToEmptyDraft(draft, items);
       if (snapshot.discountPercent || snapshot.discountAmount) {
-        last = await ordersService.applyDiscount(
+        last = await ordersApi.applyDiscount(
           last.id,
           snapshot.discountPercent,
           snapshot.discountAmount,
@@ -93,7 +96,7 @@ async function addItemsToEmptyDraft(order: OrderDto, items: DraftOrderItem[]): P
 
   let updated = order;
   for (const item of items) {
-    updated = await ordersService.addItem(order.id, item);
+    updated = await ordersApi.addItem(order.id, item);
   }
   return updated;
 }

@@ -4,7 +4,7 @@ import { MotionConfig } from "framer-motion";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { Toaster } from "sonner";
-import { createQueryClient } from "@/lib/query-client";
+import { createQueryClient } from "@/api/query-client";
 import { TourHost } from "@/features/product-tour";
 import { RouteView } from "./route-view";
 import { ShortcutsFab } from "./shortcuts-fab";

@@ -1,6 +1,5 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,40 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { api } from "@/lib/api";
+import {
+  useApprovePurchase,
+  useApproveStockCount,
+  useCancelPurchase,
+  useCancelTransfer,
+  useCardex,
+  useCompleteTransfer,
+  useCreateDraftPurchase,
+  useCreateInventoryItem,
+  useCreatePurchase,
+  useCreateSupplier,
+  useCreateTransfer,
+  useDeleteInventoryItem,
+  useDeleteSupplier,
+  useInventory,
+  useInventoryTransactions,
+  useInventoryValuation,
+  useLowStock,
+  useManualAdjustment,
+  usePurchase,
+  usePurchases,
+  useRecordWaste,
+  useStartStockCount,
+  useStockCount,
+  useStockCounts,
+  useSubmitStockCounts,
+  useSupplier,
+  useSuppliers,
+  useTransfers,
+  useUpdateInventoryItem,
+  useUpdateSupplier,
+  useWasteList,
+  useWasteReports,
+} from "@/api";
 import { formatToman } from "@/lib/currency";
 import type {
   BaseUnit,
@@ -68,20 +100,6 @@ function tomanToRials(toman: string | number) {
   return Math.round(Number(toman || 0) * 10);
 }
 
-function invalidateInventory(qc: ReturnType<typeof useQueryClient>) {
-  qc.invalidateQueries({ queryKey: ["inventory"] });
-  qc.invalidateQueries({ queryKey: ["low-stock"] });
-  qc.invalidateQueries({ queryKey: ["inventory-valuation"] });
-  qc.invalidateQueries({ queryKey: ["inventory-tx"] });
-  qc.invalidateQueries({ queryKey: ["cardex"] });
-  qc.invalidateQueries({ queryKey: ["purchases"] });
-  qc.invalidateQueries({ queryKey: ["waste"] });
-  qc.invalidateQueries({ queryKey: ["waste-reports"] });
-  qc.invalidateQueries({ queryKey: ["stock-counts"] });
-  qc.invalidateQueries({ queryKey: ["transfers"] });
-  qc.invalidateQueries({ queryKey: ["suppliers"] });
-}
-
 export function InventoryHub() {
   return (
     <Tabs defaultValue="items" className="space-y-4" dir="rtl">
@@ -118,33 +136,26 @@ export function InventoryHub() {
 /* ───────────────────── کالاها ───────────────────── */
 
 function ItemsTab() {
-  const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string>("");
   const [editId, setEditId] = useState<string | null>(null);
 
-  const items = useQuery({ queryKey: ["inventory"], queryFn: api.inventory });
-  const lowStock = useQuery({ queryKey: ["low-stock"], queryFn: api.lowStock });
-  const valuation = useQuery({ queryKey: ["inventory-valuation"], queryFn: api.inventoryValuation });
-  const txs = useQuery({
-    queryKey: ["inventory-tx", selectedId || "all"],
-    queryFn: () => api.inventoryTx(selectedId || undefined),
-  });
-  const cardex = useQuery({
-    queryKey: ["cardex", selectedId],
-    queryFn: () => api.cardex(selectedId),
-    enabled: !!selectedId,
-  });
+  const items = useInventory();
+  const lowStock = useLowStock();
+  const valuation = useInventoryValuation();
+  const txs = useInventoryTransactions(selectedId || undefined);
+  const cardex = useCardex(selectedId || null);
 
-  const deleteMut = useMutation({
-    mutationFn: (id: string) => api.deleteInventoryItem(id),
-    onSuccess: () => {
-      toast.success("کالا حذف شد");
-      if (selectedId === editId) setSelectedId("");
-      setEditId(null);
-      invalidateInventory(qc);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const deleteMut = useDeleteInventoryItem();
+
+  const removeItem = (id: string) =>
+    deleteMut.mutate(id, {
+      onSuccess: () => {
+        toast.success("کالا حذف شد");
+        if (selectedId === editId) setSelectedId("");
+        setEditId(null);
+      },
+      onError: (e: Error) => toast.error(e.message),
+    });
 
   const editing = useMemo(
     () => (items.data ?? []).find((i) => i.id === editId) ?? null,
@@ -203,19 +214,13 @@ function ItemsTab() {
             key={editId ?? "new"}
             initial={editing}
             onCancel={() => setEditId(null)}
-            onDone={() => {
-              setEditId(null);
-              invalidateInventory(qc);
-            }}
+            onDone={() => setEditId(null)}
           />
         </Card>
 
         <Card className="p-4">
           <h2 className="mb-3 font-black">تعدیل دستی موجودی</h2>
-          <ManualAdjustmentForm
-            items={items.data ?? []}
-            onDone={() => invalidateInventory(qc)}
-          />
+          <ManualAdjustmentForm items={items.data ?? []} />
         </Card>
       </div>
 
@@ -259,7 +264,7 @@ function ItemsTab() {
                   <Button size="sm" variant="outline" onClick={() => { setSelectedId(i.id); setEditId(i.id); }}>
                     ویرایش
                   </Button>
-                  <Button size="sm" variant="destructive" onClick={() => deleteMut.mutate(i.id)}>
+                  <Button size="sm" variant="destructive" onClick={() => removeItem(i.id)}>
                     حذف
                   </Button>
                 </td>
@@ -329,21 +334,38 @@ function ItemForm({
   const [storageLocation, setStorageLocation] = useState<StorageLocation>(initial?.storageLocation ?? "CentralStorage");
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
 
-  const mut = useMutation({
-    mutationFn: async () => {
-      if (isEdit && initial) {
-        return api.updateInventoryItem(initial.id, {
-          name,
-          barcode: barcode || null,
-          category: category || null,
-          minimumAlertStock: Number(minimumAlertStock),
-          optimalStock: Number(optimalStock),
-          storageLocation,
-          isActive,
-          conversions: null,
-        });
-      }
-      return api.createInventoryItem({
+  const createMut = useCreateInventoryItem();
+  const updateMut = useUpdateInventoryItem();
+
+  const submitItem = () => {
+    const handlers = {
+      onSuccess: () => {
+        toast.success(isEdit ? "کالا به‌روز شد" : "کالا ثبت شد");
+        onDone();
+      },
+      onError: (e: Error) => toast.error(e.message),
+    };
+    if (isEdit && initial) {
+      updateMut.mutate(
+        {
+          id: initial.id,
+          payload: {
+            name,
+            barcode: barcode || null,
+            category: category || null,
+            minimumAlertStock: Number(minimumAlertStock),
+            optimalStock: Number(optimalStock),
+            storageLocation,
+            isActive,
+            conversions: null,
+          },
+        },
+        handlers,
+      );
+      return;
+    }
+    createMut.mutate(
+      {
         name,
         sku,
         barcode: barcode || null,
@@ -354,15 +376,10 @@ function ItemForm({
         openingStock: Number(openingStock),
         openingUnitCostRials: tomanToRials(openingUnitCostToman),
         storageLocation,
-        conversions: null,
-      });
-    },
-    onSuccess: () => {
-      toast.success(isEdit ? "کالا به‌روز شد" : "کالا ثبت شد");
-      onDone();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+      },
+      handlers,
+    );
+  };
 
   return (
     <div className="grid gap-2 sm:grid-cols-2">
@@ -448,7 +465,11 @@ function ItemForm({
         </div>
       )}
       <div className="flex gap-2 sm:col-span-2">
-        <Button className="flex-1" onClick={() => mut.mutate()} disabled={mut.isPending}>
+        <Button
+          className="flex-1"
+          onClick={submitItem}
+          disabled={createMut.isPending || updateMut.isPending}
+        >
           {isEdit ? "ذخیره تغییرات" : "ثبت کالا"}
         </Button>
         {isEdit && (
@@ -461,32 +482,29 @@ function ItemForm({
   );
 }
 
-function ManualAdjustmentForm({
-  items,
-  onDone,
-}: {
-  items: InventoryItemDto[];
-  onDone: () => void;
-}) {
+function ManualAdjustmentForm({ items }: { items: InventoryItemDto[] }) {
   const [inventoryItemId, setInventoryItemId] = useState("");
   const [quantityDelta, setQuantityDelta] = useState("");
   const [notes, setNotes] = useState("");
 
-  const mut = useMutation({
-    mutationFn: () =>
-      api.manualAdjustment({
+  const mut = useManualAdjustment();
+
+  const submitAdjustment = () =>
+    mut.mutate(
+      {
         inventoryItemId,
         quantityDelta: Number(quantityDelta),
         notes: notes || undefined,
-      }),
-    onSuccess: () => {
-      toast.success("تعدیل ثبت شد");
-      setQuantityDelta("");
-      setNotes("");
-      onDone();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+      },
+      {
+        onSuccess: () => {
+          toast.success("تعدیل ثبت شد");
+          setQuantityDelta("");
+          setNotes("");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
 
   return (
     <div className="space-y-2">
@@ -509,7 +527,7 @@ function ManualAdjustmentForm({
         onChange={(e) => setQuantityDelta(e.target.value)}
       />
       <Input placeholder="یادداشت" value={notes} onChange={(e) => setNotes(e.target.value)} />
-      <Button className="w-full" onClick={() => mut.mutate()} disabled={!inventoryItemId || mut.isPending}>
+      <Button className="w-full" onClick={submitAdjustment} disabled={!inventoryItemId || mut.isPending}>
         ثبت تعدیل
       </Button>
     </div>
@@ -526,20 +544,12 @@ type PurchaseLine = {
 };
 
 function PurchasesTab() {
-  const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string>("");
   const [asDraft, setAsDraft] = useState(false);
 
-  const items = useQuery({ queryKey: ["inventory"], queryFn: api.inventory });
-  const purchases = useQuery({
-    queryKey: ["purchases"],
-    queryFn: () => api.listPurchases({ page: 1, pageSize: 50 }),
-  });
-  const detail = useQuery({
-    queryKey: ["purchases", selectedId],
-    queryFn: () => api.getPurchase(selectedId),
-    enabled: !!selectedId,
-  });
+  const items = useInventory();
+  const purchases = usePurchases({ page: 1, pageSize: 50 });
+  const detail = usePurchase(selectedId || null);
 
   const [invoiceNumber, setInvoiceNumber] = useState(`PO-${Date.now()}`);
   const [supplierName, setSupplierName] = useState("");
@@ -551,54 +561,61 @@ function PurchasesTab() {
     { inventoryItemId: "", quantity: "1", unitPriceToman: "0", lineDiscountToman: "0" },
   ]);
 
-  const createMut = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        invoiceNumber,
-        supplierName: supplierName || undefined,
-        taxRials: tomanToRials(taxToman),
-        discountRials: tomanToRials(discountToman),
-        paymentStatus,
-        notes: notes || undefined,
-        items: lines
-          .filter((l) => l.inventoryItemId)
-          .map((l) => ({
-            inventoryItemId: l.inventoryItemId,
-            quantity: Number(l.quantity),
-            unitPriceRials: tomanToRials(l.unitPriceToman),
-            lineDiscountRials: tomanToRials(l.lineDiscountToman),
-          })),
-      };
-      if (asDraft) return api.createDraftPurchase(payload);
-      return api.createPurchase(payload);
-    },
-    onSuccess: () => {
-      toast.success(asDraft ? "پیش‌نویس خرید ثبت شد" : "فاکتور خرید ثبت و تأیید شد");
-      setInvoiceNumber(`PO-${Date.now()}`);
-      setLines([{ inventoryItemId: "", quantity: "1", unitPriceToman: "0", lineDiscountToman: "0" }]);
-      invalidateInventory(qc);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const createPurchase = useCreatePurchase();
+  const createDraftPurchase = useCreateDraftPurchase();
+  const approveMut = useApprovePurchase();
+  const cancelMut = useCancelPurchase();
 
-  const approveMut = useMutation({
-    mutationFn: (id: string) => api.approvePurchase(id),
-    onSuccess: () => {
-      toast.success("فاکتور تأیید شد");
-      invalidateInventory(qc);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const submitPurchase = () => {
+    const payload = {
+      invoiceNumber,
+      supplierName: supplierName || undefined,
+      taxRials: tomanToRials(taxToman),
+      discountRials: tomanToRials(discountToman),
+      paymentStatus,
+      notes: notes || undefined,
+      items: lines
+        .filter((l) => l.inventoryItemId)
+        .map((l) => ({
+          inventoryItemId: l.inventoryItemId,
+          quantity: Number(l.quantity),
+          unitPriceRials: tomanToRials(l.unitPriceToman),
+          lineDiscountRials: tomanToRials(l.lineDiscountToman),
+        })),
+    };
+    const handlers = {
+      onSuccess: () => {
+        toast.success(asDraft ? "پیش‌نویس خرید ثبت شد" : "فاکتور خرید ثبت و تأیید شد");
+        setInvoiceNumber(`PO-${Date.now()}`);
+        setLines([{ inventoryItemId: "", quantity: "1", unitPriceToman: "0", lineDiscountToman: "0" }]);
+      },
+      onError: (e: Error) => toast.error(e.message),
+    };
+    if (asDraft) {
+      createDraftPurchase.mutate(payload, handlers);
+      return;
+    }
+    createPurchase.mutate(payload, handlers);
+  };
 
-  const cancelMut = useMutation({
-    mutationFn: (id: string) => api.cancelPurchase(id),
-    onSuccess: () => {
-      toast.success("فاکتور لغو شد");
-      setSelectedId("");
-      invalidateInventory(qc);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const createPending = asDraft
+    ? createDraftPurchase.isPending
+    : createPurchase.isPending;
+
+  const approvePurchase = (id: string) =>
+    approveMut.mutate(id, {
+      onSuccess: () => toast.success("فاکتور تأیید شد"),
+      onError: (e: Error) => toast.error(e.message),
+    });
+
+  const cancelPurchase = (id: string) =>
+    cancelMut.mutate(id, {
+      onSuccess: () => {
+        toast.success("فاکتور لغو شد");
+        setSelectedId("");
+      },
+      onError: (e: Error) => toast.error(e.message),
+    });
 
   const list = asItems(purchases.data);
 
@@ -727,7 +744,7 @@ function PurchasesTab() {
             <input type="checkbox" checked={asDraft} onChange={(e) => setAsDraft(e.target.checked)} />
             ثبت به‌صورت پیش‌نویس
           </label>
-          <Button onClick={() => createMut.mutate()} disabled={createMut.isPending}>
+          <Button onClick={submitPurchase} disabled={createPending}>
             {asDraft ? "ذخیره پیش‌نویس" : "ثبت و ورود به انبار"}
           </Button>
         </div>
@@ -764,12 +781,12 @@ function PurchasesTab() {
                   </td>
                   <td className="space-x-1 space-x-reverse whitespace-nowrap p-2">
                     {p.status === "Draft" && (
-                      <Button size="sm" onClick={() => approveMut.mutate(p.id)}>
+                      <Button size="sm" onClick={() => approvePurchase(p.id)}>
                         تأیید
                       </Button>
                     )}
                     {p.status !== "Cancelled" && (
-                      <Button size="sm" variant="destructive" onClick={() => cancelMut.mutate(p.id)}>
+                      <Button size="sm" variant="destructive" onClick={() => cancelPurchase(p.id)}>
                         لغو
                       </Button>
                     )}
@@ -817,25 +834,20 @@ type WasteLine = {
 };
 
 function WasteTab() {
-  const qc = useQueryClient();
-  const items = useQuery({ queryKey: ["inventory"], queryFn: api.inventory });
-  const wasteList = useQuery({
-    queryKey: ["waste"],
-    queryFn: () => api.listWaste({ page: 1, pageSize: 50 }),
-  });
-  const reports = useQuery({
-    queryKey: ["waste-reports"],
-    queryFn: () => api.wasteReports(),
-  });
+  const items = useInventory();
+  const wasteList = useWasteList({ page: 1, pageSize: 50 });
+  const reports = useWasteReports();
 
   const [batchNotes, setBatchNotes] = useState("");
   const [lines, setLines] = useState<WasteLine[]>([
     { inventoryItemId: "", quantityInBase: "", reason: "Spoilage", notes: "" },
   ]);
 
-  const mut = useMutation({
-    mutationFn: () =>
-      api.recordWaste({
+  const mut = useRecordWaste();
+
+  const submitWaste = () =>
+    mut.mutate(
+      {
         notes: batchNotes || undefined,
         items: lines
           .filter((l) => l.inventoryItemId)
@@ -845,15 +857,16 @@ function WasteTab() {
             reason: l.reason,
             notes: l.notes || undefined,
           })),
-      }),
-    onSuccess: () => {
-      toast.success("ضایعات ثبت شد");
-      setLines([{ inventoryItemId: "", quantityInBase: "", reason: "Spoilage", notes: "" }]);
-      setBatchNotes("");
-      invalidateInventory(qc);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+      },
+      {
+        onSuccess: () => {
+          toast.success("ضایعات ثبت شد");
+          setLines([{ inventoryItemId: "", quantityInBase: "", reason: "Spoilage", notes: "" }]);
+          setBatchNotes("");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
 
   return (
     <div className="space-y-4">
@@ -941,7 +954,7 @@ function WasteTab() {
             </div>
           </div>
         ))}
-        <Button variant="destructive" className="w-full" onClick={() => mut.mutate()} disabled={mut.isPending}>
+        <Button variant="destructive" className="w-full" onClick={submitWaste} disabled={mut.isPending}>
           ثبت ضایعات
         </Button>
       </Card>
@@ -992,68 +1005,63 @@ function WasteTab() {
 /* ───────────────────── انبارگردانی ───────────────────── */
 
 function StockCountsTab() {
-  const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState("");
   const [title, setTitle] = useState("");
   const [locationFilter, setLocationFilter] = useState<StorageLocation | "">("");
   const [notes, setNotes] = useState("");
   const [physicalCounts, setPhysicalCounts] = useState<Record<string, string>>({});
 
-  const list = useQuery({
-    queryKey: ["stock-counts"],
-    queryFn: () => api.listStockCounts({ page: 1, pageSize: 50 }),
-  });
-  const detail = useQuery({
-    queryKey: ["stock-counts", selectedId],
-    queryFn: () => api.getStockCount(selectedId),
-    enabled: !!selectedId,
-  });
+  const list = useStockCounts({ page: 1, pageSize: 50 });
+  const detail = useStockCount(selectedId || null);
 
-  const startMut = useMutation({
-    mutationFn: () =>
-      api.startStockCount({
+  const startMut = useStartStockCount();
+  const submitMut = useSubmitStockCounts();
+  const approveMut = useApproveStockCount();
+
+  const startCount = () =>
+    startMut.mutate(
+      {
         title,
         locationFilter: locationFilter || null,
         notes: notes || undefined,
-      }),
-    onSuccess: (id) => {
-      toast.success("انبارگردانی شروع شد");
-      setTitle("");
-      setNotes("");
-      setLocationFilter("");
-      if (typeof id === "string") setSelectedId(id);
-      invalidateInventory(qc);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+      },
+      {
+        onSuccess: (id) => {
+          toast.success("انبارگردانی شروع شد");
+          setTitle("");
+          setNotes("");
+          setLocationFilter("");
+          if (typeof id === "string") setSelectedId(id);
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
 
-  const submitMut = useMutation({
-    mutationFn: () => {
-      if (!detail.data) throw new Error("جزئیات بارگذاری نشده");
-      const counts = detail.data.items.map((it) => ({
-        inventoryItemId: it.inventoryItemId,
-        physicalCountQty: Number(
-          physicalCounts[it.inventoryItemId] ?? it.physicalCountQty ?? it.systemSnapshotQty,
-        ),
-      }));
-      return api.submitStockCounts(selectedId, counts);
-    },
-    onSuccess: () => {
-      toast.success("شمارش ثبت شد");
-      qc.invalidateQueries({ queryKey: ["stock-counts", selectedId] });
-      invalidateInventory(qc);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const submitCounts = () => {
+    if (!detail.data) {
+      toast.error("جزئیات بارگذاری نشده");
+      return;
+    }
+    const counts = detail.data.items.map((it) => ({
+      inventoryItemId: it.inventoryItemId,
+      physicalCountQty: Number(
+        physicalCounts[it.inventoryItemId] ?? it.physicalCountQty ?? it.systemSnapshotQty,
+      ),
+    }));
+    submitMut.mutate(
+      { id: selectedId, counts },
+      {
+        onSuccess: () => toast.success("شمارش ثبت شد"),
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
+  };
 
-  const approveMut = useMutation({
-    mutationFn: () => api.approveStockCount(selectedId),
-    onSuccess: () => {
-      toast.success("انبارگردانی تأیید شد");
-      invalidateInventory(qc);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const approveCount = () =>
+    approveMut.mutate(selectedId, {
+      onSuccess: () => toast.success("انبارگردانی تأیید شد"),
+      onError: (e: Error) => toast.error(e.message),
+    });
 
   return (
     <div className="space-y-4">
@@ -1088,7 +1096,7 @@ function StockCountsTab() {
             <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
         </div>
-        <Button className="mt-3" onClick={() => startMut.mutate()} disabled={!title || startMut.isPending}>
+        <Button className="mt-3" onClick={startCount} disabled={!title || startMut.isPending}>
           شروع
         </Button>
       </Card>
@@ -1167,10 +1175,10 @@ function StockCountsTab() {
               </div>
               {detail.data.status !== "Approved" && (
                 <div className="flex gap-2">
-                  <Button onClick={() => submitMut.mutate()} disabled={submitMut.isPending}>
+                  <Button onClick={submitCounts} disabled={submitMut.isPending}>
                     ثبت شمارش
                   </Button>
-                  <Button variant="outline" onClick={() => approveMut.mutate()} disabled={approveMut.isPending}>
+                  <Button variant="outline" onClick={approveCount} disabled={approveMut.isPending}>
                     تأیید نهایی
                   </Button>
                 </div>
@@ -1186,12 +1194,8 @@ function StockCountsTab() {
 /* ───────────────────── انتقال ───────────────────── */
 
 function TransfersTab() {
-  const qc = useQueryClient();
-  const items = useQuery({ queryKey: ["inventory"], queryFn: api.inventory });
-  const transfers = useQuery({
-    queryKey: ["transfers"],
-    queryFn: () => api.listTransfers({ page: 1, pageSize: 50 }),
-  });
+  const items = useInventory();
+  const transfers = useTransfers({ page: 1, pageSize: 50 });
 
   const [inventoryItemId, setInventoryItemId] = useState("");
   const [fromLocation, setFromLocation] = useState<StorageLocation>("CentralStorage");
@@ -1199,41 +1203,40 @@ function TransfersTab() {
   const [quantityInBase, setQuantityInBase] = useState("");
   const [notes, setNotes] = useState("");
 
-  const createMut = useMutation({
-    mutationFn: () =>
-      api.createTransfer({
+  const createMut = useCreateTransfer();
+  const completeMut = useCompleteTransfer();
+  const cancelMut = useCancelTransfer();
+
+  const submitTransfer = () =>
+    createMut.mutate(
+      {
         inventoryItemId,
         fromLocation,
         toLocation,
         quantityInBase: Number(quantityInBase),
         notes: notes || undefined,
-      }),
-    onSuccess: () => {
-      toast.success("درخواست انتقال ثبت شد");
-      setQuantityInBase("");
-      setNotes("");
-      invalidateInventory(qc);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+      },
+      {
+        onSuccess: () => {
+          toast.success("درخواست انتقال ثبت شد");
+          setQuantityInBase("");
+          setNotes("");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
 
-  const completeMut = useMutation({
-    mutationFn: (id: string) => api.completeTransfer(id),
-    onSuccess: () => {
-      toast.success("انتقال تکمیل شد");
-      invalidateInventory(qc);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const completeTransfer = (id: string) =>
+    completeMut.mutate(id, {
+      onSuccess: () => toast.success("انتقال تکمیل شد"),
+      onError: (e: Error) => toast.error(e.message),
+    });
 
-  const cancelMut = useMutation({
-    mutationFn: (id: string) => api.cancelTransfer(id),
-    onSuccess: () => {
-      toast.success("انتقال لغو شد");
-      invalidateInventory(qc);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const cancelTransfer = (id: string) =>
+    cancelMut.mutate(id, {
+      onSuccess: () => toast.success("انتقال لغو شد"),
+      onError: (e: Error) => toast.error(e.message),
+    });
 
   return (
     <div className="space-y-4">
@@ -1296,7 +1299,7 @@ function TransfersTab() {
         </div>
         <Button
           className="mt-3"
-          onClick={() => createMut.mutate()}
+          onClick={submitTransfer}
           disabled={!inventoryItemId || !quantityInBase || createMut.isPending}
         >
           ثبت انتقال
@@ -1335,10 +1338,10 @@ function TransfersTab() {
                 <td className="space-x-1 space-x-reverse whitespace-nowrap p-2">
                   {t.status === "Requested" && (
                     <>
-                      <Button size="sm" onClick={() => completeMut.mutate(t.id)}>
+                      <Button size="sm" onClick={() => completeTransfer(t.id)}>
                         تکمیل
                       </Button>
-                      <Button size="sm" variant="destructive" onClick={() => cancelMut.mutate(t.id)}>
+                      <Button size="sm" variant="destructive" onClick={() => cancelTransfer(t.id)}>
                         لغو
                       </Button>
                     </>
@@ -1356,19 +1359,11 @@ function TransfersTab() {
 /* ───────────────────── تأمین‌کنندگان ───────────────────── */
 
 function SuppliersTab() {
-  const qc = useQueryClient();
   const [editId, setEditId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState("");
 
-  const list = useQuery({
-    queryKey: ["suppliers"],
-    queryFn: () => api.listSuppliers({ page: 1, pageSize: 100 }),
-  });
-  const detail = useQuery({
-    queryKey: ["suppliers", selectedId],
-    queryFn: () => api.getSupplier(selectedId),
-    enabled: !!selectedId,
-  });
+  const list = useSuppliers({ page: 1, pageSize: 100 });
+  const detail = useSupplier(selectedId || null);
 
   const suppliers = asItems(list.data);
 
@@ -1399,36 +1394,41 @@ function SuppliersTab() {
     setIsActive(s.isActive);
   };
 
-  const saveMut = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        name,
-        phone: phone || null,
-        contactPerson: contactPerson || null,
-        address: address || null,
-        isActive,
-      };
-      if (editId) return api.updateSupplier(editId, payload);
-      return api.createSupplier(payload);
-    },
-    onSuccess: () => {
-      toast.success(editId ? "تأمین‌کننده به‌روز شد" : "تأمین‌کننده ثبت شد");
-      resetForm();
-      invalidateInventory(qc);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const createMut = useCreateSupplier();
+  const updateMut = useUpdateSupplier();
+  const deleteMut = useDeleteSupplier();
 
-  const deleteMut = useMutation({
-    mutationFn: (id: string) => api.deleteSupplier(id),
-    onSuccess: () => {
-      toast.success("تأمین‌کننده حذف شد");
-      if (selectedId === editId) setSelectedId("");
-      resetForm();
-      invalidateInventory(qc);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const saveSupplier = () => {
+    const payload = {
+      name,
+      phone: phone || null,
+      contactPerson: contactPerson || null,
+      address: address || null,
+      isActive,
+    };
+    const handlers = {
+      onSuccess: () => {
+        toast.success(editId ? "تأمین‌کننده به‌روز شد" : "تأمین‌کننده ثبت شد");
+        resetForm();
+      },
+      onError: (e: Error) => toast.error(e.message),
+    };
+    if (editId) {
+      updateMut.mutate({ id: editId, payload }, handlers);
+      return;
+    }
+    createMut.mutate(payload, handlers);
+  };
+
+  const removeSupplier = (id: string) =>
+    deleteMut.mutate(id, {
+      onSuccess: () => {
+        toast.success("تأمین‌کننده حذف شد");
+        if (selectedId === editId) setSelectedId("");
+        resetForm();
+      },
+      onError: (e: Error) => toast.error(e.message),
+    });
 
   return (
     <div className="space-y-4">
@@ -1457,7 +1457,10 @@ function SuppliersTab() {
           </label>
         </div>
         <div className="mt-3 flex gap-2">
-          <Button onClick={() => saveMut.mutate()} disabled={!name || saveMut.isPending}>
+          <Button
+            onClick={saveSupplier}
+            disabled={!name || createMut.isPending || updateMut.isPending}
+          >
             {editId ? "ذخیره" : "ثبت"}
           </Button>
           {editId && (
@@ -1500,7 +1503,7 @@ function SuppliersTab() {
                     <Button size="sm" variant="outline" onClick={() => loadEdit(s.id)}>
                       ویرایش
                     </Button>
-                    <Button size="sm" variant="destructive" onClick={() => deleteMut.mutate(s.id)}>
+                    <Button size="sm" variant="destructive" onClick={() => removeSupplier(s.id)}>
                       حذف
                     </Button>
                   </td>

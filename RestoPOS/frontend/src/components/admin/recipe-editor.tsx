@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { InventoryItemDto, MenuItemDto, RecipeLineDto, UnitOfMeasure } from "@/lib/types";
-import { useUpsertRecipe } from "@/queries/menu";
+import { useUpsertRecipe } from "@/api";
 
 const unitLabels: Record<UnitOfMeasure, string> = {
   Gram: "گرم",

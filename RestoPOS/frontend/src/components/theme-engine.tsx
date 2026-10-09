@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useSettings } from "@/queries/settings";
+import { useSettings } from "@/api";
 import { useAuthStore } from "@/lib/auth-store";
 import { applyTheme } from "@/lib/theme";
 import { useCartStore } from "@/lib/cart-store";

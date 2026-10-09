@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Check,
@@ -39,18 +39,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { errorMessage } from "@/api/errors";
-import { orderKeys } from "@/queries/keys";
+import { orderKeys } from "@/api/keys";
 import {
   useActiveUnpaidOrders,
+  useCategories,
+  useCurrentShift,
+  useDiningTables,
   useDiscardDraft,
   useGetOrder,
+  useHealth,
+  useInventory,
+  useMenuItems,
+  useSettings,
   useSubmitOrder,
-} from "@/queries/orders";
-import { useCategories, useMenuItems } from "@/queries/menu";
-import { useCurrentShift } from "@/queries/shift";
-import { useHealth } from "@/queries/health";
-import { useInventory } from "@/queries/inventory";
-import { useSettings } from "@/queries/settings";
+} from "@/api";
 import { cn } from "@/lib/cn";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuthStore } from "@/lib/auth-store";
@@ -58,7 +60,6 @@ import { useCartStore } from "@/lib/cart-store";
 import { formatToman } from "@/lib/currency";
 import { toShamsiClock, toShamsiDate, weekdayFa } from "@/lib/jalali";
 import { syncCartToServer } from "@/lib/sync-cart";
-import { api } from "@/lib/api";
 import type { MenuItemDto, OrderDto } from "@/lib/types";
 import { fuzzyScore } from "@/lib/fuzzy-search";
 import { CheckoutModal } from "./checkout-modal";
@@ -1414,10 +1415,7 @@ function MenuItemImage({
 
 function DiningTableSelect() {
   const cart = useCartStore();
-  const tables = useQuery({
-    queryKey: ["dining-tables-active"],
-    queryFn: () => api.diningTables(true),
-  });
+  const tables = useDiningTables(true);
   return (
     <Select
       value={cart.diningTableId ?? ""}

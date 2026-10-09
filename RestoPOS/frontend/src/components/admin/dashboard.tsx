@@ -20,10 +20,10 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useActiveOrders } from "@/queries/orders";
-import { useStockAlerts } from "@/queries/inventory";
-import { useSettings } from "@/queries/settings";
-import { useCurrentShift } from "@/queries/shift";
+import { useActiveOrders } from "@/api";
+import { useStockAlerts } from "@/api";
+import { useSettings } from "@/api";
+import { useCurrentShift } from "@/api";
 import { formatToman } from "@/lib/currency";
 
 function StatSkeleton() {

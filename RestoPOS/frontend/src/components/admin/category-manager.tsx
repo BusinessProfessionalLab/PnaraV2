@@ -8,7 +8,7 @@ import {
   useCreateCategory,
   useDeleteCategory,
   useUpdateCategory,
-} from "@/queries/menu";
+} from "@/api";
 import { errorMessage } from "@/api/errors";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

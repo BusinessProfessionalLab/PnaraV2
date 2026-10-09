@@ -38,8 +38,8 @@ import {
   useMenuItems,
   useUpdateMenuItem,
   useUpdateModifier,
-} from "@/queries/menu";
-import { useInventory } from "@/queries/inventory";
+} from "@/api";
+import { useInventory } from "@/api";
 import { errorMessage } from "@/api/errors";
 import {
   CirclePlus,

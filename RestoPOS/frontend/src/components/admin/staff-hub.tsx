@@ -1,6 +1,5 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -15,10 +14,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/lib/api";
-import type { RoleDto, StaffDto } from "@/lib/types";
-
-type RoleWithPermissions = RoleDto & { permissions?: string[] };
+import {
+  useAssignStaffRoles,
+  useChangeStaffPassword,
+  useCreateRole,
+  useCreateStaff,
+  useDeactivateStaff,
+  usePermissionCatalog,
+  useRoles,
+  useStaff,
+  useStaffMember,
+  useUpdateRolePermissions,
+  useUpdateStaff,
+} from "@/api";
+import type { StaffDto } from "@/lib/types";
 
 export function StaffHub() {
   return (
@@ -38,18 +47,19 @@ export function StaffHub() {
 }
 
 function StaffPanel() {
-  const qc = useQueryClient();
-  const staff = useQuery({ queryKey: ["staff"], queryFn: api.staff });
-  const roles = useQuery({ queryKey: ["staff-roles"], queryFn: () => api.staffRoles().catch(() => api.roles()) });
+  const staff = useStaff();
+  const roles = useRoles();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [userName, setUserName] = useState("");
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("Cashier");
 
-  const createMut = useMutation({
-    mutationFn: () =>
-      api.createStaff({
+  const createMut = useCreateStaff();
+
+  const submitStaff = () =>
+    createMut.mutate(
+      {
         userName,
         password,
         fullName,
@@ -57,16 +67,17 @@ function StaffPanel() {
         phoneNumber: null,
         personnelCode: null,
         roles: [role],
-      }),
-    onSuccess: () => {
-      toast.success("پرسنل ایجاد شد");
-      qc.invalidateQueries({ queryKey: ["staff"] });
-      setUserName("");
-      setFullName("");
-      setPassword("");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+      },
+      {
+        onSuccess: () => {
+          toast.success("پرسنل ایجاد شد");
+          setUserName("");
+          setFullName("");
+          setPassword("");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
 
   const roleNames = useMemo(() => (roles.data ?? []).map((r) => r.name), [roles.data]);
 
@@ -108,7 +119,7 @@ function StaffPanel() {
           <p className="text-xs text-danger">هنوز نقشی ثبت نشده است. ابتدا از تب «نقش‌ها» یک نقش بسازید.</p>
         ) : null}
         <Button
-          onClick={() => createMut.mutate()}
+          onClick={submitStaff}
           disabled={!userName || !fullName || !password || !role || createMut.isPending}
         >
           ثبت
@@ -145,11 +156,7 @@ function StaffPanel() {
 
       <Card className="p-4">
         {selectedId ? (
-          <StaffDetail
-            staffId={selectedId}
-            availableRoles={roleNames}
-            onChanged={() => qc.invalidateQueries({ queryKey: ["staff"] })}
-          />
+          <StaffDetail staffId={selectedId} availableRoles={roleNames} />
         ) : (
           <p className="text-sm text-muted-foreground">یک پرسنل را برای جزئیات انتخاب کنید.</p>
         )}
@@ -161,16 +168,11 @@ function StaffPanel() {
 function StaffDetail({
   staffId,
   availableRoles,
-  onChanged,
 }: {
   staffId: string;
   availableRoles: string[];
-  onChanged: () => void;
 }) {
-  const detail = useQuery({
-    queryKey: ["staff", staffId],
-    queryFn: () => api.staffById(staffId),
-  });
+  const detail = useStaffMember(staffId);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -191,51 +193,49 @@ function StaffDetail({
     setSelectedRoles(s.roles ?? []);
   }, [detail.data]);
 
-  const updateMut = useMutation({
-    mutationFn: () =>
-      api.updateStaff(staffId, {
-        fullName: fullName.trim(),
-        email: email.trim() || null,
-        phoneNumber: phone.trim() || null,
-        personnelCode: personnelCode.trim() || null,
-        isActive,
-      }),
-    onSuccess: () => {
-      toast.success("پرسنل به‌روز شد");
-      onChanged();
-      detail.refetch();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const updateMut = useUpdateStaff();
+  const deactivateMut = useDeactivateStaff();
+  const passwordMut = useChangeStaffPassword();
+  const rolesMut = useAssignStaffRoles();
 
-  const deactivateMut = useMutation({
-    mutationFn: () => api.deactivateStaff(staffId),
-    onSuccess: () => {
-      toast.success("پرسنل غیرفعال شد");
-      onChanged();
-      detail.refetch();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const saveStaff = () =>
+    updateMut.mutate(
+      {
+        staffId,
+        payload: {
+          fullName: fullName.trim(),
+          email: email.trim() || null,
+          phoneNumber: phone.trim() || null,
+          personnelCode: personnelCode.trim() || null,
+          isActive,
+        },
+      },
+      { onSuccess: () => toast.success("پرسنل به‌روز شد"), onError: (e: Error) => toast.error(e.message) },
+    );
 
-  const passwordMut = useMutation({
-    mutationFn: () => api.changeStaffPassword(staffId, newPassword),
-    onSuccess: () => {
-      toast.success("رمز تغییر کرد");
-      setNewPassword("");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const deactivateStaff = () =>
+    deactivateMut.mutate(staffId, {
+      onSuccess: () => toast.success("پرسنل غیرفعال شد"),
+      onError: (e: Error) => toast.error(e.message),
+    });
 
-  const rolesMut = useMutation({
-    mutationFn: () => api.assignStaffRoles(staffId, selectedRoles),
-    onSuccess: () => {
-      toast.success("نقش‌ها ذخیره شد");
-      onChanged();
-      detail.refetch();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const changePassword = () =>
+    passwordMut.mutate(
+      { staffId, newPassword },
+      {
+        onSuccess: () => {
+          toast.success("رمز تغییر کرد");
+          setNewPassword("");
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
+
+  const saveRoles = () =>
+    rolesMut.mutate(
+      { staffId, roles: selectedRoles },
+      { onSuccess: () => toast.success("نقش‌ها ذخیره شد"), onError: (e: Error) => toast.error(e.message) },
+    );
 
   function toggleRole(name: string) {
     setSelectedRoles((prev) => (prev.includes(name) ? prev.filter((r) => r !== name) : [...prev, name]));
@@ -261,10 +261,10 @@ function StaffDetail({
         <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
         فعال
       </label>
-      <Button className="w-full" onClick={() => updateMut.mutate()} disabled={!fullName.trim() || updateMut.isPending}>
+      <Button className="w-full" onClick={saveStaff} disabled={!fullName.trim() || updateMut.isPending}>
         ذخیره مشخصات
       </Button>
-      <Button className="w-full" variant="destructive" onClick={() => deactivateMut.mutate()} disabled={deactivateMut.isPending}>
+      <Button className="w-full" variant="destructive" onClick={deactivateStaff} disabled={deactivateMut.isPending}>
         غیرفعال‌سازی
       </Button>
 
@@ -275,7 +275,7 @@ function StaffDetail({
           className="w-full"
           variant="outline"
           disabled={!newPassword || passwordMut.isPending}
-          onClick={() => passwordMut.mutate()}
+          onClick={changePassword}
         >
           تغییر رمز
         </Button>
@@ -295,7 +295,7 @@ function StaffDetail({
             </button>
           ))}
         </div>
-        <Button className="w-full" variant="outline" onClick={() => rolesMut.mutate()} disabled={rolesMut.isPending}>
+        <Button className="w-full" variant="outline" onClick={saveRoles} disabled={rolesMut.isPending}>
           ذخیره نقش‌ها
         </Button>
       </div>
@@ -304,19 +304,15 @@ function StaffDetail({
 }
 
 function RolesPanel() {
-  const qc = useQueryClient();
-  const roles = useQuery({
-    queryKey: ["roles"],
-    queryFn: () => api.roles().catch(() => api.staffRoles()),
-  });
-  const catalog = useQuery({ queryKey: ["permission-catalog"], queryFn: api.permissionCatalog });
+  const roles = useRoles();
+  const catalog = usePermissionCatalog();
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [createPerms, setCreatePerms] = useState<string[]>([]);
   const [editPerms, setEditPerms] = useState<string[]>([]);
 
-  const selected = (roles.data as RoleWithPermissions[] | undefined)?.find((r) => r.id === selectedRoleId) ?? null;
+  const selected = (roles.data ?? []).find((r) => r.id === selectedRoleId) ?? null;
 
   useEffect(() => {
     if (!selected) {
@@ -326,33 +322,28 @@ function RolesPanel() {
     setEditPerms([...(selected.permissions ?? [])]);
   }, [selected]);
 
-  const createMut = useMutation({
-    mutationFn: () =>
-      api.createRole({
-        name: name.trim(),
-        description: description.trim() || null,
-        permissions: createPerms,
-      }),
-    onSuccess: () => {
-      toast.success("نقش ساخته شد");
-      setName("");
-      setDescription("");
-      setCreatePerms([]);
-      qc.invalidateQueries({ queryKey: ["roles"] });
-      qc.invalidateQueries({ queryKey: ["staff-roles"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const createMut = useCreateRole();
+  const updatePermsMut = useUpdateRolePermissions();
 
-  const updatePermsMut = useMutation({
-    mutationFn: () => api.updateRolePermissions(selectedRoleId!, editPerms),
-    onSuccess: () => {
-      toast.success("مجوزهای نقش به‌روز شد");
-      qc.invalidateQueries({ queryKey: ["roles"] });
-      qc.invalidateQueries({ queryKey: ["staff-roles"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const submitRole = () =>
+    createMut.mutate(
+      { name: name.trim(), description: description.trim() || null, permissions: createPerms },
+      {
+        onSuccess: () => {
+          toast.success("نقش ساخته شد");
+          setName("");
+          setDescription("");
+          setCreatePerms([]);
+        },
+        onError: (e: Error) => toast.error(e.message),
+      },
+    );
+
+  const savePermissions = () =>
+    updatePermsMut.mutate(
+      { roleId: selectedRoleId as string, permissions: editPerms },
+      { onSuccess: () => toast.success("مجوزهای نقش به‌روز شد"), onError: (e: Error) => toast.error(e.message) },
+    );
 
   function togglePerm(list: string[], code: string, setter: (v: string[]) => void) {
     setter(list.includes(code) ? list.filter((c) => c !== code) : [...list, code]);
@@ -395,7 +386,7 @@ function RolesPanel() {
             </div>
           ))}
         </div>
-        <Button disabled={!name.trim() || createMut.isPending} onClick={() => createMut.mutate()}>
+        <Button disabled={!name.trim() || createMut.isPending} onClick={submitRole}>
           ساخت نقش
         </Button>
       </Card>
@@ -403,7 +394,7 @@ function RolesPanel() {
       <Card className="p-4">
         <h2 className="mb-3 font-black">فهرست نقش‌ها</h2>
         <ul className="space-y-2">
-          {((roles.data as RoleWithPermissions[] | undefined) ?? []).map((r) => (
+          {(roles.data ?? []).map((r) => (
             <li key={r.id}>
               <button
                 type="button"
@@ -451,7 +442,7 @@ function RolesPanel() {
                 </div>
               ))}
             </div>
-            <Button className="w-full" onClick={() => updatePermsMut.mutate()} disabled={updatePermsMut.isPending}>
+            <Button className="w-full" onClick={savePermissions} disabled={updatePermsMut.isPending}>
               ذخیره مجوزها
             </Button>
           </div>

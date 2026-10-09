@@ -3,12 +3,13 @@ import {
   HubConnectionBuilder,
   LogLevel,
 } from "@microsoft/signalr";
+import { apiUrl } from "@/config/env";
 import { getAccessToken } from "./auth-store";
 import type { OrderDto } from "./types";
 
 export function createKitchenConnection() {
   return new HubConnectionBuilder()
-    .withUrl("http://192.168.100.249:5000/hubs/kitchen", {
+    .withUrl(apiUrl("/hubs/kitchen"), {
       accessTokenFactory: () => getAccessToken() ?? "",
     })
     .withAutomaticReconnect()

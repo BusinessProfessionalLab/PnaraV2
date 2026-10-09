@@ -3,7 +3,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const API = process.env.API_PROXY_TARGET || "http://127.0.0.1:5088";
+// Same-origin proxy fallback (used only when NEXT_PUBLIC_API_URL is blank).
+const API = process.env.API_PROXY_TARGET || "http://192.168.100.249:5000";
 
 const nextConfig = {
   reactStrictMode: true,

@@ -10,7 +10,7 @@
  * see axios (they consume TanStack Query hooks).
  */
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
-import { env } from "@/config/env";
+import { apiUrl, env } from "@/config/env";
 import {
   getAccessToken,
   getRefreshToken,
@@ -27,10 +27,9 @@ declare module "axios" {
 }
 
 export const apiClient = axios.create({
-  // Empty baseURL → same-origin `/api/*` so Next.js rewrites (`API_PROXY_TARGET`
-  // → backend `http://127.0.0.1:5088`) handle routing. Never hard-code a LAN IP
-  // here: it breaks payments/orders on any machine that isn't that IP.
-  baseURL: "http://192.168.100.249:5000",
+  // Single source of truth: `NEXT_PUBLIC_API_URL` (see @/config/env). No host is
+  // hard-coded here, so every request follows the configured backend.
+  baseURL: env.apiBaseUrl,
   timeout: 30_000,
   headers: { "Content-Type": "application/json" },
 });
@@ -68,7 +67,7 @@ function refreshSession(): Promise<boolean> {
         // Raw axios on purpose: bypasses interceptors so a failed refresh
         // cannot trigger another refresh.
         const { data } = await axios.post<AuthResponse>(
-          `${env.apiBaseUrl}/api/auth/refresh`,
+          apiUrl("/api/auth/refresh"),
           { refreshToken: token },
           { timeout: 15_000 },
         );

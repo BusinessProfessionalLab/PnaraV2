@@ -363,6 +363,7 @@ public sealed class UpsertRecipeCommandValidator : AbstractValidator<UpsertRecip
         {
             l.RuleFor(i => i.InventoryItemId).NotEmpty();
             l.RuleFor(i => i.Quantity).GreaterThan(0);
+            l.RuleFor(i => i.Unit).IsInEnum();
         });
     }
 }
@@ -371,6 +372,20 @@ public sealed class UpsertRecipeCommandHandler(IApplicationDbContext db) : IRequ
 {
     public async Task<Guid> Handle(UpsertRecipeCommand request, CancellationToken cancellationToken)
     {
+        var inventoryIds = request.Lines.Select(line => line.InventoryItemId).Distinct().ToArray();
+        var inventoryItems = await db.InventoryItems
+            .Include(item => item.Conversions)
+            .Where(item => inventoryIds.Contains(item.Id))
+            .ToDictionaryAsync(item => item.Id, cancellationToken);
+
+        foreach (var line in request.Lines)
+        {
+            if (!inventoryItems.TryGetValue(line.InventoryItemId, out var inventoryItem))
+                throw new NotFoundException(nameof(InventoryItem), line.InventoryItemId);
+
+            inventoryItem.ConvertToBase(line.Quantity, line.Unit);
+        }
+
         var recipe = await db.Recipes
             .Include(r => r.Lines)
             .FirstOrDefaultAsync(r =>

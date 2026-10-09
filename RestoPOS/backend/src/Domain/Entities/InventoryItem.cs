@@ -147,6 +147,9 @@ public class InventoryItem : BaseEntity, ISoftDeletable
 
     public InventoryTransaction ApplyRecipeDeduction(decimal quantityInBase, Guid orderId, Guid? userId)
     {
+        if (quantityInBase > CurrentStock)
+            throw new DomainException($"موجودی ماده اولیه «{Name}» کافی نیست. موجودی فعلی {CurrentStock:0.####}، مقدار موردنیاز {quantityInBase:0.####} است.");
+
         if (quantityInBase <= 0)
             throw new DomainException("مقدار کسر رسپی باید مثبت باشد.");
 

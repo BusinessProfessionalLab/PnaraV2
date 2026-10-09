@@ -27,7 +27,7 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
             DbUpdateConcurrencyException concurrency => (
                 HttpStatusCode.Conflict,
                 "OrderConcurrencyConflict",
-                DescribeConcurrency(concurrency)
+                "اطلاعات سفارش یا موجودی انبار هنگام ثبت تغییر کرده است. اطلاعات را تازه‌سازی کنید و دوباره تلاش کنید."
             ),
             ValidationException validationException => (HttpStatusCode.BadRequest, "ValidationFailed", validationException.Message),
             NotFoundException notFound => (HttpStatusCode.NotFound, "NotFound", notFound.Message),
@@ -51,9 +51,12 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)status;
 
-        object errors = exception is ValidationException validation
-            ? validation.Errors.Select(e => new { e.PropertyName, e.ErrorMessage })
-            : new[] { new { PropertyName = "", ErrorMessage = exception.Message } };
+        object errors = exception switch
+        {
+            ValidationException validation => validation.Errors.Select(e => new { e.PropertyName, e.ErrorMessage }),
+            DbUpdateConcurrencyException => new[] { new { PropertyName = "", ErrorMessage = detail } },
+            _ => new[] { new { PropertyName = "", ErrorMessage = exception.Message } }
+        };
 
         var payload = new { title, status = (int)status, detail, errors };
         await context.Response.WriteAsync(JsonSerializer.Serialize(payload));

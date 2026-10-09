@@ -2,6 +2,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using RestoPOS.Application.Common.Interfaces;
+using RestoPOS.Application.Features.Inventory;
 using RestoPOS.Application.Features.Orders;
 using RestoPOS.Domain.Entities;
 using RestoPOS.Domain.Enums;
@@ -146,12 +147,14 @@ public sealed class PollPosPaymentQueryHandler(
 
 public sealed class ConfirmCashPaymentCommandHandler(
     IApplicationDbContext db,
+    IInventoryStockService inventoryStock,
     IOrderKitchenNotifier notifier,
     IEscPosDispatcher printer) : IRequestHandler<ConfirmCashPaymentCommand, OrderDto>
 {
     public async Task<OrderDto> Handle(ConfirmCashPaymentCommand request, CancellationToken cancellationToken)
     {
         var order = await OrderLoader.Load(db, request.OrderId, cancellationToken);
+        await inventoryStock.ValidateRecipeUnitsForOrderAsync(order, cancellationToken);
         if (order.Status == OrderStatus.Paid)
             return OrderMapping.ToDto(order);
         if (order.Status is OrderStatus.Draft)
@@ -179,12 +182,14 @@ public sealed class ConfirmCashPaymentCommandHandler(
 
 public sealed class RecordCardToCardCommandHandler(
     IApplicationDbContext db,
+    IInventoryStockService inventoryStock,
     IOrderKitchenNotifier notifier,
     IEscPosDispatcher printer) : IRequestHandler<RecordCardToCardCommand, OrderDto>
 {
     public async Task<OrderDto> Handle(RecordCardToCardCommand request, CancellationToken cancellationToken)
     {
         var order = await OrderLoader.Load(db, request.OrderId, cancellationToken);
+        await inventoryStock.ValidateRecipeUnitsForOrderAsync(order, cancellationToken);
         if (order.Status == OrderStatus.Paid)
             return OrderMapping.ToDto(order);
         if (order.Status == OrderStatus.Draft)

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using RestoPOS.Application.Common.Interfaces;
 using RestoPOS.Domain.Entities;
 using RestoPOS.Domain.Enums;
+using RestoPOS.Domain.Exceptions;
 
 namespace RestoPOS.Application.Features.Inventory;
 
@@ -11,6 +12,7 @@ namespace RestoPOS.Application.Features.Inventory;
 /// </summary>
 public interface IInventoryStockService
 {
+    Task ValidateRecipeUnitsForOrderAsync(Order order, CancellationToken cancellationToken = default);
     Task DeductRecipeStockForOrderAsync(Order order, CancellationToken cancellationToken = default);
     Task RestoreOrderStockAsync(Order order, CancellationToken cancellationToken = default);
 }
@@ -19,6 +21,40 @@ public sealed class InventoryStockService(
     IApplicationDbContext db,
     ILogger<InventoryStockService> logger) : IInventoryStockService
 {
+    public async Task ValidateRecipeUnitsForOrderAsync(Order order, CancellationToken cancellationToken = default)
+    {
+        var stockById = new Dictionary<Guid, InventoryItem>();
+        var requiredById = new Dictionary<Guid, decimal>();
+
+        foreach (var item in order.Items)
+        {
+            await ValidateRecipeUnitsAsync(
+                item.MenuItemId,
+                null,
+                item.Quantity,
+                stockById,
+                requiredById,
+                cancellationToken);
+
+            foreach (var modifier in item.Modifiers)
+                await ValidateRecipeUnitsAsync(
+                    null,
+                    modifier.MenuItemModifierId,
+                    item.Quantity * modifier.Quantity,
+                    stockById,
+                    requiredById,
+                    cancellationToken);
+        }
+
+        foreach (var (inventoryItemId, requiredQuantity) in requiredById)
+        {
+            var stock = stockById[inventoryItemId];
+            if (requiredQuantity > stock.CurrentStock)
+                throw new DomainException(
+                    $"موجودی ماده اولیه «{stock.Name}» کافی نیست. برای این سفارش {requiredQuantity:0.####} {stock.BaseUnit} لازم است، اما موجودی فعلی {stock.CurrentStock:0.####} {stock.BaseUnit} است.");
+        }
+    }
+
     public async Task DeductRecipeStockForOrderAsync(Order order, CancellationToken cancellationToken = default)
     {
         if (order.InventoryDeducted)
@@ -104,6 +140,44 @@ public sealed class InventoryStockService(
 
             var qtyInBase = stock.ConvertToBase(line.Quantity * multiplier, line.Unit);
             stock.ApplyRecipeDeduction(qtyInBase, order.Id, order.CashierId);
+        }
+    }
+
+    private async Task ValidateRecipeUnitsAsync(
+        Guid? menuItemId,
+        Guid? menuItemModifierId,
+        int multiplier,
+        IDictionary<Guid, InventoryItem> stockById,
+        IDictionary<Guid, decimal> requiredById,
+        CancellationToken ct)
+    {
+        var recipe = await db.Recipes
+            .Include(r => r.Lines)
+            .FirstOrDefaultAsync(r =>
+                (menuItemId != null && r.MenuItemId == menuItemId) ||
+                (menuItemModifierId != null && r.MenuItemModifierId == menuItemModifierId), ct);
+        if (recipe is null)
+            return;
+
+        foreach (var line in recipe.Lines)
+        {
+            if (!stockById.TryGetValue(line.InventoryItemId, out var stock))
+            {
+                stock = await db.InventoryItems
+                    .AsNoTracking()
+                    .Include(item => item.Conversions)
+                    .FirstOrDefaultAsync(item => item.Id == line.InventoryItemId, ct);
+                if (stock is null)
+                    continue;
+
+                stockById.Add(stock.Id, stock);
+            }
+
+            var requiredInBase = stock.ConvertToBase(line.Quantity * multiplier, line.Unit);
+            var alreadyRequired = requiredById.TryGetValue(line.InventoryItemId, out var accumulated)
+                ? accumulated
+                : 0m;
+            requiredById[line.InventoryItemId] = alreadyRequired + requiredInBase;
         }
     }
 

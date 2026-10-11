@@ -93,7 +93,7 @@ public class MenuItemConfiguration : IEntityTypeConfiguration<MenuItem>
         builder.Property(x => x.NameEn).HasMaxLength(200);
         builder.Property(x => x.Description).HasMaxLength(2000);
         builder.Property(x => x.BasePrice).HasColumnType(MoneyConfig.Rial);
-        builder.Property(x => x.ImageUrl).HasColumnType("nvarchar(max)");
+        builder.Property(x => x.ImageUrl).HasColumnType("text");
         builder.HasOne(x => x.Category).WithMany(c => c.MenuItems).HasForeignKey(x => x.CategoryId);
         builder.HasOne(x => x.Recipe).WithOne(r => r.MenuItem).HasForeignKey<Recipe>(r => r.MenuItemId);
         builder.HasIndex(x => new { x.CategoryId, x.DisplayPriority });

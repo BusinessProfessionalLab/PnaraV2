@@ -16,14 +16,14 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("SqlServer")
-                               ?? throw new InvalidOperationException("Connection string 'SqlServer' is missing.");
+        var connectionString = configuration.GetConnectionString("PostgreSql")
+                               ?? throw new InvalidOperationException("Connection string 'PostgreSql' is missing.");
 
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(connectionString, sql =>
+            options.UseNpgsql(connectionString, postgres =>
             {
-                sql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
-                sql.EnableRetryOnFailure();
+                postgres.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
+                postgres.EnableRetryOnFailure();
             }));
 
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());

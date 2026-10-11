@@ -7,7 +7,7 @@ Static site built with Astro 6, Tailwind CSS v4 and MDX. Persian, right-to-left,
 set in Vazirmatn — the same typeface the product uses.
 
 > This repository is only the website. The product itself lives in `../frontend`
-> (Next.js) and `../backend` (ASP.NET Core + SQL Server). Those are the source of
+> (Next.js) and `../backend` (ASP.NET Core + PostgreSQL). Those are the source of
 > truth for what the product does; see `CLAUDE.md` for the accuracy rules that
 > apply to all copy on this site.
 

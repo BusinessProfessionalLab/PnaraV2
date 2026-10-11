@@ -56,15 +56,28 @@ Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile
 [Code]
 var
   AdminPasswordPage: TInputQueryWizardPage;
-  SqlLicensePage: TWizardPage;
-  SqlLicenseCheck: TNewCheckBox;
+  PostgreSqlPage: TInputQueryWizardPage;
+  PostgreSqlConnectionString: String;
   NeedsInitialPassword: Boolean;
-  NeedsSqlLicense: Boolean;
+  NeedsPostgreSqlConnection: Boolean;
   InstallReady: Boolean;
 
-function SqlExpressServiceExists: Boolean;
+function HasRequiredPasswordCharacters(const Value: String): Boolean;
+var
+  Index: Integer;
+  HasUppercase: Boolean;
+  HasLowercase: Boolean;
+  HasDigit: Boolean;
 begin
-  Result := RegKeyExists(HKLM, 'SYSTEM\CurrentControlSet\Services\MSSQL$SQLEXPRESS');
+  HasUppercase := False;
+  HasLowercase := False;
+  HasDigit := False;
+  for Index := 1 to Length(Value) do begin
+    if (Value[Index] >= 'A') and (Value[Index] <= 'Z') then HasUppercase := True;
+    if (Value[Index] >= 'a') and (Value[Index] <= 'z') then HasLowercase := True;
+    if (Value[Index] >= '0') and (Value[Index] <= '9') then HasDigit := True;
+  end;
+  Result := HasUppercase and HasLowercase and HasDigit;
 end;
 
 function ExistingCafeInstall: Boolean;
@@ -72,61 +85,24 @@ begin
   Result := FileExists(ExpandConstant('{commonappdata}\Pnara\install-state.json'));
 end;
 
-procedure SqlLicenseLinkClick(Sender: TObject);
-var
-  ErrorCode: Integer;
-begin
-  ShellExec('open',
-    'https://www.microsoft.com/content/dam/microsoft/usetm/documents/sql-server/sql-server-2025-developer%2C-express%2C-evaluation/retail/SQL_Server_2025_Developer_Express_and_Evaluation_Edition_English.pdf',
-    '', '', SW_SHOWNORMAL, ewNoWait, ErrorCode);
-end;
-
 procedure InitializeWizard;
-var
-  Text: TNewStaticText;
 begin
-  NeedsSqlLicense := not SqlExpressServiceExists;
   NeedsInitialPassword := not ExistingCafeInstall;
+  NeedsPostgreSqlConnection := not ExistingCafeInstall;
 
-  if NeedsSqlLicense then begin
-    SqlLicensePage := CreateCustomPage(wpWelcome,
-      'SQL Server Express prerequisite',
-      'Pnara needs a local SQL Server database to store cafe data.');
-    Text := TNewStaticText.Create(SqlLicensePage);
-    Text.Parent := SqlLicensePage.Surface;
-    Text.Left := ScaleX(0);
-    Text.Top := ScaleY(8);
-    Text.Width := SqlLicensePage.SurfaceWidth;
-    Text.Height := ScaleY(52);
-    Text.AutoSize := False;
-    Text.WordWrap := True;
-    Text.Caption := 'SQL Server Express 2025 will be downloaded from Microsoft only if no compatible local SQLEXPRESS instance is found. The download requires internet access and several gigabytes of free disk space.';
-
-    SqlLicenseCheck := TNewCheckBox.Create(SqlLicensePage);
-    SqlLicenseCheck.Parent := SqlLicensePage.Surface;
-    SqlLicenseCheck.Left := ScaleX(0);
-    SqlLicenseCheck.Top := ScaleY(76);
-    SqlLicenseCheck.Width := SqlLicensePage.SurfaceWidth;
-    SqlLicenseCheck.Height := ScaleY(30);
-    SqlLicenseCheck.Caption := 'I have reviewed and accept the SQL Server 2025 Express license terms.';
-
-    Text := TNewStaticText.Create(SqlLicensePage);
-    Text.Parent := SqlLicensePage.Surface;
-    Text.Left := ScaleX(0);
-    Text.Top := ScaleY(112);
-    Text.Width := SqlLicensePage.SurfaceWidth;
-    Text.Height := ScaleY(24);
-    Text.Font.Color := clBlue;
-    Text.Cursor := crHand;
-    Text.Caption := 'Open Microsoft SQL Server 2025 Express license terms';
-    Text.OnClick := @SqlLicenseLinkClick;
+  if NeedsPostgreSqlConnection then begin
+    PostgreSqlPage := CreateInputQueryPage(wpWelcome,
+      'Connect to PostgreSQL',
+      'Install PostgreSQL locally and create the Pnara database and application role first.',
+      'Enter an Npgsql connection string. Example: Host=localhost;Port=5432;Database=pnara;Username=pnara_app;Password=your-password. Grant this role ownership of the pnara database so migrations can create and update its schema.');
+    PostgreSqlPage.Add('PostgreSQL connection string:', True);
   end;
 
   if NeedsInitialPassword then begin
     AdminPasswordPage := CreateInputQueryPage(wpSelectDir,
       'Create the first administrator password',
       'This password protects the initial Pnara Cafe administrator account.',
-      'Enter a password of at least 12 characters. It is stored as an Identity password hash in the database.');
+      'Enter at least 12 characters, including an uppercase Latin letter, a lowercase Latin letter, and a digit. A symbol is optional. The password is stored as an Identity password hash in the database.');
     AdminPasswordPage.Add('Administrator password:', True);
     AdminPasswordPage.Add('Confirm password:', True);
   end;
@@ -135,18 +111,31 @@ end;
 function NextButtonClick(CurPageID: Integer): Boolean;
 var
   Password: String;
+  ConnectionStringLowercase: String;
 begin
   Result := True;
-  if NeedsSqlLicense and (CurPageID = SqlLicensePage.ID) and not SqlLicenseCheck.Checked then begin
-    MsgBox('Review and accept the SQL Server Express terms before continuing.', mbError, MB_OK);
-    Result := False;
-    exit;
+  if NeedsPostgreSqlConnection and (CurPageID = PostgreSqlPage.ID) then begin
+    PostgreSqlConnectionString := PostgreSqlPage.Values[0];
+    ConnectionStringLowercase := Lowercase(PostgreSqlConnectionString);
+    if (Pos('host=', ConnectionStringLowercase) = 0) or
+       (Pos('database=', ConnectionStringLowercase) = 0) or
+       (Pos('username=', ConnectionStringLowercase) = 0) or
+       (Pos('password=', ConnectionStringLowercase) = 0) then begin
+      MsgBox('Enter a PostgreSQL connection string containing Host, Database, Username, and Password.', mbError, MB_OK);
+      Result := False;
+      exit;
+    end;
   end;
 
   if NeedsInitialPassword and (CurPageID = AdminPasswordPage.ID) then begin
     Password := AdminPasswordPage.Values[0];
     if Length(Password) < 12 then begin
       MsgBox('Choose a password with at least 12 characters.', mbError, MB_OK);
+      Result := False;
+      exit;
+    end;
+    if not HasRequiredPasswordCharacters(Password) then begin
+      MsgBox('Include at least one uppercase Latin letter, one lowercase Latin letter, and one digit. A symbol is optional.', mbError, MB_OK);
       Result := False;
       exit;
     end;
@@ -181,6 +170,7 @@ var
   PowerShellPath: String;
   ScriptPath: String;
   PasswordPath: String;
+  ConnectionPath: String;
   ErrorPath: String;
   Parameters: String;
   ErrorText: String;
@@ -189,28 +179,33 @@ var
 begin
   if CurStep = ssPostInstall then begin
     InstallReady := False;
-    WizardForm.StatusLabel.Caption := 'Configuring SQL Server, backing up existing data, applying migrations, and starting the local service...';
+    WizardForm.StatusLabel.Caption := 'Connecting to PostgreSQL, backing up existing data, applying migrations, and starting the local service...';
     WizardForm.ProgressGauge.Style := npbstMarquee;
     WizardForm.Update;
 
     PowerShellPath := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
     ScriptPath := ExpandConstant('{app}\Configure-Machine.ps1');
     PasswordPath := ExpandConstant('{tmp}\PnaraInitialAdminPassword.txt');
+    ConnectionPath := ExpandConstant('{tmp}\PnaraPostgreSqlConnection.txt');
     ErrorPath := ExpandConstant('{tmp}\CafeSetup-error.txt');
     DeleteFile(ErrorPath);
-    Parameters := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptPath + '" -InstallRoot "' + ExpandConstant('{app}') + '" -DataRoot "' + ExpandConstant('{commonappdata}\Pnara') + '" -SqlInstance "SQLEXPRESS" -AppVersion "{#AppVersion}" -ErrorFile "' + ErrorPath + '"';
+    Parameters := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptPath + '" -InstallRoot "' + ExpandConstant('{app}') + '" -DataRoot "' + ExpandConstant('{commonappdata}\Pnara') + '" -AppVersion "{#AppVersion}" -ErrorFile "' + ErrorPath + '"';
+
+    if NeedsPostgreSqlConnection then begin
+      if not SaveStringToFile(ConnectionPath, UTF8Encode(PostgreSqlPage.Values[0]), False) then
+        RaiseException('The PostgreSQL connection string could not be passed securely to setup.');
+      Parameters := Parameters + ' -PostgreSqlConnectionFile "' + ConnectionPath + '"';
+    end;
 
     if NeedsInitialPassword then begin
       if not SaveStringToFile(PasswordPath, UTF8Encode(AdminPasswordPage.Values[0]), False) then
         RaiseException('The initial administrator password could not be passed securely to setup.');
       Parameters := Parameters + ' -AdminPasswordFile "' + PasswordPath + '"';
     end;
-    if NeedsSqlLicense then
-      Parameters := Parameters + ' -SqlLicenseAccepted';
-
     if not Exec(PowerShellPath, Parameters, ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, ExitCode) then
       ExitCode := -1;
     DeleteFile(PasswordPath);
+    DeleteFile(ConnectionPath);
 
     if ExitCode <> 0 then begin
       ErrorText := 'Pnara Cafe setup could not complete. No success will be reported.';

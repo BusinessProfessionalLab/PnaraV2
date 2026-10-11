@@ -21,7 +21,7 @@ Pnara یک اکوسیستم صندوق لمسی و انبار رستوران/ک�
 | --- | --- | --- |
 | Domain | `backend/src/Domain` | موجودیت‌ها، Value Object (پول و موبایل)، رویدادهای دامنه، موتور قیمت‌گذاری، قوانین چرخه سفارش |
 | Application | `backend/src/Application` | CQRS با MediatR، Validatorها، DTO، قرارداد سرویس‌ها |
-| Infrastructure | `backend/src/Infrastructure` | EF Core / SQL Server، Identity، حسابرسی، پل PC-POS، دیسپچر ESC/POS |
+| Infrastructure | `backend/src/Infrastructure` | EF Core / PostgreSQL، Identity، حسابرسی، پل PC-POS، دیسپچر ESC/POS |
 | API | `backend/src/API` | کنترلرها، JWT، Swagger، Middleware خطا، هاب SignalR |
 | Frontend | `frontend` | Next.js App Router، صندوق لمسی، KDS، پنل مدیریت |
 
@@ -42,7 +42,7 @@ flowchart LR
   UI -->|SignalR| Hub[OrderKitchenHub]
   API --> MediatR[Commands / Queries]
   MediatR --> Domain[قوانین دامنه]
-  Domain --> EF[SQL Server]
+  Domain --> EF[PostgreSQL]
   MediatR -->|Domain Events| Inv[کسر BOM]
   MediatR --> CRM[باشگاه مشتریان]
   API --> ESC[فیش ESC/POS]
@@ -127,7 +127,7 @@ flowchart LR
 
 ### ۴.۱ پیش‌نیازها
 
-- .NET 8 SDK و SQL Server (LocalDB یا Docker)
+- .NET 8 SDK و PostgreSQL 14 یا بالاتر (نصب محلی؛ Docker لازم نیست)
 - Node.js 18+ برای فرانت‌اند
 - پرینتر حرارتی ESC/POS (پورت ۹۱۰۰ شبکه یا USB/queue مرورگر)
 - کارتخوان PC-POS با پروتکل LAN یا COM
@@ -184,7 +184,7 @@ npm run dev
 
 - API پشت IIS / Kestrel + HTTPS، JWT Key در User Secrets یا Vault
 - فرانت‌اند `next build && next start` یا خروجی استاتیک پشت Nginx
-- SQL Server با Backup روزانه و دقت `decimal(18,0)` برای ریال
+- PostgreSQL با Backup روزانه و دقت `decimal(18,0)` برای ریال
 - صندوق‌ها Thin Client لمسی Full-Screen روی `/pos`؛ نمایشگر بار روی `/kds`؛ آشپزخانه روی `/kds/kitchen`
 
 ---

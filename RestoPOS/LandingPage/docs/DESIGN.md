@@ -56,7 +56,7 @@ Persian digits everywhere. `src/lib/fa.ts` is the only place numbers are formatt
 LTR identifiers keep their Latin form and are isolated with `dir="ltr"` so they are
 not reordered by the bidi algorithm: route paths (`/admin/inventory`), SKUs
 (`ESB-001`), order numbers (`#1024`), email addresses, phone numbers, and names like
-`.NET 8`, `SQL Server` or `ESC/POS` inside Persian sentences.
+`.NET 8`, `PostgreSQL` or `ESC/POS` inside Persian sentences.
 
 ## Source Files
 

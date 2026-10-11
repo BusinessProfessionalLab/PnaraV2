@@ -9,8 +9,8 @@ public sealed class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Ap
     public ApplicationDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlServer(Environment.GetEnvironmentVariable("ConnectionStrings__SqlServer")
-                          ?? "Server=.\\SQLEXPRESS;Database=PnaraCafe;Integrated Security=True;Encrypt=True;TrustServerCertificate=True")
+            .UseNpgsql(Environment.GetEnvironmentVariable("ConnectionStrings__PostgreSql")
+                          ?? "Host=localhost;Port=5432;Database=pnara;Username=pnara_app;Password=change-me")
             .Options;
 
         return new ApplicationDbContext(options, new DesignTimeCurrentUser(), new NoOpDomainEventDispatcher());

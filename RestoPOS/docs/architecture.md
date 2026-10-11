@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | Domain | `src/Domain` | موجودیت‌ها، Value Objectها، رویدادها، قوانین قیمت‌گذاری |
 | Application | `src/Application` | CQRS (MediatR)، Validatorها، قرارداد سرویس‌ها |
-| Infrastructure | `src/Infrastructure` | EF Core / SQL Server، Identity، PC-POS، ESC/POS، Audit |
+| Infrastructure | `src/Infrastructure` | EF Core / PostgreSQL، Identity، PC-POS، ESC/POS، Audit |
 | API | `src/API` | کنترلرها، JWT، Swagger، SignalR `OrderKitchenHub` |
 
 وابستگی فقط به سمت داخل است: API → Infrastructure → Application → Domain.

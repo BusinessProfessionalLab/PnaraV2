@@ -11,7 +11,7 @@ Expected artifact: `artifacts\CafeSetup.exe`. The build script runs frontend lin
 ## Clean Windows 10/11 x64 installation
 
 1. Use a disposable test machine or VM with no customer data. Record Windows version and available disk space.
-2. Install from `CafeSetup.exe` interactively. Confirm the first admin password page and, if no `SQLEXPRESS` is present, the SQL license acceptance/download page.
+2. Install PostgreSQL 14 or later natively on the test machine, create the `pnara` database and application role, then run `CafeSetup.exe`. Enter the PostgreSQL connection string and confirm the first admin password page.
 3. Confirm `CafeApiService` is automatic and running:
 
    ```powershell
@@ -31,18 +31,19 @@ Expected artifact: `artifacts\CafeSetup.exe`. The build script runs frontend lin
 6. Restart Windows and verify automatic service recovery and the desktop shortcut again.
 7. Uninstall Pnara Cafe. Verify the service and shortcuts are removed, while `%ProgramData%\Pnara` and the `PnaraCafe` SQL database remain. Reinstall and confirm the existing admin account and data are retained.
 
-## Existing or missing SQL Server
+## PostgreSQL prerequisite and recovery
 
-- **Compatible local `SQLEXPRESS` exists:** setup reuses only that instance and a separate `PnaraCafe` database. It checks that the installing account can provision the instance. Existing databases with a non-Pnara schema are left untouched and cause setup to stop.
-- **No SQL Server exists:** setup requires Windows Package Manager, internet access, and several gigabytes of disk space to install Microsoft SQL Server 2025 Express. If the install is interrupted or Windows requests a restart, rerun setup after the SQL service is available.
-- **Another SQL Server instance exists but no compatible `SQLEXPRESS`:** setup stops safely. An administrator must review and install/configure a compatible SQL Express instance before rerunning CafeSetup; the installer does not upgrade shared SQL Server files or select a generic existing instance.
-- **Migration failure:** setup stops the service and retains any verified pre-upgrade backup under `%ProgramData%\Pnara\backups`. Preserve the failed setup log and backup. Restore only after confirming the backup belongs to `PnaraCafe`; never drop the database as a recovery shortcut.
+- PostgreSQL is installed and started separately using its native Windows installer. The application installer does not install a database server and does not use Docker.
+- Before setup, create a `pnara` database and an application role that owns the database and can create or update its schema. Provide that role's Npgsql connection string in the installer.
+- Keep PostgreSQL command-line tools (`pg_dump` and `pg_restore`) installed and available in `PATH` or under `%ProgramFiles%\PostgreSQL` so upgrades can make and verify a custom-format backup.
+- **Upgrade:** setup reuses the protected PostgreSQL connection string. It creates a verified backup before running migrations and blocks legacy SQL Server configurations rather than silently connecting to an empty PostgreSQL database.
+- **Migration failure:** setup stops the service and retains any verified backup under `%ProgramData%\Pnara\backups`. Preserve the failed setup log and backup. Restore only after confirming the archive and target database.
 
 ## Upgrade and uninstall checks
 
-On a disposable copy of a previous application version, verify that setup stops the service before file replacement, creates and verifies a database backup before applying migrations, then starts the service only after migration succeeds. Simulate service and migration failures only on disposable data. Confirm that an interrupted upgrade can be retried without re-entering the existing admin password or deleting customer data.
+On a disposable copy of a previous application version, verify that setup stops the service before file replacement, reuses the original PostgreSQL connection, creates and verifies a database backup before applying migrations, then starts the service only after migration succeeds. Simulate service and migration failures only on disposable data. Confirm that an interrupted upgrade can be retried without re-entering the existing admin password or deleting customer data.
 
-Uninstallation must not remove SQL Server, `PnaraCafe`, or `%ProgramData%\Pnara`. For recovery, stop `CafeApiService`, copy the `.bak` outside the machine, and restore through SQL Server Management Studio or a SQL Server administrator. Do not restore over unrelated databases.
+Uninstallation must not remove PostgreSQL, the `pnara` database, or `%ProgramData%\Pnara`. For recovery, stop `CafeApiService`, copy the `.dump` outside the machine, and restore it with PostgreSQL's `pg_restore` utility. Do not restore over an unrelated database.
 
 ## Hardware and payment checks
 

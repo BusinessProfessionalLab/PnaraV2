@@ -8,7 +8,7 @@ The marketing website for **Pnara (پینارا)** — a touch POS, inventory
 and reporting system for cafés and restaurants in Iran.
 
 It is a static-first Astro site. It is **not** the product: the application lives
-in `../frontend` (Next.js) and `../backend` (ASP.NET Core + SQL Server). Those
+in `../frontend` (Next.js) and `../backend` (ASP.NET Core + PostgreSQL). Those
 directories are the source of truth for what the product does — this repo
 describes it.
 

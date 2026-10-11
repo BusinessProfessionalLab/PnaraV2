@@ -36,6 +36,6 @@ export const siteConfig = {
 		version: '۱.۴.۰',
 		versionLatin: '1.4.0',
 		runtime: '.NET 8',
-		database: 'SQL Server',
+		database: 'PostgreSQL',
 	},
 };

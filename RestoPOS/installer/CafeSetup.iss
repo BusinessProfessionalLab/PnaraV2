@@ -1,6 +1,15 @@
 #ifndef AppVersion
   #define AppVersion "0.1.0"
 #endif
+#ifndef PayloadDir
+  #define PayloadDir "..\artifacts\cafe-build\payload"
+#endif
+#ifndef InstallerOutputDir
+  #define InstallerOutputDir "..\artifacts\cafe-build\installer"
+#endif
+#ifndef PostgreSqlInstallerPath
+  #define PostgreSqlInstallerPath "..\artifacts\postgresql\postgresql-17.11-1-windows-x64.exe"
+#endif
 
 [Setup]
 AppId={{C3C38D0D-0318-4C4C-9BC5-D041A5E5AB29}
@@ -13,7 +22,7 @@ DefaultGroupName=Pnara Cafe
 DisableProgramGroupPage=yes
 UsePreviousAppDir=yes
 Uninstallable=yes
-OutputDir=..\artifacts\cafe-build\installer
+OutputDir={#InstallerOutputDir}
 OutputBaseFilename=CafeSetup
 SetupIconFile=assets\Pnara.ico
 UninstallDisplayIcon={app}\Pnara.ico
@@ -40,7 +49,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: checkedonce
 
 [Files]
-Source: "..\artifacts\cafe-build\payload\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#PayloadDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#PostgreSqlInstallerPath}"; DestDir: "{tmp}"; DestName: "postgresql-17.11-1-windows-x64.exe"; Flags: deleteafterinstall
 Source: "assets\Pnara.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
@@ -92,10 +102,10 @@ begin
 
   if NeedsPostgreSqlConnection then begin
     PostgreSqlPage := CreateInputQueryPage(wpWelcome,
-      'Connect to PostgreSQL',
-      'Install PostgreSQL locally and create the Pnara database and application role first.',
-      'Enter an Npgsql connection string. Example: Host=localhost;Port=5432;Database=pnara;Username=pnara_app;Password=your-password. Grant this role ownership of the pnara database so migrations can create and update its schema.');
-    PostgreSqlPage.Add('PostgreSQL connection string:', True);
+      'PostgreSQL setup',
+      'Setup will install PostgreSQL 17 and prepare the Pnara database automatically.',
+      'If PostgreSQL is already installed and you want to use it, enter its application connection string. Leave this field empty to install and configure the bundled PostgreSQL server.');
+    PostgreSqlPage.Add('Existing PostgreSQL connection string (optional):', True);
   end;
 
   if NeedsInitialPassword then begin
@@ -117,11 +127,12 @@ begin
   if NeedsPostgreSqlConnection and (CurPageID = PostgreSqlPage.ID) then begin
     PostgreSqlConnectionString := PostgreSqlPage.Values[0];
     ConnectionStringLowercase := Lowercase(PostgreSqlConnectionString);
-    if (Pos('host=', ConnectionStringLowercase) = 0) or
+    if (Length(Trim(PostgreSqlConnectionString)) > 0) and
+       ((Pos('host=', ConnectionStringLowercase) = 0) or
        (Pos('database=', ConnectionStringLowercase) = 0) or
        (Pos('username=', ConnectionStringLowercase) = 0) or
-       (Pos('password=', ConnectionStringLowercase) = 0) then begin
-      MsgBox('Enter a PostgreSQL connection string containing Host, Database, Username, and Password.', mbError, MB_OK);
+       (Pos('password=', ConnectionStringLowercase) = 0)) then begin
+      MsgBox('If you use an existing server, enter a PostgreSQL connection string containing Host, Database, Username, and Password. Otherwise leave the field empty.', mbError, MB_OK);
       Result := False;
       exit;
     end;
@@ -191,11 +202,12 @@ begin
     DeleteFile(ErrorPath);
     Parameters := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptPath + '" -InstallRoot "' + ExpandConstant('{app}') + '" -DataRoot "' + ExpandConstant('{commonappdata}\Pnara') + '" -AppVersion "{#AppVersion}" -ErrorFile "' + ErrorPath + '"';
 
-    if NeedsPostgreSqlConnection then begin
+    if NeedsPostgreSqlConnection and (Length(Trim(PostgreSqlPage.Values[0])) > 0) then begin
       if not SaveStringToFile(ConnectionPath, UTF8Encode(PostgreSqlPage.Values[0]), False) then
         RaiseException('The PostgreSQL connection string could not be passed securely to setup.');
       Parameters := Parameters + ' -PostgreSqlConnectionFile "' + ConnectionPath + '"';
     end;
+    Parameters := Parameters + ' -PostgreSqlInstallerPath "' + ExpandConstant('{tmp}\postgresql-17.11-1-windows-x64.exe') + '"';
 
     if NeedsInitialPassword then begin
       if not SaveStringToFile(PasswordPath, UTF8Encode(AdminPasswordPage.Values[0]), False) then

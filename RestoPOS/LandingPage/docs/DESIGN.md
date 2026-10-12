@@ -63,8 +63,7 @@ not reordered by the bidi algorithm: route paths (`/admin/inventory`), SKUs
 - `src/styles/global.css` — tokens, fonts, global styles, dark mode variables.
 - `tailwind.config.mjs` — content scanning and dark mode strategy.
 - `src/layouts/Layout.astro` — document shell, `lang`/`dir`, dark-mode boot script.
-- `src/assets/js/main.js` — dark-mode toggle, sticky header, mobile menu, AOS init.
-- `src/styles/aos-custom.css` — scroll-reveal tuning.
+- `src/assets/js/main.js` — dark-mode toggle, sticky header, mobile menu.
 
 ## Color Tokens
 
@@ -131,22 +130,12 @@ Major marketing sections use `py-16 md:py-24`.
 
 ## Motion
 
-- AOS is initialized in `src/assets/js/main.js` with `once: true`.
-- `src/components/ui/AnimatedText.astro` staggers hero copy in with `motion`.
-- Component-level CSS animation is used for product previews.
-- Everything must respect `prefers-reduced-motion`.
-
-Common attributes:
-
-```html
-data-aos="fade-up-xs"
-data-aos-once="true"
-data-aos-delay="200"
-```
-
-There is also an RTL-specific pattern in `HeroSection`: reveal directions are
-`fade-right-sm` / `fade-left-sm` and must be read as "from the start edge" and
-"from the end edge" respectively.
+- No scroll-reveal or text-stagger animation libraries. Pages render static
+  content so mobile devices never pay for scroll listeners or per-word
+  blur/transform work.
+- Component-level CSS animation is used sparingly for product previews
+  (pulsing live dots) and respects `prefers-reduced-motion`.
+- Hover transitions stay CSS-only (`transform`/`opacity`).
 
 ## Core Components
 

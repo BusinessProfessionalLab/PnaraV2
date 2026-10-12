@@ -53,8 +53,7 @@ Full setup, secrets, webhook, and deployment steps: `docs/LIVE_CHAT.md`.
 | --- | --- |
 | `/` | Landing page: hero, problems, capabilities, product showcases, a working day, setup, roles, before/after, FAQ, CTA |
 | `/features` | Feature deep-dives, one anchored module per workflow |
-| `/changelog` | Release notes, mirroring the product's own release history |
-| `/about` | Why it exists, design decisions, architecture, release timeline, explicit scope |
+| `/about` | Why it exists, design decisions, architecture, explicit scope |
 | `/contact` | Demo request form |
 | `/404` | Not-found page |
 
@@ -68,7 +67,6 @@ Full setup, secrets, webhook, and deployment steps: `docs/LIVE_CHAT.md`.
 | Feature deep-dives | `src/pages/features.astro` |
 | Product mockups (POS, KDS, reports, inventory) | `src/components/product/` |
 | Currency/date formatting for mockups | `src/lib/fa.ts` |
-| Release notes | `src/content/changelog/*.mdx` |
 | Design tokens and fonts | `src/styles/global.css` |
 | Footer link groups | `src/components/sections/Footer.astro` |
 

@@ -155,7 +155,7 @@ const modules = [
     id: "hardware",
     icon: Printer,
     title: "سخت‌افزار و اتصال‌ها",
-    lead: "سیستم با سخت‌افزاری که در کافه‌های ایران معمول است کار می‌کند و روی سرور خودتان اجرا می‌شود.",
+    lead: "سیستم با سخت‌افزار استاندارد کافه — صفحه لمسی، پرینتر حرارتی و کارتخوان PC-POS — کار می‌کند و روی سرور خودتان اجرا می‌شود.",
     points: [
       "تسویه در مودال «تسویه و پرداخت»: نقدی با محاسبه بقیه، کارت به کارت با شماره پیگیری، کارتخوان با انتظار تا ۴۵ ثانیه برای تأیید",
       "ابطال و استرداد پرداخت با مرجع؛ گزارش پرداخت هر سفارش",
@@ -188,8 +188,6 @@ const modules = [
         <!-- Text -->
         <div
           class="flex-1 min-w-0 w-full"
-          data-aos={mod.visual && index % 2 === 0 ? "fade-left-sm" : "fade-up-xs"}
-          data-aos-once="true"
         >
           <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-6">
             <mod.icon class="w-6 h-6" aria-hidden="true" />
@@ -216,9 +214,6 @@ const modules = [
         {mod.visual && (
           <div
             class="flex-1 min-w-0 w-full"
-            data-aos={index % 2 === 0 ? "fade-right-sm" : "fade-left-sm"}
-            data-aos-delay="200"
-            data-aos-once="true"
           >
             <AppFrame
               label={mod.visual === "kds" ? "نمایشگر بار · کافه ونوشه" : mod.visual === "reports" ? "گزارش‌ها · کافه ونوشه" : "انبار · کافه ونوشه"}
@@ -253,12 +248,9 @@ const modules = [
         { icon: Server, title: "سرور خودتان", desc: `روی ${siteConfig.product.runtime} و ${siteConfig.product.database} در زیرساخت خودتان اجرا می‌شود.` },
         { icon: Tag, title: "تک‌فروشگاهی", desc: "نسخه فعلی یک مجموعه را پوشش می‌دهد: یک منو، یک انبار، یک تنظیمات فروشگاه." },
         { icon: ShieldCheck, title: "بدون قفل داده", desc: "داده‌ها در پایگاه داده خودتان است و از طریق API در دسترس شماست." },
-      ].map((item, i) => (
+      ].map((item) => (
         <div
           class="p-5 rounded-xl border border-dashed border-primary/20 dark:border-neutral-700"
-          data-aos="fade-up-sm"
-          data-aos-delay={i * 80}
-          data-aos-once="true"
         >
           <item.icon class="w-5 h-5 text-primary mb-3" aria-hidden="true" />
           <div class="text-sm font-bold text-neutral-800 dark:text-neutral-100 mb-1.5">{item.title}</div>
@@ -271,7 +263,7 @@ const modules = [
   <div class="w-full border-b border-dashed border-neutral-200 dark:border-neutral-700 my-8 site-container"></div>
 
   <!-- CTA -->
-  <section class="py-16 md:py-24 site-container" data-aos="fade-up-xs" data-aos-once="true">
+  <section class="py-16 md:py-24 site-container">
     <div class="max-w-2xl mx-auto text-center">
       <h2 class="text-3xl md:text-4xl font-brand mb-4">منوی خودتان را روی آن امتحان کنید</h2>
       <p class="text-neutral-600 dark:text-neutral-300 mb-8 leading-8">
@@ -281,7 +273,7 @@ const modules = [
         <Button url="/contact" type="fill" size="lg">
           درخواست دمو <ArrowLeft size={18} />
         </Button>
-        <Button url="/changelog" size="lg">تغییرات نسخه‌ها</Button>
+        <Button url="/about" size="lg">درباره پینارا</Button>
       </div>
     </div>
   </section>

@@ -56,7 +56,6 @@ to do next.
 | --- | --- |
 | `/` | `src/pages/index.astro` |
 | `/features` | `src/pages/features.astro` |
-| `/changelog` | `src/pages/changelog.astro` + `src/content/changelog/` |
 | `/about` | `src/pages/about.astro` |
 | `/contact` | `src/pages/contact.astro` |
 | `/404` | `src/pages/404.astro` |
@@ -67,8 +66,7 @@ to do next.
 Defined in `src/collections/menu.json`:
 
 - خانه (`/`)
-- قابلیت‌ها — dropdown into the nine feature anchors
-- نسخه‌ها (`/changelog`)
+- قابلیت‌ها — dropdown into the feature anchors
 - درباره (`/about`)
 - تماس (`/contact`)
 

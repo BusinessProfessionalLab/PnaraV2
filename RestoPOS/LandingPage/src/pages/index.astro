@@ -211,7 +211,7 @@ const setupItems = [
   <HeroSection />
 
   <!-- 2. What it runs on — real integrations, not customer logos -->
-  <section class="py-12 md:py-16 lg:py-20 site-container" data-aos="fade-up-xs" data-aos-once="true" data-aos-delay="650">
+  <section class="py-12 md:py-16 lg:py-20 site-container">
     <p class="text-center text-sm text-neutral-400 dark:text-neutral-500 mb-6">
       با سخت‌افزاری که همین حالا در کافه دارید کار می‌کند
     </p>
@@ -235,12 +235,9 @@ const setupItems = [
       description="این‌ها را از کار روزمره کافه برداشتیم، نه از یک فهرست قابلیت. هر کدام هم راه‌حل مشخصی در سیستم دارد."
     />
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-      {problems.map((problem, i) => (
+      {problems.map((problem) => (
         <div
           class="p-6 rounded-xl bg-bg-secondary dark:bg-bg-secondary-dark border border-primary/10 dark:border-neutral-700"
-          data-aos="fade-up-sm"
-          data-aos-delay={i * 100}
-          data-aos-once="true"
         >
           <span class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary mb-4">
             <problem.icon class="w-5 h-5" aria-hidden="true" />
@@ -253,7 +250,7 @@ const setupItems = [
   </section>
 
   <!-- 4. What the system actually is -->
-  <section class="py-8 md:py-12 site-container" data-aos="fade-up-xs" data-aos-once="true">
+  <section class="py-8 md:py-12 site-container">
     <div class="max-w-3xl mx-auto text-center">
       <h2 class="text-3xl md:text-4xl font-brand mb-5">یک سیستم، نه چهار ابزار جدا</h2>
       <p class="text-neutral-600 dark:text-neutral-300 leading-8">
@@ -267,12 +264,9 @@ const setupItems = [
         { icon: UtensilsCrossed, title: "منو → رسپی", desc: "برای هر آیتم و افزودنی، مصرف مواد اولیه را تعریف می‌کنید." },
         { icon: Boxes, title: "رسپی → انبار", desc: "با ارسال سفارش، کسر خودکار. با لغو سفارش، برگشت کسر. پیش‌نویس انبار را لمس نمی‌کند." },
         { icon: BadgePercent, title: "انبار → سود", desc: "بهای میانگین موزون، مبنای هزینه تمام‌شده و حاشیه سود هر آیتم است." },
-      ].map((link, i) => (
+      ].map((link) => (
         <div
           class="p-5 rounded-xl border border-primary/10 dark:border-neutral-700 bg-bg-secondary/60 dark:bg-bg-secondary-dark/60 text-center"
-          data-aos="fade-up-sm"
-          data-aos-delay={i * 120}
-          data-aos-once="true"
         >
           <link.icon class="w-5 h-5 text-primary mx-auto mb-3" aria-hidden="true" />
           <div class="text-sm font-bold text-neutral-800 dark:text-neutral-100 mb-1.5">{link.title}</div>
@@ -291,13 +285,10 @@ const setupItems = [
       description="قابلیت‌ها را بر اساس کاری که در کافه انجام می‌شود گروه‌بندی کردیم، نه بر اساس ماژول نرم‌افزار."
     />
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-8">
-      {capabilities.map((cap, i) => (
+      {capabilities.map((cap) => (
         <a
           href={cap.href}
           class="group h-full p-5 rounded-xl bg-bg-secondary dark:bg-bg-secondary-dark border border-primary/10 dark:border-neutral-700 transition-all duration-300 ease-in-out hover:shadow-md hover:-translate-y-1"
-          data-aos="fade-up-sm"
-          data-aos-delay={i * 80}
-          data-aos-once="true"
         >
           <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary mb-4">
             <cap.icon class="w-5 h-5" aria-hidden="true" />
@@ -312,7 +303,7 @@ const setupItems = [
   <!-- 6. Showcase — order to station ticket -->
   <section class="py-16 md:py-24 site-container">
     <div class="flex flex-col md:flex-row items-center gap-10 md:gap-14">
-      <div class="flex-1 min-w-0" data-aos="fade-right-sm" data-aos-once="true">
+      <div class="flex-1 min-w-0">
         <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-6">
           <ChefHat class="w-6 h-6" aria-hidden="true" />
         </span>
@@ -340,7 +331,7 @@ const setupItems = [
         </div>
       </div>
 
-      <div class="flex-1 min-w-0 w-full" data-aos="fade-left-sm" data-aos-delay="200" data-aos-once="true">
+      <div class="flex-1 min-w-0 w-full">
         <AppFrame label="نمایشگر بار · کافه ونوشه" route="/kds" live={true}>
           <KdsPreview />
         </AppFrame>
@@ -353,7 +344,7 @@ const setupItems = [
   <!-- 7. Showcase — profit that actually stays -->
   <section class="py-16 md:py-24 site-container">
     <div class="flex flex-col md:flex-row-reverse items-center gap-10 md:gap-14">
-      <div class="flex-1 min-w-0" data-aos="fade-left-sm" data-aos-once="true">
+      <div class="flex-1 min-w-0">
         <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-6">
           <TrendingUp class="w-6 h-6" aria-hidden="true" />
         </span>
@@ -376,7 +367,7 @@ const setupItems = [
         </div>
       </div>
 
-      <div class="flex-1 min-w-0 w-full" data-aos="fade-right-sm" data-aos-delay="200" data-aos-once="true">
+      <div class="flex-1 min-w-0 w-full">
         <AppFrame label="گزارش‌ها · کافه ونوشه" route="/admin/reports">
           <ReportsPreview />
         </AppFrame>
@@ -387,7 +378,7 @@ const setupItems = [
   <!-- 8. Showcase — inventory that breathes with sales -->
   <section class="py-16 md:py-24 site-container">
     <div class="flex flex-col md:flex-row items-center gap-10 md:gap-14">
-      <div class="flex-1 min-w-0" data-aos="fade-right-sm" data-aos-once="true">
+      <div class="flex-1 min-w-0">
         <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-6">
           <Boxes class="w-6 h-6" aria-hidden="true" />
         </span>
@@ -416,7 +407,7 @@ const setupItems = [
         </div>
       </div>
 
-      <div class="flex-1 min-w-0 w-full" data-aos="fade-left-sm" data-aos-delay="200" data-aos-once="true">
+      <div class="flex-1 min-w-0 w-full">
         <AppFrame label="انبار · کافه ونوشه" route="/admin/inventory">
           <InventoryPreview />
         </AppFrame>
@@ -433,12 +424,9 @@ const setupItems = [
       description="جزئیاتی که وقتی پشت صندوق شلوغ است، تفاوت را می‌سازند."
     />
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-8">
-      {registerDetails.map((detail, i) => (
+      {registerDetails.map((detail) => (
         <div
           class="p-5 rounded-xl border border-primary/10 dark:border-neutral-700 bg-bg-secondary dark:bg-bg-secondary-dark"
-          data-aos="fade-up-sm"
-          data-aos-delay={i * 80}
-          data-aos-once="true"
         >
           <div class="flex items-center gap-2.5 mb-2">
             <detail.icon class="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
@@ -451,7 +439,7 @@ const setupItems = [
   </section>
 
   <!-- 10. The register, in full -->
-  <section class="py-12 md:py-16 site-container" data-aos="fade-up-sm" data-aos-once="true">
+  <section class="py-12 md:py-16 site-container">
     <SectionHeader
       title="صندوق، در ابعاد واقعی"
       description="تصویر بالا همان چیدمان واقعی صندوق است: تب دسته‌ها، کارت محصول با وضعیت موجودی، و صورتحساب زنده."
@@ -475,9 +463,6 @@ const setupItems = [
       {steps.map((step, i) => (
         <li
           class="relative p-6 rounded-xl bg-bg-secondary dark:bg-bg-secondary-dark border border-primary/10 dark:border-neutral-700"
-          data-aos="fade-up-sm"
-          data-aos-delay={i * 80}
-          data-aos-once="true"
         >
           <span class="font-brand text-3xl text-primary/25 dark:text-primary-light/25 leading-none">
             {fa(i + 1).padStart(2, "۰")}
@@ -496,12 +481,9 @@ const setupItems = [
       description="بدون ابهام: پیش‌نیازها همان چیزهایی هستند که برای اجرای واقعی سیستم لازم‌اند."
     />
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-8">
-      {setupItems.map((item, i) => (
+      {setupItems.map((item) => (
         <div
           class="p-5 rounded-xl border border-dashed border-primary/20 dark:border-neutral-700"
-          data-aos="fade-up-sm"
-          data-aos-delay={i * 80}
-          data-aos-once="true"
         >
           <item.icon class="w-5 h-5 text-primary mb-3" aria-hidden="true" />
           <div class="text-sm font-bold text-neutral-800 dark:text-neutral-100 mb-1.5">{item.title}</div>
@@ -524,12 +506,9 @@ const setupItems = [
       description="دسترسی‌ها جدا هستند؛ پرسنل فقط همان چیزی را می‌بینند که برای کارشان لازم است."
     />
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-8">
-      {roles.map((role, i) => (
+      {roles.map((role) => (
         <div
           class="p-6 rounded-xl bg-bg-secondary dark:bg-bg-secondary-dark border border-primary/10 dark:border-neutral-700"
-          data-aos="fade-up-sm"
-          data-aos-delay={i * 100}
-          data-aos-once="true"
         >
           <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary mb-4">
             <role.icon class="w-5 h-5" aria-hidden="true" />
@@ -587,8 +566,6 @@ const setupItems = [
   <!-- 16. Final CTA -->
   <section
     class="py-12 md:py-20 site-container rounded-xl bg-bg-secondary dark:bg-bg-secondary-dark border border-primary/10 dark:border-neutral-700"
-    data-aos="fade-up-xs"
-    data-aos-once="true"
   >
     <div class="max-w-2xl mx-auto text-center">
       <span class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-5">

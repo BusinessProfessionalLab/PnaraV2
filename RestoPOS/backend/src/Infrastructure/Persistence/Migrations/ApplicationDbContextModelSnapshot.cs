@@ -1993,8 +1993,7 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(8)");
 
                     b.Property<string>("LogoUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<int>("LoyaltyPointsPerMillionRial")
                         .HasColumnType("integer");

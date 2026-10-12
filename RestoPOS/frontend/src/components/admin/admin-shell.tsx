@@ -71,6 +71,7 @@ function SidebarNav({
 }) {
   const path = usePathname();
   const router = useRouter();
+  const session = useAuthStore((s) => s.session);
   const logout = useAuthStore((s) => s.logout);
 
   return (
@@ -84,6 +85,11 @@ function SidebarNav({
           <div className="text-[11px] font-medium text-muted-foreground">
             پنل مدیریت
           </div>
+          {session ? (
+            <div className="truncate text-[10px] text-muted-foreground/80" title={`${session.fullName} · @${session.userName}`}>
+              {session.fullName} · @{session.userName}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -345,6 +351,7 @@ function RailNav({
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const [navOpen, setNavOpen] = useState(false);
+  const session = useAuthStore((s) => s.session);
   const settings = useSettings();
   const storeName = settings.data?.storeName;
 
@@ -370,7 +377,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="truncate text-sm font-bold">
             {storeName || "Pnara"}
           </div>
-          <div className="text-[11px] text-muted-foreground">پنل مدیریت</div>
+          <div className="truncate text-[11px] text-muted-foreground">
+            {session ? `${session.fullName} · @${session.userName}` : "پنل مدیریت"}
+          </div>
         </div>
         <TourTrigger label="آموزش برنامه" className="size-10" placement="bottom" />
         <ThemeToggle />

@@ -10,7 +10,7 @@ using RestoPOS.Domain.Exceptions;
 
 namespace RestoPOS.Application.Features.Payments;
 
-public sealed record InitiatePosPaymentCommand(Guid OrderId, Guid DeviceId) : IRequest<PaymentDto>;
+public sealed record InitiatePosPaymentCommand(Guid OrderId, Guid DeviceId, decimal? Amount = null) : IRequest<PaymentDto>;
 public sealed record PollPosPaymentQuery(Guid PaymentId) : IRequest<PaymentDto>;
 public sealed record ConfirmCashPaymentCommand(Guid OrderId, decimal Amount) : IRequest<OrderDto>;
 public sealed record RecordCardToCardCommand(Guid OrderId, decimal Amount, string ReferenceNumber) : IRequest<OrderDto>;
@@ -18,6 +18,26 @@ public sealed record RecordOnlineGatewayCommand(Guid OrderId, decimal Amount, st
 public sealed record VoidPaymentCommand(Guid PaymentId, string? Reason) : IRequest<PaymentDto>;
 public sealed record RefundPaymentCommand(Guid PaymentId, decimal Amount, string? Reason, bool VoidOrder = false) : IRequest<PaymentDto>;
 public sealed record ListPaymentsByOrderQuery(Guid OrderId) : IRequest<IReadOnlyList<PaymentDto>>;
+
+internal static class PaymentAmounts
+{
+    public static decimal Remaining(Order order)
+    {
+        order.Recalculate();
+        var settled = order.Payments.Where(p => p.Status == PaymentStatus.Settled).Sum(p => p.Amount);
+        return Math.Max(0, order.GrandTotal - settled);
+    }
+}
+
+public sealed class InitiatePosPaymentCommandValidator : AbstractValidator<InitiatePosPaymentCommand>
+{
+    public InitiatePosPaymentCommandValidator()
+    {
+        RuleFor(x => x.OrderId).NotEmpty();
+        RuleFor(x => x.DeviceId).NotEmpty();
+        RuleFor(x => x.Amount).GreaterThan(0).When(x => x.Amount.HasValue);
+    }
+}
 
 public sealed class ConfirmCashPaymentCommandValidator : AbstractValidator<ConfirmCashPaymentCommand>
 {
@@ -70,7 +90,10 @@ public sealed class InitiatePosPaymentCommandHandler(
         if (order.Status is OrderStatus.Draft or OrderStatus.Cancelled)
             throw new DomainException("سفارش پیش‌نویس یا لغو‌شده قابل پرداخت کارتخوان نیست.");
 
-        order.Recalculate();
+        var remaining = PaymentAmounts.Remaining(order);
+        var amount = request.Amount ?? remaining;
+        if (amount > remaining)
+            throw new DomainException("مبلغ کارتخوان نمی‌تواند از مانده سفارش بیشتر باشد.");
         var device = await db.PosDevices.FirstOrDefaultAsync(d => d.Id == request.DeviceId && d.IsActive, cancellationToken)
                      ?? throw new NotFoundException(nameof(PosDevice), request.DeviceId);
 
@@ -78,7 +101,7 @@ public sealed class InitiatePosPaymentCommandHandler(
         {
             OrderId = order.Id,
             Channel = PaymentChannel.LocalPC_POS,
-            Amount = order.GrandTotal,
+            Amount = amount,
             Status = PaymentStatus.Pending,
             Psp = device.Psp,
             PosDeviceId = device.Id,
@@ -87,13 +110,15 @@ public sealed class InitiatePosPaymentCommandHandler(
         db.Payments.Add(payment);
         await db.SaveChangesAsync(cancellationToken);
 
-        var result = await pos.InitiateAsync(new PosChargeRequest(device.Id, order.GrandTotal, order.OrderNumber, payment.Id), cancellationToken);
+        var result = await pos.InitiateAsync(new PosChargeRequest(device.Id, amount, order.OrderNumber, payment.Id), cancellationToken);
         if (result.Accepted && result.Status is PaymentStatus.Settled or PaymentStatus.Authorized)
         {
             payment.MarkSettled(result.TraceNumber, result.Rrn, result.ReferenceNumber, result.CardMask);
-            order.MarkPaid();
+            if (amount >= remaining)
+                order.MarkPaid();
             await db.SaveChangesAsync(cancellationToken);
-            await FinalizeAsync(db, notifier, printer, order, cancellationToken);
+            if (order.Status == OrderStatus.Paid)
+                await FinalizeAsync(db, notifier, printer, order, cancellationToken);
         }
         else if (!result.Accepted)
         {
@@ -121,6 +146,7 @@ public sealed class PollPosPaymentQueryHandler(
     public async Task<PaymentDto> Handle(PollPosPaymentQuery request, CancellationToken cancellationToken)
     {
         var payment = await db.Payments.Include(p => p.Order).ThenInclude(o => o.Items).ThenInclude(i => i.Modifiers)
+            .Include(p => p.Order).ThenInclude(o => o.Payments)
             .FirstOrDefaultAsync(p => p.Id == request.PaymentId, cancellationToken)
             ?? throw new NotFoundException(nameof(Payment), request.PaymentId);
 
@@ -131,9 +157,11 @@ public sealed class PollPosPaymentQueryHandler(
         if (result.Status == PaymentStatus.Settled)
         {
             payment.MarkSettled(result.TraceNumber, result.Rrn, result.ReferenceNumber, result.CardMask);
-            payment.Order.MarkPaid();
+            if (PaymentAmounts.Remaining(payment.Order) <= 0)
+                payment.Order.MarkPaid();
             await db.SaveChangesAsync(cancellationToken);
-            await InitiatePosPaymentCommandHandler.FinalizeAsync(db, notifier, printer, payment.Order, cancellationToken);
+            if (payment.Order.Status == OrderStatus.Paid)
+                await InitiatePosPaymentCommandHandler.FinalizeAsync(db, notifier, printer, payment.Order, cancellationToken);
         }
         else if (result.Status == PaymentStatus.Failed)
         {
@@ -160,9 +188,9 @@ public sealed class ConfirmCashPaymentCommandHandler(
         if (order.Status is OrderStatus.Draft)
             order.Submit();
 
-        order.Recalculate();
-        if (request.Amount < order.GrandTotal)
-            throw new DomainException($"مبلغ پرداختی کمتر از مبلغ سفارش است. مبلغ سفارش: {order.GrandTotal}");
+        var remaining = PaymentAmounts.Remaining(order);
+        if (request.Amount > remaining)
+            throw new DomainException("مبلغ نقدی نمی‌تواند از مانده سفارش بیشتر باشد.");
 
         var payment = new Payment
         {
@@ -173,9 +201,11 @@ public sealed class ConfirmCashPaymentCommandHandler(
             PaidAt = DateTime.UtcNow
         };
         db.Payments.Add(payment);
-        order.MarkPaid();
+        if (request.Amount >= remaining)
+            order.MarkPaid();
         await db.SaveChangesAsync(cancellationToken);
-        await InitiatePosPaymentCommandHandler.FinalizeAsync(db, notifier, printer, order, cancellationToken);
+        if (order.Status == OrderStatus.Paid)
+            await InitiatePosPaymentCommandHandler.FinalizeAsync(db, notifier, printer, order, cancellationToken);
         return OrderMapping.ToDto(order);
     }
 }
@@ -195,9 +225,9 @@ public sealed class RecordCardToCardCommandHandler(
         if (order.Status == OrderStatus.Draft)
             order.Submit();
 
-        order.Recalculate();
-        if (request.Amount < order.GrandTotal)
-            throw new DomainException($"مبلغ پرداختی کمتر از مبلغ سفارش است. مبلغ سفارش: {order.GrandTotal}");
+        var remaining = PaymentAmounts.Remaining(order);
+        if (request.Amount > remaining)
+            throw new DomainException("مبلغ کارت به کارت نمی‌تواند از مانده سفارش بیشتر باشد.");
 
         var tracking = request.ReferenceNumber?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(tracking))
@@ -213,9 +243,11 @@ public sealed class RecordCardToCardCommandHandler(
             PaidAt = DateTime.UtcNow
         };
         db.Payments.Add(payment);
-        order.MarkPaid();
+        if (request.Amount >= remaining)
+            order.MarkPaid();
         await db.SaveChangesAsync(cancellationToken);
-        await InitiatePosPaymentCommandHandler.FinalizeAsync(db, notifier, printer, order, cancellationToken);
+        if (order.Status == OrderStatus.Paid)
+            await InitiatePosPaymentCommandHandler.FinalizeAsync(db, notifier, printer, order, cancellationToken);
         return OrderMapping.ToDto(order);
     }
 }
@@ -230,9 +262,9 @@ public sealed class RecordOnlineGatewayCommandHandler(
         var order = await OrderLoader.Load(db, request.OrderId, cancellationToken);
         if (order.Status == OrderStatus.Paid)
             return OrderMapping.ToDto(order);
-        order.Recalculate();
-        if (request.Amount < order.GrandTotal)
-            throw new DomainException($"مبلغ پرداختی کمتر از مبلغ سفارش است. مبلغ سفارش: {order.GrandTotal}");
+        var remaining = PaymentAmounts.Remaining(order);
+        if (request.Amount > remaining)
+            throw new DomainException("مبلغ پرداخت آنلاین نمی‌تواند از مانده سفارش بیشتر باشد.");
 
         var tracking = request.ReferenceNumber?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(tracking))
@@ -248,9 +280,11 @@ public sealed class RecordOnlineGatewayCommandHandler(
             PaidAt = DateTime.UtcNow
         };
         db.Payments.Add(payment);
-        order.MarkPaid();
+        if (request.Amount >= remaining)
+            order.MarkPaid();
         await db.SaveChangesAsync(cancellationToken);
-        await InitiatePosPaymentCommandHandler.FinalizeAsync(db, notifier, printer, order, cancellationToken);
+        if (order.Status == OrderStatus.Paid)
+            await InitiatePosPaymentCommandHandler.FinalizeAsync(db, notifier, printer, order, cancellationToken);
         return OrderMapping.ToDto(order);
     }
 }

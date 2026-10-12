@@ -28,7 +28,7 @@ import { useCartStore } from "@/lib/cart-store";
 import { formatToman, formatTomanAmount, rialToToman } from "@/lib/currency";
 import { syncCartToServer } from "@/lib/sync-cart";
 import { cn } from "@/lib/cn";
-import { usePayCardToCard, usePayCash, usePosDevices, useSettleWithPos } from "@/api";
+import { useOrder, usePayCardToCard, usePayCash, usePosDevices, useSettleWithPos } from "@/api";
 import { useSettings } from "@/api";
 import type { OrderDto } from "@/lib/types";
 
@@ -39,6 +39,14 @@ const METHODS: { id: PaymentMethod; label: string; icon: typeof Banknote; hint: 
   { id: "LocalPC_POS", label: "کارتخوان", icon: Smartphone, hint: "دستگاه متصل" },
   { id: "CardToCard", label: "کارت به کارت", icon: Smartphone, hint: "شماره پیگیری" },
 ];
+
+function remainingFor(order: OrderDto) {
+  if (order.status === "Paid") return 0;
+  const paid = order.payments
+    .filter((payment) => payment.status === "Settled")
+    .reduce((total, payment) => total + payment.amount, 0);
+  return Math.max(0, order.grandTotal - paid);
+}
 
 export function CheckoutModal({
   open,
@@ -59,6 +67,7 @@ export function CheckoutModal({
   const [deviceId, setDeviceId] = useState<string>("");
   const [waiting, setWaiting] = useState(false);
   const [width, setWidth] = useState<"80mm" | "58mm">("80mm");
+  const [remainingRials, setRemainingRials] = useState(amount);
 
   /*
    * Settlement-state lifecycle.
@@ -77,6 +86,11 @@ export function CheckoutModal({
    */
   const amountRef = useRef(amount);
   amountRef.current = amount;
+  const serverOrderIdRef = useRef(cart.serverOrderId);
+  serverOrderIdRef.current = cart.serverOrderId;
+  const linkedOrder = useOrder(cart.serverOrderId);
+  const linkedOrderRef = useRef(linkedOrder.data);
+  linkedOrderRef.current = linkedOrder.data;
 
   useEffect(() => {
     if (!open) {
@@ -85,17 +99,30 @@ export function CheckoutModal({
       setRefNo("");
       setDeviceId("");
       setWaiting(false);
+      setRemainingRials(amountRef.current);
       return;
     }
     // Prefill the received field with the payable (converted to toman) so the
     // change row is correct immediately; a previous settlement's value can
     // never survive into this one.
     setMethod("Cash");
-    setReceived(String(rialToToman(amountRef.current)));
+    const existingOrder = linkedOrderRef.current;
+    const due = existingOrder && existingOrder.id === serverOrderIdRef.current
+      ? remainingFor(existingOrder)
+      : amountRef.current;
+    setRemainingRials(due);
+    setReceived(String(rialToToman(due)));
     setRefNo("");
     setDeviceId("");
     setWaiting(false);
   }, [open]);
+
+  useEffect(() => {
+    if (!open || !linkedOrder.data || linkedOrder.data.id !== cart.serverOrderId) return;
+    const due = remainingFor(linkedOrder.data);
+    setRemainingRials(due);
+    setReceived(String(rialToToman(due)));
+  }, [open, linkedOrder.data, cart.serverOrderId]);
 
   const devices = usePosDevices({ enabled: open });
   const settings = useSettings({ enabled: open });
@@ -103,10 +130,19 @@ export function CheckoutModal({
   const payCardToCard = usePayCardToCard();
   const settleWithPos = useSettleWithPos();
 
-  const payableToman = rialToToman(amount);
-  const change = Math.max(0, (Number(received) || 0) - payableToman);
+  const tenderedRials = Math.max(0, Math.round((Number(received) || 0) * 10));
+  const amountToPayRials = Math.min(remainingRials, tenderedRials);
+  const change = Math.max(0, (tenderedRials - remainingRials) / 10);
 
   const finish = async (order: OrderDto) => {
+    const due = remainingFor(order);
+    setRemainingRials(due);
+    if (due > 0) {
+      setReceived(String(rialToToman(due)));
+      setRefNo("");
+      toast.success(`بخشی از پرداخت ثبت شد؛ مانده ${formatToman(due)} است.`);
+      return;
+    }
     try {
       if (settings.data) printOrderTickets(order, settings.data, width);
     } catch {
@@ -120,13 +156,18 @@ export function CheckoutModal({
   const cashMut = useMutation({
     mutationFn: async () => {
       const tendered = Number(received) || 0;
-      if (tendered < payableToman) {
-        throw new Error("مبلغ دریافتی کمتر از مبلغ قابل پرداخت است.");
+      if (tendered <= 0) {
+        throw new Error("مبلغ پرداختی را وارد کنید.");
       }
       const order = await syncCartToServer();
-      // Always settle the server-side total (fresh after sync), never the
-      // stale `amount` prop snapshot from when the dialog opened.
-      return payCash.mutateAsync({ orderId: order.id, amount: order.grandTotal });
+      if (order.orderType === "Bar" && !order.diningTableId) {
+        throw new Error("برای سفارش سالن، انتخاب میز الزامی است.");
+      }
+      const due = remainingFor(order);
+      return payCash.mutateAsync({
+        orderId: order.id,
+        amount: Math.min(due, Math.round(tendered * 10)),
+      });
     },
     onSuccess: (order) => finish(order),
     onError: (error) => toast.error(errorMessage(error)),
@@ -138,10 +179,14 @@ export function CheckoutModal({
       if (!tracking) {
         throw new Error("شماره پیگیری را وارد کنید.");
       }
+      if (amountToPayRials <= 0) throw new Error("مبلغ پرداختی را وارد کنید.");
       const order = await syncCartToServer();
+      if (order.orderType === "Bar" && !order.diningTableId) {
+        throw new Error("برای سفارش سالن، انتخاب میز الزامی است.");
+      }
       return payCardToCard.mutateAsync({
         orderId: order.id,
-        amount: order.grandTotal,
+        amount: Math.min(remainingFor(order), amountToPayRials),
         referenceNumber: tracking,
       });
     },
@@ -152,9 +197,13 @@ export function CheckoutModal({
   const posMut = useMutation({
     mutationFn: async () => {
       if (!deviceId) throw new Error("کارت‌خوان را انتخاب کنید.");
+      if (amountToPayRials <= 0) throw new Error("مبلغ پرداختی را وارد کنید.");
       setWaiting(true);
       const order = await syncCartToServer();
-      return settleWithPos.mutateAsync({ order, deviceId });
+      if (order.orderType === "Bar" && !order.diningTableId) {
+        throw new Error("برای سفارش سالن، انتخاب میز الزامی است.");
+      }
+      return settleWithPos.mutateAsync({ order, deviceId, amount: Math.min(remainingFor(order), amountToPayRials) });
     },
     onSuccess: (order) => finish(order),
     onError: (error) => toast.error(errorMessage(error)),
@@ -174,15 +223,24 @@ export function CheckoutModal({
         <DialogBody className="space-y-5 py-5">
           <div className="flex items-end justify-between rounded-xl border border-border bg-muted/40 px-4 py-3">
             <div>
-              <div className="text-[11px] font-medium text-muted-foreground">مبلغ قابل پرداخت</div>
+              <div className="text-[11px] font-medium text-muted-foreground">مانده قابل پرداخت</div>
               <div className="mt-0.5 text-2xl font-black text-primary tabular-nums">
-                {formatToman(amount)}
+                {formatToman(remainingRials)}
               </div>
             </div>
-            {cart.orderType !== "DineIn" && cart.tableNumber ? (
+            {cart.orderType === "Bar" && cart.tableNumber ? (
               <span className="text-[11px] text-muted-foreground">میز {cart.tableNumber}</span>
             ) : null}
           </div>
+
+          <Field label="مبلغ این بخش (تومان)">
+            <MoneyInput value={received} onValueChange={setReceived} className="font-bold" />
+          </Field>
+          {tenderedRials > 0 && tenderedRials < remainingRials ? (
+            <p className="-mt-3 text-xs text-muted-foreground">
+              این پرداخت بخشی از سفارش را تسویه می‌کند؛ می‌توانید مانده را با روش دیگری بپردازید.
+            </p>
+          ) : null}
 
           {/* Payment method */}
           <div className="grid grid-cols-3 gap-2">
@@ -211,13 +269,6 @@ export function CheckoutModal({
 
           {method === "Cash" ? (
             <div className="space-y-3 rounded-xl border border-border p-4">
-              <Field label="مبلغ دریافتی">
-                <MoneyInput
-                  value={received}
-                  onValueChange={setReceived}
-                  className="font-bold"
-                />
-              </Field>
               <div
                 className={cn(
                   "flex items-center justify-between rounded-lg px-3 py-2 text-sm",
@@ -227,15 +278,11 @@ export function CheckoutModal({
                 <span>بقیه</span>
                 <span className="font-bold tabular-nums">{formatTomanAmount(change)}</span>
               </div>
-              {(Number(received) || 0) < payableToman ? (
-                <p className="text-xs font-medium text-danger">
-                  مبلغ دریافتی کمتر از مبلغ قابل پرداخت است.
-                </p>
-              ) : null}
               <Button
                 className="w-full"
                 size="lg"
                 loading={cashMut.isPending}
+                disabled={amountToPayRials <= 0}
                 onClick={() => cashMut.mutate()}
               >
                 تأیید دریافت نقد
@@ -256,7 +303,7 @@ export function CheckoutModal({
                 className="w-full"
                 size="lg"
                 loading={c2cMut.isPending}
-                disabled={!refNo.trim()}
+                disabled={!refNo.trim() || amountToPayRials <= 0}
                 onClick={() => c2cMut.mutate()}
               >
                 ثبت کارت به کارت
@@ -287,7 +334,7 @@ export function CheckoutModal({
                 className="w-full"
                 size="lg"
                 loading={posMut.isPending}
-                disabled={!deviceId}
+                disabled={!deviceId || amountToPayRials <= 0}
                 onClick={() => posMut.mutate()}
               >
                 ارسال مبلغ به دستگاه

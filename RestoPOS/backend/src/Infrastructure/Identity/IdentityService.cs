@@ -60,7 +60,8 @@ public sealed class IdentityService(
             PhoneNumber = phone,
             FullName = fullName,
             PersonnelCode = personnelCode,
-            IsActive = true
+            IsActive = true,
+            UseStaffPasswordPolicy = true
         };
         var created = await users.CreateAsync(user, password);
         if (!created.Succeeded)
@@ -139,6 +140,7 @@ public sealed class IdentityService(
     public async Task ChangePasswordAsync(Guid userId, string newPassword, CancellationToken cancellationToken = default)
     {
         var user = await users.FindByIdAsync(userId.ToString()) ?? throw new NotFoundException("Staff", userId);
+        user.UseStaffPasswordPolicy = true;
         var token = await users.GeneratePasswordResetTokenAsync(user);
         var result = await users.ResetPasswordAsync(user, token, newPassword);
         if (!result.Succeeded)

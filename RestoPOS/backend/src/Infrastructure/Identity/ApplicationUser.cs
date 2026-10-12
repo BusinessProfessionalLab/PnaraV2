@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RestoPOS.Infrastructure.Identity;
 
@@ -10,6 +11,9 @@ public class ApplicationUser : IdentityUser<Guid>
     public DateTime? LastLoginAt { get; set; }
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiry { get; set; }
+
+    [NotMapped]
+    public bool UseStaffPasswordPolicy { get; set; }
 }
 
 public class ApplicationRole : IdentityRole<Guid>

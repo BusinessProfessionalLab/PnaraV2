@@ -43,7 +43,6 @@ import { orderKeys } from "@/api/keys";
 import {
   useActiveUnpaidOrders,
   useCategories,
-  useCurrentShift,
   useDiningTables,
   useDiscardDraft,
   useGetOrder,
@@ -120,7 +119,6 @@ export function PosRegister() {
   const menu = useMenuItems(true);
   const inventory = useInventory();
   const settings = useSettings();
-  const shift = useCurrentShift();
   const pendingOrders = useActiveUnpaidOrders();
 
   const searchMatches = useMemo(() => {
@@ -188,6 +186,11 @@ export function PosRegister() {
     try {
       const order = await getOrder.mutateAsync(orderId);
       cart.loadDraft(order);
+      if (order.orderType === "Bar" && !order.diningTableId) {
+        setRightPanelTab("cart");
+        toast.error("برای سفارش سالن، پیش از پرداخت میز را انتخاب کنید.");
+        return;
+      }
       setCheckout(true);
     } catch (error) {
       toast.error(errorMessage(error));
@@ -219,6 +222,9 @@ export function PosRegister() {
 
   const sendMut = useMutation({
     mutationFn: async () => {
+      if (cart.orderType === "Bar" && !cart.diningTableId) {
+        throw new Error("برای سفارش سالن، انتخاب میز الزامی است.");
+      }
       const order = await syncCartToServer();
       return submitOrder.mutateAsync(order.id);
     },
@@ -252,6 +258,10 @@ export function PosRegister() {
   }
 
   function openCheckoutFromCart() {
+    if (cart.orderType === "Bar" && !cart.diningTableId) {
+      toast.error("برای سفارش سالن، ابتدا میز را انتخاب کنید.");
+      return;
+    }
     setCartSheetOpen(false);
     setCheckout(true);
   }
@@ -310,12 +320,13 @@ export function PosRegister() {
               aria-hidden
             />
           </div>
-          <div className="hidden min-w-0 sm:block">
+          <div className="min-w-0">
             <div className="truncate text-sm font-bold leading-5">
               {settings.data?.storeName ?? "Pnara"}
             </div>
-            <div className="text-[11px] text-muted-foreground">
-              صندوق · {session?.fullName}
+            <div className="truncate text-[10px] text-muted-foreground sm:text-[11px]" title={`${session?.fullName ?? ""} · ${session?.userName ?? ""}`}>
+              {session?.fullName || session?.userName || "صندوق"}
+              {session?.userName ? ` · @${session.userName}` : ""}
             </div>
           </div>
         </div>
@@ -361,12 +372,6 @@ export function PosRegister() {
               <WifiOff className="size-3" aria-hidden />
             )}
             {health.isSuccess ? "آنلاین" : "قطع ارتباط"}
-          </Badge>
-          <Badge
-            variant={shift.data ? "neutral" : "warning"}
-            className="hidden xl:inline-flex"
-          >
-            {shift.data ? "شیفت باز" : "بدون شیفت"}
           </Badge>
           <Link href="/kds" className="hidden lg:block">
             <Button size="sm" variant="ghost" className="text-muted-foreground">
@@ -1078,14 +1083,11 @@ function CartPane({
               <div className="flex shrink-0 items-center gap-1.5 border-b border-border bg-muted/25 p-2.5">
                 <Select
                   value={cart.orderType}
-                  onValueChange={(v) =>
-                    cart.setMeta({
-                      orderType: v as typeof cart.orderType,
-                      ...(v === "DineIn"
-                        ? {}
-                        : { tableNumber: "", diningTableId: null }),
-                    })
-                  }
+                  onValueChange={(v) => cart.setMeta({
+                    orderType: v as typeof cart.orderType,
+                    tableNumber: "",
+                    diningTableId: null,
+                  })}
                 >
                   <SelectTrigger
                     aria-label="نوع سفارش"
@@ -1099,20 +1101,9 @@ function CartPane({
                     <SelectItem value="Bar">سالن</SelectItem>
                   </SelectContent>
                 </Select>
-                {cart.orderType === "DineIn" ? (
+                {cart.orderType === "Bar" ? (
                   <DiningTableSelect />
-                ) : (
-                  <Input
-                    aria-label="شماره میز"
-                    placeholder="میز"
-                    inputMode="numeric"
-                    className="h-9 w-16 shrink-0 text-center sm:w-20"
-                    value={cart.tableNumber}
-                    onChange={(e) =>
-                      cart.setMeta({ tableNumber: e.target.value, diningTableId: null })
-                    }
-                  />
-                )}
+                ) : null}
               </div>
               <div className="pos-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
           {cart.lines.length === 0 ? (
@@ -1427,8 +1418,8 @@ function DiningTableSelect() {
         });
       }}
     >
-      <SelectTrigger aria-label="انتخاب میز" className="h-9 min-w-0 flex-1">
-        <SelectValue placeholder="انتخاب میز" />
+      <SelectTrigger aria-label="انتخاب میز سالن (الزامی)" aria-required="true" className="h-9 min-w-0 flex-1">
+        <SelectValue placeholder="انتخاب میز سالن · ضروری" />
       </SelectTrigger>
       <SelectContent>
         {(tables.data ?? []).map((t) => (

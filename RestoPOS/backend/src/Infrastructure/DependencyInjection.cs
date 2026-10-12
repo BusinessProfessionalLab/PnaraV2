@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using RestoPOS.Application.Common.Interfaces;
 using RestoPOS.Domain.Common;
 using RestoPOS.Infrastructure.Identity;
@@ -47,6 +48,9 @@ public static class DependencyInjection
             .AddRoles<ApplicationRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+
+        services.RemoveAll<IPasswordValidator<ApplicationUser>>();
+        services.AddScoped<IPasswordValidator<ApplicationUser>, StaffAwarePasswordValidator>();
 
         return services;
     }

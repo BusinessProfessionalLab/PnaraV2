@@ -210,5 +210,3 @@ export const useUpdateDiningTable = () => useWrite<{ id: string; payload: unknow
 export const useDeleteDiningTable = () => useWrite<string, void>(api.deleteDiningTable, [tableRoot]);
 export const useUpdateTableStatus = () => useWrite<{ id: string; status: import("@/lib/types").TableStatus }, void>(
   ({ id, status }) => api.updateTableStatus(id, status), [tableRoot]);
-export const useTransferTable = () => useWrite<{ fromTableId: string; toTableId: string }, void>(
-  ({ fromTableId, toTableId }) => api.transferTable(fromTableId, toTableId), [tableRoot]);

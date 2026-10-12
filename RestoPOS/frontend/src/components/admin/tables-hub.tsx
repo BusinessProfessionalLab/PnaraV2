@@ -18,7 +18,6 @@ import {
   useDiningTable,
   useDiningTables,
   useTablesByArea,
-  useTransferTable,
   useUpdateDiningArea,
   useUpdateDiningTable,
   useUpdateTableStatus,
@@ -277,8 +276,6 @@ function TablesTab() {
   const [capacity, setCapacity] = useState("4");
   const [displayPriority, setDisplayPriority] = useState("0");
   const [isActive, setIsActive] = useState(true);
-  const [transferFrom, setTransferFrom] = useState("");
-  const [transferTo, setTransferTo] = useState("");
 
   const areas = useDiningAreas(false);
   const allTables = useDiningTables(false);
@@ -306,8 +303,6 @@ function TablesTab() {
   }, [areaOptions, diningAreaId]);
 
   const createMut = useCreateDiningTable();
-  const transferMut = useTransferTable();
-
   const submitTable = () =>
     createMut.mutate(
       {
@@ -330,21 +325,6 @@ function TablesTab() {
         onError: (e: Error) => toast.error(e.message),
       },
     );
-
-  const submitTransfer = () =>
-    transferMut.mutate(
-      { fromTableId: transferFrom, toTableId: transferTo },
-      {
-        onSuccess: () => {
-          toast.success("انتقال میز انجام شد");
-          setTransferFrom("");
-          setTransferTo("");
-        },
-        onError: (e: Error) => toast.error(e.message),
-      },
-    );
-
-  const allForSelect = allTables.data ?? [];
 
   return (
     <div className="space-y-4">
@@ -477,51 +457,6 @@ function TablesTab() {
         </Card>
       </div>
 
-      <Card className="p-4">
-        <h2 className="mb-3 font-black">انتقال سفارش بین میزها</h2>
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="space-y-2">
-            <Label>از میز</Label>
-            <Select value={transferFrom || undefined} onValueChange={setTransferFrom}>
-              <SelectTrigger className="w-52">
-                <SelectValue placeholder="انتخاب مبدأ" />
-              </SelectTrigger>
-              <SelectContent>
-                {allForSelect.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.code}
-                    {t.name ? ` — ${t.name}` : ""} ({statusLabel(t.status)})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>به میز</Label>
-            <Select value={transferTo || undefined} onValueChange={setTransferTo}>
-              <SelectTrigger className="w-52">
-                <SelectValue placeholder="انتخاب مقصد" />
-              </SelectTrigger>
-              <SelectContent>
-                {allForSelect
-                  .filter((t) => t.id !== transferFrom)
-                  .map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.code}
-                      {t.name ? ` — ${t.name}` : ""} ({statusLabel(t.status)})
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button
-            disabled={!transferFrom || !transferTo || transferFrom === transferTo || transferMut.isPending}
-            onClick={submitTransfer}
-          >
-            انتقال
-          </Button>
-        </div>
-      </Card>
     </div>
   );
 }

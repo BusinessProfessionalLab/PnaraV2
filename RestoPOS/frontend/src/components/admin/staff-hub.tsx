@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +54,7 @@ function StaffPanel() {
   const [userName, setUserName] = useState("");
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("Cashier");
 
   const createMut = useCreateStaff();
@@ -95,7 +97,18 @@ function StaffPanel() {
         <h2 className="font-black">افزودن پرسنل</h2>
         <Input placeholder="نام کاربری" value={userName} onChange={(e) => setUserName(e.target.value)} />
         <Input placeholder="نام کامل" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-        <Input placeholder="رمز" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <div className="relative">
+          <Input placeholder="رمز" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="pe-10" />
+          <button
+            type="button"
+            aria-label={showPassword ? "پنهان کردن رمز" : "نمایش رمز"}
+            onClick={() => setShowPassword((value) => !value)}
+            className="absolute end-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
+          >
+            {showPassword ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground">رمز پرسنل باید حداقل ۶ نویسه باشد؛ نماد و حروف بزرگ لازم نیست.</p>
         <Label>نقش</Label>
         <Select value={role} onValueChange={setRole} disabled={roles.isLoading || roleNames.length === 0}>
           <SelectTrigger>
@@ -180,6 +193,7 @@ function StaffDetail({
   const [personnelCode, setPersonnelCode] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [newPassword, setNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
   useEffect(() => {
@@ -270,7 +284,17 @@ function StaffDetail({
 
       <div className="space-y-2 border-t pt-3">
         <Label>تغییر رمز</Label>
-        <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="رمز جدید" />
+        <div className="relative">
+          <Input type={showNewPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="رمز جدید" className="pe-10" />
+          <button
+            type="button"
+            aria-label={showNewPassword ? "پنهان کردن رمز" : "نمایش رمز"}
+            onClick={() => setShowNewPassword((value) => !value)}
+            className="absolute end-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
+          >
+            {showNewPassword ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
+          </button>
+        </div>
         <Button
           className="w-full"
           variant="outline"

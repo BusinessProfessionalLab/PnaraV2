@@ -49,7 +49,6 @@ public sealed record GetDiningTableByIdQuery(Guid Id) : IRequest<DiningTableDto>
 public sealed record ListDiningTablesQuery(bool ActiveOnly = true) : IRequest<IReadOnlyList<DiningTableDto>>;
 public sealed record ListTablesByAreaQuery(Guid DiningAreaId, bool ActiveOnly = true) : IRequest<IReadOnlyList<DiningTableDto>>;
 public sealed record UpdateTableStatusCommand(Guid Id, TableStatus Status) : IRequest<DiningTableDto>;
-public sealed record TransferTableCommand(Guid SourceTableId, Guid TargetTableId) : IRequest;
 
 public sealed class CreateDiningAreaCommandValidator : AbstractValidator<CreateDiningAreaCommand>
 {
@@ -253,29 +252,5 @@ public sealed class UpdateTableStatusCommandHandler(IApplicationDbContext db) : 
         table.SetStatus(request.Status);
         await db.SaveChangesAsync(cancellationToken);
         return TableMapping.ToDto(table);
-    }
-}
-
-public sealed class TransferTableCommandHandler(IApplicationDbContext db) : IRequestHandler<TransferTableCommand>
-{
-    public async Task Handle(TransferTableCommand request, CancellationToken cancellationToken)
-    {
-        await db.ExecuteResilientTransactionAsync(async ct =>
-        {
-            var source = await db.DiningTables.FirstOrDefaultAsync(t => t.Id == request.SourceTableId, ct)
-                         ?? throw new NotFoundException(nameof(DiningTable), request.SourceTableId);
-            var target = await db.DiningTables.FirstOrDefaultAsync(t => t.Id == request.TargetTableId, ct)
-                         ?? throw new NotFoundException(nameof(DiningTable), request.TargetTableId);
-
-            var orderId = source.CurrentOrderId
-                          ?? throw new DomainException("میز مبدأ سفارش فعالی ندارد.");
-
-            source.TransferTo(target);
-
-            var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == orderId, ct)
-                        ?? throw new NotFoundException(nameof(Order), orderId);
-            order.DiningTableId = target.Id;
-            order.TableNumber = target.Code;
-        }, cancellationToken);
     }
 }

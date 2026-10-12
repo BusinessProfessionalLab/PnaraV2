@@ -2,7 +2,7 @@ using RestoPOS.Domain.Enums;
 
 namespace RestoPOS.Application.Features.Menu;
 
-public sealed record CategoryDto(Guid Id, string Name, string? NameEn, int DisplayPriority, bool IsVisible, string? IconUrl, string? ImageUrl, Guid? ParentId);
+public sealed record CategoryDto(Guid Id, string Name, string? NameEn, int DisplayPriority, decimal DiscountPercent, bool IsVisible, string? IconUrl, string? ImageUrl, Guid? ParentId);
 
 public sealed record ModifierDto(
     Guid Id,
@@ -28,9 +28,15 @@ public sealed record ModifierGroupDto(
 public sealed record RecipeLineDto(Guid InventoryItemId, decimal Quantity, BaseUnit Unit);
 public sealed record RecipeDto(Guid Id, Guid? MenuItemId, Guid? MenuItemModifierId, string Name, IReadOnlyList<RecipeLineDto> Lines);
 
+public sealed record AddonDto(Guid Id, string Name, decimal ExtraPrice, bool IsActive, TicketStation TicketStation, int DisplayPriority);
+public sealed record MenuItemAddonDto(Guid Id, string Title, decimal BasePrice);
+
 public sealed record MenuItemDto(
     Guid Id,
     string Title,
+    string? NameEn,
+    decimal DiscountPercent,
+    decimal CategoryDiscountPercent,
     string? Description,
     decimal BasePrice,
     bool TaxInclusive,
@@ -44,10 +50,11 @@ public sealed record MenuItemDto(
     int PrepTimeMinutes,
     IReadOnlyList<ModifierDto> Modifiers,
     IReadOnlyList<ModifierGroupDto> ModifierGroups,
+    IReadOnlyList<MenuItemAddonDto> Addons,
     RecipeDto? Recipe);
 
-public sealed record CreateCategoryCommand(string Name, string? NameEn, int DisplayPriority, bool IsVisible, string? IconUrl, string? ImageUrl, Guid? ParentId) : MediatR.IRequest<Guid>;
-public sealed record UpdateCategoryCommand(Guid Id, string Name, string? NameEn, int DisplayPriority, bool IsVisible, string? IconUrl, string? ImageUrl, Guid? ParentId) : MediatR.IRequest;
+public sealed record CreateCategoryCommand(string Name, string? NameEn, int DisplayPriority, bool IsVisible, string? IconUrl, string? ImageUrl, Guid? ParentId, decimal DiscountPercent = 0) : MediatR.IRequest<Guid>;
+public sealed record UpdateCategoryCommand(Guid Id, string Name, string? NameEn, int DisplayPriority, bool IsVisible, string? IconUrl, string? ImageUrl, Guid? ParentId, decimal DiscountPercent = 0) : MediatR.IRequest;
 public sealed record DeleteCategoryCommand(Guid Id) : MediatR.IRequest;
 public sealed record GetCategoriesQuery(bool IncludeHidden = false) : MediatR.IRequest<IReadOnlyList<CategoryDto>>;
 public sealed record GetCategoryByIdQuery(Guid Id) : MediatR.IRequest<CategoryDto>;
@@ -64,7 +71,9 @@ public sealed record CreateMenuItemCommand(
     Guid CategoryId,
     bool IsActive,
     TicketStation TicketStation,
-    int PrepTimeMinutes) : MediatR.IRequest<Guid>;
+    int PrepTimeMinutes,
+    string? NameEn = null,
+    decimal DiscountPercent = 0) : MediatR.IRequest<Guid>;
 
 public sealed record UpdateMenuItemCommand(
     Guid Id,
@@ -77,7 +86,9 @@ public sealed record UpdateMenuItemCommand(
     Guid CategoryId,
     bool IsActive,
     TicketStation TicketStation,
-    int PrepTimeMinutes) : MediatR.IRequest;
+    int PrepTimeMinutes,
+    string? NameEn = null,
+    decimal DiscountPercent = 0) : MediatR.IRequest;
 
 public sealed record DeleteMenuItemCommand(Guid Id) : MediatR.IRequest;
 public sealed record ToggleMenuItemSoldOutCommand(Guid Id, bool IsSoldOut) : MediatR.IRequest;
@@ -102,6 +113,13 @@ public sealed record UpdateModifierCommand(
     Guid? ModifierGroupId) : MediatR.IRequest;
 
 public sealed record DeleteModifierCommand(Guid Id) : MediatR.IRequest;
+
+public sealed record ListAddonsQuery(bool ActiveOnly = true) : MediatR.IRequest<IReadOnlyList<AddonDto>>;
+public sealed record CreateAddonCommand(string Name, decimal ExtraPrice, TicketStation TicketStation, int DisplayPriority) : MediatR.IRequest<Guid>;
+public sealed record UpdateAddonCommand(Guid Id, string Name, decimal ExtraPrice, TicketStation TicketStation, int DisplayPriority, bool IsActive) : MediatR.IRequest;
+public sealed record DeleteAddonCommand(Guid Id) : MediatR.IRequest;
+public sealed record AttachAddonToMenuItemCommand(Guid MenuItemId, Guid AddonId) : MediatR.IRequest;
+public sealed record DetachAddonFromMenuItemCommand(Guid MenuItemId, Guid AddonId) : MediatR.IRequest;
 
 public sealed record CreateModifierGroupCommand(
     Guid MenuItemId,

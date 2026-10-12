@@ -47,7 +47,7 @@ internal static class OrderItemWriter
         IReadOnlyList<AddModifierRequest>? modifiers,
         CancellationToken cancellationToken)
     {
-        var menuItem = await db.MenuItems.Include(m => m.Modifiers)
+        var menuItem = await db.MenuItems.Include(m => m.Modifiers).Include(m => m.Category)
             .FirstOrDefaultAsync(m => m.Id == menuItemId, cancellationToken)
             ?? throw new NotFoundException(nameof(MenuItem), menuItemId);
 
@@ -83,6 +83,9 @@ public sealed class CreateDraftOrderCommandHandler(
 {
     public async Task<OrderDto> Handle(CreateDraftOrderCommand request, CancellationToken cancellationToken)
     {
+        if (request.OrderType == OrderType.Bar && request.DiningTableId is null)
+            throw new DomainException("برای سفارش سالن، انتخاب میز الزامی است.");
+
         var cashierId = current.UserId ?? throw new ForbiddenException();
         var settings = await db.StoreSettings.AsNoTracking().FirstAsync(cancellationToken);
         var shift = await db.CashierShifts.FirstOrDefaultAsync(s => s.StaffId == cashierId && s.Status == ShiftStatus.Open, cancellationToken);

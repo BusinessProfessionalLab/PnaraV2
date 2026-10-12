@@ -49,9 +49,9 @@ export const paymentsApi = {
       })
       .then((r) => r.data),
 
-  initiatePos: (orderId: string, deviceId: string) =>
+  initiatePos: (orderId: string, deviceId: string, amount?: number) =>
     apiClient
-      .post<PaymentDto>("/api/payments/pos/initiate", { orderId, deviceId })
+      .post<PaymentDto>("/api/payments/pos/initiate", { orderId, deviceId, amount })
       .then((r) => r.data),
 
   pollPos: (paymentId: string) =>
@@ -172,15 +172,17 @@ export function useSettleWithPos() {
     mutationFn: async ({
       order,
       deviceId,
+      amount,
     }: {
       order: OrderDto;
       deviceId: string;
+      amount?: number;
     }): Promise<OrderDto> => {
       const submitted =
         order.status === "Draft"
           ? await ordersApi.submitOrder(order.id)
           : order;
-      const payment = await paymentsApi.initiatePos(submitted.id, deviceId);
+      const payment = await paymentsApi.initiatePos(submitted.id, deviceId, amount);
       if (payment.status === "Settled") {
         return ordersApi.getOrder(submitted.id);
       }

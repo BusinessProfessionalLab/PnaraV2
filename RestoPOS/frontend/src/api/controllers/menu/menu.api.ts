@@ -143,10 +143,7 @@ export const menuApi = {
     apiClient.delete<void>(`/api/menu/recipes/${id}`).then((r) => r.data),
 
   /* ------------------------------ shared add-ons -------------------------- */
-  /**
-   * NOTE: the backend has an `Addon` entity but NO `api/menu/addons*` routes,
-   * so these calls currently 404. Kept as-is to preserve existing behaviour.
-   */
+  /** Reusable add-ons shared by products. */
   addons: (activeOnly = true) =>
     apiClient
       .get<AddonDto[]>("/api/menu/addons", { params: { activeOnly } })

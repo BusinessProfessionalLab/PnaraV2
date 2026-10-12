@@ -59,10 +59,6 @@ export const tablesApi = {
       .post<void>(`/api/tables/${id}/status`, { id, status })
       .then((r) => r.data),
 
-  transferTable: (fromTableId: string, toTableId: string) =>
-    apiClient
-      .post<void>("/api/tables/transfer", { fromTableId, toTableId })
-      .then((r) => r.data),
 };
 
 /* --------------------------------- hooks -------------------------------- */
@@ -190,20 +186,6 @@ export function useUpdateTableStatus() {
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: TableStatus }) =>
       tablesApi.updateTableStatus(id, status),
-    onSuccess: invalidateTables(queryClient),
-  });
-}
-
-export function useTransferTable() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      fromTableId,
-      toTableId,
-    }: {
-      fromTableId: string;
-      toTableId: string;
-    }) => tablesApi.transferTable(fromTableId, toTableId),
     onSuccess: invalidateTables(queryClient),
   });
 }

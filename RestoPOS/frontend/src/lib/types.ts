@@ -224,16 +224,12 @@ export type StoreSettingsDto = {
   id: string;
   storeName: string;
   logoUrl?: string | null;
-  taxIdentificationNumber?: string | null;
   receiptHeader?: string | null;
   receiptFooter?: string | null;
   primaryColor: string;
   secondaryColor: string;
   vatRate: number;
   currencyCode: string;
-  loyaltyPointsPerMillionRial: number;
-  thermalPrinterHost?: string | null;
-  thermalPrinterPort: number;
 };
 
 export type CustomerDto = {

@@ -60,6 +60,10 @@ import type { InventoryItemDto, MenuItemDto, RecipeLineDto, TicketStation } from
 
 type Category = { id: string; name: string };
 
+function withoutPersianOrArabic(value: string) {
+  return value.replace(/[\u0600-\u08FF]/g, "");
+}
+
 async function cropImageToSquare(file: File): Promise<string> {
   const source = await new Promise<HTMLImageElement>((resolve, reject) => {
     const reader = new FileReader();
@@ -484,7 +488,8 @@ function ProductForm({
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثلاً اسپرسو" />
       </Field>
       <Field label="نام انگلیسی (اختیاری)">
-        <Input dir="ltr" className="text-start" value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="Espresso" />
+        <Input dir="ltr" className="text-start" value={nameEn} onChange={(e) => setNameEn(withoutPersianOrArabic(e.target.value))} placeholder="Espresso" />
+        <p className="mt-1 text-xs text-muted-foreground">حروف فارسی و عربی در این فیلد پذیرفته نمی‌شود.</p>
       </Field>
       <Field label="قیمت">
         <PriceInput value={price} onChange={setPrice} placeholder="قیمت محصول" />
@@ -514,6 +519,9 @@ function ProductForm({
             <SelectItem value="KitchenAndBar">هر دو</SelectItem>
           </SelectContent>
         </Select>
+        <p className="mt-1 text-xs text-muted-foreground">
+          مشخص می‌کند این محصول در فیش آماده‌سازی بار، آشپزخانه یا هر دو نمایش داده شود؛ فیش مشتری جداگانه چاپ می‌شود.
+        </p>
       </Field>
       <ImageUpload value={imageUrl} onChange={setImageUrl} />
       <div className="sm:col-span-2">
@@ -678,7 +686,8 @@ function ItemEditor({
             <Input value={title} onChange={(e) => setTitle(e.target.value)} />
           </Field>
           <Field label="نام انگلیسی">
-            <Input dir="ltr" className="text-start" value={nameEn} onChange={(e) => setNameEn(e.target.value)} />
+            <Input dir="ltr" className="text-start" value={nameEn} onChange={(e) => setNameEn(withoutPersianOrArabic(e.target.value))} />
+            <p className="mt-1 text-xs text-muted-foreground">حروف فارسی و عربی در این فیلد پذیرفته نمی‌شود.</p>
           </Field>
           <Field label="قیمت">
             <PriceInput value={price} onChange={setPrice} />

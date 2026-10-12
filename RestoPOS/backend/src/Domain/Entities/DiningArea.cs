@@ -49,16 +49,4 @@ public class DiningTable : BaseEntity, ISoftDeletable
         CurrentOrderId = orderId;
     }
 
-    public void TransferTo(DiningTable target)
-    {
-        if (CurrentOrderId is null)
-            throw new DomainException("میز مبدأ سفارش فعالی ندارد.");
-        if (target.Status == TableStatus.Occupied)
-            throw new ConflictException($"میز مقصد {target.Code} اشغال است.");
-
-        target.Status = TableStatus.Occupied;
-        target.CurrentOrderId = CurrentOrderId;
-        Status = TableStatus.Cleaning;
-        CurrentOrderId = null;
-    }
 }

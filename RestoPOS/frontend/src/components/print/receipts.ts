@@ -70,7 +70,6 @@ export function receiptHtml(
            <div class="grand"><span>قابل پرداخت</span><span>${formatToman(order.grandTotal)}</span></div>
            <div><span>معادل ریال</span><span>${formatRial(order.grandTotal)}</span></div>
          </div>
-         ${settings.taxIdentificationNumber ? `<div class="center">شناسه مالیاتی: ${settings.taxIdentificationNumber}</div>` : ""}
          ${settings.receiptFooter ? `<div class="center">${settings.receiptFooter}</div>` : ""}
          <div class="center">Pnara</div>`
       : ""

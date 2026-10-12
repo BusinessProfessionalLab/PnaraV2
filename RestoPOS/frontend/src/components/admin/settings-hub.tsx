@@ -6,7 +6,6 @@ import {
   Building2,
   Image as ImageIcon,
   Palette,
-  Printer,
   Save,
   Store,
   CreditCard,
@@ -34,17 +33,28 @@ import type { IranianPsp, PosProtocol } from "@/lib/types";
 const INITIAL_FORM = {
   storeName: "",
   logoUrl: "",
-  taxIdentificationNumber: "",
   receiptHeader: "",
   receiptFooter: "",
   primaryColor: "#C41E3A",
   secondaryColor: "#1F2937",
   vatRate: 0.1,
-  loyaltyPointsPerMillionRial: 10,
-  thermalPrinterHost: "",
-  thermalPrinterPort: 9100,
 };
 type FormState = typeof INITIAL_FORM;
+
+function readImage(file: File): Promise<string> {
+  if (!file.type.startsWith("image/")) {
+    return Promise.reject(new Error("فقط فایل تصویری انتخاب کنید."));
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    return Promise.reject(new Error("حجم لوگو باید کمتر از ۲ مگابایت باشد."));
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("خواندن فایل لوگو ناموفق بود."));
+    reader.readAsDataURL(file);
+  });
+}
 
 export function SettingsHub() {
   return (
@@ -73,15 +83,11 @@ function StoreSettingsPanel() {
     setForm({
       storeName: q.data.storeName,
       logoUrl: q.data.logoUrl ?? "",
-      taxIdentificationNumber: q.data.taxIdentificationNumber ?? "",
       receiptHeader: q.data.receiptHeader ?? "",
       receiptFooter: q.data.receiptFooter ?? "",
       primaryColor: q.data.primaryColor,
       secondaryColor: q.data.secondaryColor,
       vatRate: q.data.vatRate,
-      loyaltyPointsPerMillionRial: q.data.loyaltyPointsPerMillionRial,
-      thermalPrinterHost: q.data.thermalPrinterHost ?? "",
-      thermalPrinterPort: q.data.thermalPrinterPort,
     });
   }, [q.data]);
 
@@ -97,10 +103,8 @@ function StoreSettingsPanel() {
       await saveSettings.mutateAsync({
         ...form,
         logoUrl: form.logoUrl || null,
-        taxIdentificationNumber: form.taxIdentificationNumber || null,
         receiptHeader: form.receiptHeader || null,
         receiptFooter: form.receiptFooter || null,
-        thermalPrinterHost: form.thermalPrinterHost || null,
       });
       toast.success("تنظیمات ذخیره شد");
     } catch (error) {
@@ -121,7 +125,7 @@ function StoreSettingsPanel() {
     <div className="space-y-6">
       <PageHeader
         title="تنظیمات فروشگاه"
-        description="برندینگ، فیش و پرینتر"
+        description="هویت فروشگاه و تنظیمات فیش"
         actions={
           <Button onClick={persist} disabled={saveSettings.isPending} loading={saveSettings.isPending}>
             <Save className="size-4" aria-hidden />
@@ -141,26 +145,44 @@ function StoreSettingsPanel() {
               <Field label="نام فروشگاه">
                 <Input value={form.storeName} onChange={(e) => set("storeName", e.target.value)} />
               </Field>
-              <Field label="لوگو URL">
-                <Input value={form.logoUrl} onChange={(e) => set("logoUrl", e.target.value)} dir="ltr" />
-              </Field>
-              <Field label="شناسه مالیاتی">
-                <Input value={form.taxIdentificationNumber} onChange={(e) => set("taxIdentificationNumber", e.target.value)} />
-              </Field>
-              <Field label="آدرس پرینتر حرارتی">
-                <Input value={form.thermalPrinterHost} onChange={(e) => set("thermalPrinterHost", e.target.value)} dir="ltr" />
+              <Field label="لوگوی فروشگاه">
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium hover:bg-muted">
+                    <ImageIcon className="size-4" aria-hidden />
+                    بارگذاری تصویر
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={async (event) => {
+                        const file = event.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          set("logoUrl", await readImage(file));
+                        } catch (error) {
+                          toast.error((error as Error).message);
+                        }
+                        event.target.value = "";
+                      }}
+                    />
+                  </label>
+                  {form.logoUrl ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={form.logoUrl} alt="پیش‌نمایش لوگو" className="h-12 max-w-36 object-contain" />
+                      <Button type="button" size="sm" variant="ghost" onClick={() => set("logoUrl", "")}>
+                        حذف لوگو
+                      </Button>
+                    </>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">PNG، JPG یا SVG تا ۲ مگابایت</span>
+                  )}
+                </div>
               </Field>
               <ColorField label="رنگ اصلی" value={form.primaryColor} onChange={(v) => set("primaryColor", v)} />
               <ColorField label="رنگ ثانویه" value={form.secondaryColor} onChange={(v) => set("secondaryColor", v)} />
               <Field label="نرخ ارزش افزوده (۰ تا ۱)">
                 <Input type="number" step="0.01" value={form.vatRate} onChange={(e) => set("vatRate", Number(e.target.value))} />
-              </Field>
-              <Field label="امتیاز به ازای هر میلیون ریال">
-                <Input
-                  type="number"
-                  value={form.loyaltyPointsPerMillionRial}
-                  onChange={(e) => set("loyaltyPointsPerMillionRial", Number(e.target.value))}
-                />
               </Field>
               <div className="sm:col-span-2">
                 <Field label="سربرگ فیش">
@@ -200,10 +222,6 @@ function StoreSettingsPanel() {
                 بدون لوگو
               </div>
             )}
-            <div className="mt-3 flex items-center gap-2 text-xs opacity-60">
-              <Printer className="size-4" aria-hidden />
-              {form.thermalPrinterHost || "پرینتر تنظیم نشده"}
-            </div>
           </Card>
         </div>
 
@@ -221,22 +239,8 @@ function StoreSettingsPanel() {
                 <dd className="truncate font-semibold">{form.storeName || "—"}</dd>
               </div>
               <div className="flex items-center justify-between gap-3 px-5 py-3">
-                <dt className="text-muted-foreground">شناسه مالیاتی</dt>
-                <dd className="truncate font-mono text-xs tabular-nums">{form.taxIdentificationNumber || "—"}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3 px-5 py-3">
                 <dt className="text-muted-foreground">ارزش افزوده</dt>
                 <dd className="font-semibold tabular-nums">{Math.round(form.vatRate * 100)}٪</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3 px-5 py-3">
-                <dt className="text-muted-foreground">امتیاز باشگاه</dt>
-                <dd className="font-semibold tabular-nums">{form.loyaltyPointsPerMillionRial} / هر میلیون ریال</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3 px-5 py-3">
-                <dt className="text-muted-foreground">پرینتر</dt>
-                <dd className="truncate font-mono text-xs tabular-nums" dir="ltr">
-                  {form.thermalPrinterHost ? `${form.thermalPrinterHost}:${form.thermalPrinterPort}` : "—"}
-                </dd>
               </div>
             </dl>
             <div className="border-t border-border/70 px-5 py-4">

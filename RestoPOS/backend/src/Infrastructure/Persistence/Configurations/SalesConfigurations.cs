@@ -113,7 +113,7 @@ public class StoreSettingsConfiguration : IEntityTypeConfiguration<StoreSettings
     {
         builder.ToTable("StoreSettings");
         builder.Property(x => x.StoreName).HasMaxLength(200).IsRequired();
-        builder.Property(x => x.LogoUrl).HasMaxLength(500);
+        builder.Property(x => x.LogoUrl).HasColumnType("text");
         builder.Property(x => x.TaxIdentificationNumber).HasMaxLength(32);
         builder.Property(x => x.ReceiptHeader).HasMaxLength(500);
         builder.Property(x => x.ReceiptFooter).HasMaxLength(500);

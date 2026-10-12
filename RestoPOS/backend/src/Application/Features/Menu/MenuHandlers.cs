@@ -7,9 +7,28 @@ using RestoPOS.Domain.Exceptions;
 
 namespace RestoPOS.Application.Features.Menu;
 
+internal static class MenuInputValidation
+{
+    public static bool HasPersianOrArabic(string? value) =>
+        value?.Any(c => c is >= '\u0600' and <= '\u06FF' or >= '\u0750' and <= '\u077F' or >= '\u08A0' and <= '\u08FF') == true;
+}
+
 public sealed class CreateCategoryCommandValidator : AbstractValidator<CreateCategoryCommand>
 {
-    public CreateCategoryCommandValidator() => RuleFor(x => x.Name).NotEmpty().MaximumLength(128);
+    public CreateCategoryCommandValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(128);
+        RuleFor(x => x.DiscountPercent).InclusiveBetween(0, 100);
+    }
+}
+
+public sealed class UpdateCategoryCommandValidator : AbstractValidator<UpdateCategoryCommand>
+{
+    public UpdateCategoryCommandValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(128);
+        RuleFor(x => x.DiscountPercent).InclusiveBetween(0, 100);
+    }
 }
 
 public sealed class CreateCategoryCommandHandler(IApplicationDbContext db) : IRequestHandler<CreateCategoryCommand, Guid>
@@ -21,6 +40,7 @@ public sealed class CreateCategoryCommandHandler(IApplicationDbContext db) : IRe
             Name = request.Name,
             NameEn = request.NameEn,
             DisplayPriority = request.DisplayPriority,
+            DiscountPercent = request.DiscountPercent,
             IsVisible = request.IsVisible,
             IconUrl = request.IconUrl,
             ImageUrl = request.ImageUrl,
@@ -41,6 +61,7 @@ public sealed class UpdateCategoryCommandHandler(IApplicationDbContext db) : IRe
         entity.Name = request.Name;
         entity.NameEn = request.NameEn;
         entity.DisplayPriority = request.DisplayPriority;
+        entity.DiscountPercent = request.DiscountPercent;
         entity.IsVisible = request.IsVisible;
         entity.IconUrl = request.IconUrl;
         entity.ImageUrl = request.ImageUrl;
@@ -76,7 +97,7 @@ public sealed class GetCategoriesQueryHandler(IApplicationDbContext db) : IReque
             query = query.Where(c => c.IsVisible);
 
         return await query.OrderBy(c => c.DisplayPriority).ThenBy(c => c.Name)
-            .Select(c => new CategoryDto(c.Id, c.Name, c.NameEn, c.DisplayPriority, c.IsVisible, c.IconUrl, c.ImageUrl, c.ParentId))
+            .Select(c => new CategoryDto(c.Id, c.Name, c.NameEn, c.DisplayPriority, c.DiscountPercent, c.IsVisible, c.IconUrl, c.ImageUrl, c.ParentId))
             .ToListAsync(cancellationToken);
     }
 }
@@ -87,7 +108,7 @@ public sealed class GetCategoryByIdQueryHandler(IApplicationDbContext db) : IReq
     {
         var c = await db.Categories.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
                 ?? throw new NotFoundException(nameof(Category), request.Id);
-        return new CategoryDto(c.Id, c.Name, c.NameEn, c.DisplayPriority, c.IsVisible, c.IconUrl, c.ImageUrl, c.ParentId);
+        return new CategoryDto(c.Id, c.Name, c.NameEn, c.DisplayPriority, c.DiscountPercent, c.IsVisible, c.IconUrl, c.ImageUrl, c.ParentId);
     }
 }
 
@@ -118,7 +139,24 @@ public sealed class CreateMenuItemCommandValidator : AbstractValidator<CreateMen
     public CreateMenuItemCommandValidator()
     {
         RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.NameEn).Must(name => !MenuInputValidation.HasPersianOrArabic(name))
+            .WithMessage("نام انگلیسی نباید شامل حروف فارسی یا عربی باشد.");
         RuleFor(x => x.BasePrice).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.CategoryId).NotEmpty();
+        RuleFor(x => x.DiscountPercent).InclusiveBetween(0, 100);
+    }
+
+}
+
+public sealed class UpdateMenuItemCommandValidator : AbstractValidator<UpdateMenuItemCommand>
+{
+    public UpdateMenuItemCommandValidator()
+    {
+        RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.NameEn).Must(name => !MenuInputValidation.HasPersianOrArabic(name))
+            .WithMessage("نام انگلیسی نباید شامل حروف فارسی یا عربی باشد.");
+        RuleFor(x => x.BasePrice).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.DiscountPercent).InclusiveBetween(0, 100);
         RuleFor(x => x.CategoryId).NotEmpty();
     }
 }
@@ -133,12 +171,14 @@ public sealed class CreateMenuItemCommandHandler(IApplicationDbContext db) : IRe
         var item = new MenuItem
         {
             Title = request.Title,
+            NameEn = request.NameEn,
             Description = request.Description,
             BasePrice = decimal.Round(request.BasePrice, 0, MidpointRounding.AwayFromZero),
             TaxInclusive = request.TaxInclusive,
             ImageUrl = request.ImageUrl,
             DisplayPriority = request.DisplayPriority,
             CategoryId = request.CategoryId,
+            DiscountPercent = request.DiscountPercent,
             IsActive = request.IsActive,
             TicketStation = request.TicketStation,
             PrepTimeMinutes = request.PrepTimeMinutes
@@ -156,6 +196,8 @@ public sealed class UpdateMenuItemCommandHandler(IApplicationDbContext db) : IRe
         var item = await db.MenuItems.FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken)
                    ?? throw new NotFoundException(nameof(MenuItem), request.Id);
         item.Title = request.Title;
+        item.NameEn = request.NameEn;
+        item.DiscountPercent = request.DiscountPercent;
         item.Description = request.Description;
         item.BasePrice = decimal.Round(request.BasePrice, 0, MidpointRounding.AwayFromZero);
         item.TaxInclusive = request.TaxInclusive;
@@ -248,6 +290,112 @@ public sealed class DeleteModifierCommandHandler(IApplicationDbContext db) : IRe
         modifier.IsDeleted = true;
         modifier.IsActive = false;
         modifier.DeletedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+}
+
+public sealed class ListAddonsQueryHandler(IApplicationDbContext db) : IRequestHandler<ListAddonsQuery, IReadOnlyList<AddonDto>>
+{
+    public async Task<IReadOnlyList<AddonDto>> Handle(ListAddonsQuery request, CancellationToken cancellationToken)
+    {
+        var query = db.Addons.AsNoTracking().Where(a => !a.IsDeleted);
+        if (request.ActiveOnly)
+            query = query.Where(a => a.IsActive);
+        return await query.OrderBy(a => a.DisplayPriority).ThenBy(a => a.Name)
+            .Select(a => new AddonDto(a.Id, a.Name, a.ExtraPrice, a.IsActive, a.TicketStation, a.DisplayPriority))
+            .ToListAsync(cancellationToken);
+    }
+}
+
+public sealed class CreateAddonCommandValidator : AbstractValidator<CreateAddonCommand>
+{
+    public CreateAddonCommandValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.ExtraPrice).GreaterThanOrEqualTo(0);
+    }
+}
+
+public sealed class UpdateAddonCommandValidator : AbstractValidator<UpdateAddonCommand>
+{
+    public UpdateAddonCommandValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.ExtraPrice).GreaterThanOrEqualTo(0);
+    }
+}
+
+public sealed class CreateAddonCommandHandler(IApplicationDbContext db) : IRequestHandler<CreateAddonCommand, Guid>
+{
+    public async Task<Guid> Handle(CreateAddonCommand request, CancellationToken cancellationToken)
+    {
+        var addon = new Addon
+        {
+            Name = request.Name.Trim(),
+            ExtraPrice = decimal.Round(request.ExtraPrice, 0, MidpointRounding.AwayFromZero),
+            TicketStation = request.TicketStation,
+            DisplayPriority = request.DisplayPriority,
+            IsActive = true
+        };
+        db.Addons.Add(addon);
+        await db.SaveChangesAsync(cancellationToken);
+        return addon.Id;
+    }
+}
+
+public sealed class UpdateAddonCommandHandler(IApplicationDbContext db) : IRequestHandler<UpdateAddonCommand>
+{
+    public async Task Handle(UpdateAddonCommand request, CancellationToken cancellationToken)
+    {
+        var addon = await db.Addons.FirstOrDefaultAsync(a => a.Id == request.Id && !a.IsDeleted, cancellationToken)
+                    ?? throw new NotFoundException(nameof(Addon), request.Id);
+        addon.Name = request.Name.Trim();
+        addon.ExtraPrice = decimal.Round(request.ExtraPrice, 0, MidpointRounding.AwayFromZero);
+        addon.TicketStation = request.TicketStation;
+        addon.DisplayPriority = request.DisplayPriority;
+        addon.IsActive = request.IsActive;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+}
+
+public sealed class DeleteAddonCommandHandler(IApplicationDbContext db) : IRequestHandler<DeleteAddonCommand>
+{
+    public async Task Handle(DeleteAddonCommand request, CancellationToken cancellationToken)
+    {
+        var addon = await db.Addons.FirstOrDefaultAsync(a => a.Id == request.Id && !a.IsDeleted, cancellationToken)
+                    ?? throw new NotFoundException(nameof(Addon), request.Id);
+        addon.IsDeleted = true;
+        addon.IsActive = false;
+        addon.DeletedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+}
+
+public sealed class AttachAddonToMenuItemCommandHandler(IApplicationDbContext db) : IRequestHandler<AttachAddonToMenuItemCommand>
+{
+    public async Task Handle(AttachAddonToMenuItemCommand request, CancellationToken cancellationToken)
+    {
+        if (!await db.MenuItems.AnyAsync(m => m.Id == request.MenuItemId && !m.IsDeleted, cancellationToken))
+            throw new NotFoundException(nameof(MenuItem), request.MenuItemId);
+        if (!await db.Addons.AnyAsync(a => a.Id == request.AddonId && !a.IsDeleted && a.IsActive, cancellationToken))
+            throw new NotFoundException(nameof(Addon), request.AddonId);
+        if (!await db.MenuItemAddons.AnyAsync(x => x.MenuItemId == request.MenuItemId && x.AddonId == request.AddonId, cancellationToken))
+        {
+            db.MenuItemAddons.Add(new MenuItemAddon { MenuItemId = request.MenuItemId, AddonId = request.AddonId });
+            await db.SaveChangesAsync(cancellationToken);
+        }
+    }
+}
+
+public sealed class DetachAddonFromMenuItemCommandHandler(IApplicationDbContext db) : IRequestHandler<DetachAddonFromMenuItemCommand>
+{
+    public async Task Handle(DetachAddonFromMenuItemCommand request, CancellationToken cancellationToken)
+    {
+        var link = await db.MenuItemAddons.FirstOrDefaultAsync(
+            x => x.MenuItemId == request.MenuItemId && x.AddonId == request.AddonId, cancellationToken);
+        if (link is null)
+            return;
+        db.MenuItemAddons.Remove(link);
         await db.SaveChangesAsync(cancellationToken);
     }
 }
@@ -440,6 +588,7 @@ public sealed class GetMenuQueryHandler(IApplicationDbContext db) : IRequestHand
             .Include(m => m.Category)
             .Include(m => m.Modifiers)
             .Include(m => m.ModifierGroups).ThenInclude(g => g.Options)
+            .Include(m => m.Addons).ThenInclude(link => link.Addon)
             .Include(m => m.Recipe)!.ThenInclude(r => r!.Lines)
             .AsQueryable();
 
@@ -459,6 +608,7 @@ public sealed class GetMenuItemQueryHandler(IApplicationDbContext db) : IRequest
             .Include(m => m.Category)
             .Include(m => m.Modifiers)
             .Include(m => m.ModifierGroups).ThenInclude(g => g.Options)
+            .Include(m => m.Addons).ThenInclude(link => link.Addon)
             .Include(m => m.Recipe)!.ThenInclude(r => r!.Lines)
             .FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(MenuItem), request.Id);
@@ -469,10 +619,13 @@ public sealed class GetMenuItemQueryHandler(IApplicationDbContext db) : IRequest
 internal static class MenuMapping
 {
     public static MenuItemDto ToDto(MenuItem m) => new(
-        m.Id, m.Title, m.Description, m.BasePrice, m.TaxInclusive, m.ImageUrl, m.DisplayPriority,
+        m.Id, m.Title, m.NameEn, m.DiscountPercent, m.Category.DiscountPercent, m.Description, m.BasePrice, m.TaxInclusive, m.ImageUrl, m.DisplayPriority,
         m.CategoryId, m.Category.Name, m.IsActive, m.IsSoldOut, m.TicketStation, m.PrepTimeMinutes,
         m.Modifiers.Where(x => !x.IsDeleted).OrderBy(x => x.DisplayPriority).Select(ToModifierDto).ToList(),
         m.ModifierGroups.Where(g => !g.IsDeleted).OrderBy(g => g.DisplayPriority).Select(ToGroupDto).ToList(),
+        m.Addons.Where(link => !link.Addon.IsDeleted && link.Addon.IsActive)
+            .OrderBy(link => link.Addon.DisplayPriority)
+            .Select(link => new MenuItemAddonDto(link.AddonId, link.Addon.Name, link.Addon.ExtraPrice)).ToList(),
         m.Recipe is null ? null : ToRecipeDto(m.Recipe));
 
     public static ModifierGroupDto ToGroupDto(ModifierGroup g) => new(

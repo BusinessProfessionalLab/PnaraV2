@@ -84,13 +84,6 @@ public sealed class TablesController(ISender sender) : ControllerBase
     public async Task<ActionResult<DiningTableDto>> UpdateStatus(Guid id, [FromBody] UpdateTableStatusRequest body, CancellationToken ct) =>
         Ok(await sender.Send(new UpdateTableStatusCommand(id, body.Status), ct));
 
-    [HttpPost("transfer")]
-    [Authorize(Policy = Permissions.TablesManage)]
-    public async Task<IActionResult> Transfer(TransferTableCommand command, CancellationToken ct)
-    {
-        await sender.Send(command, ct);
-        return NoContent();
-    }
 }
 
 public sealed record UpdateTableStatusRequest(TableStatus Status);

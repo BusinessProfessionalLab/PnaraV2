@@ -106,6 +106,47 @@ public sealed class MenuController(ISender sender) : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("addons")]
+    public async Task<ActionResult<IReadOnlyList<AddonDto>>> Addons([FromQuery] bool activeOnly = true, CancellationToken ct = default) =>
+        Ok(await sender.Send(new ListAddonsQuery(activeOnly), ct));
+
+    [HttpPost("addons")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<ActionResult<Guid>> CreateAddon(CreateAddonCommand command, CancellationToken ct) =>
+        Ok(await sender.Send(command, ct));
+
+    [HttpPut("addons/{id:guid}")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<IActionResult> UpdateAddon(Guid id, UpdateAddonCommand command, CancellationToken ct)
+    {
+        await sender.Send(command with { Id = id }, ct);
+        return NoContent();
+    }
+
+    [HttpDelete("addons/{id:guid}")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<IActionResult> DeleteAddon(Guid id, CancellationToken ct)
+    {
+        await sender.Send(new DeleteAddonCommand(id), ct);
+        return NoContent();
+    }
+
+    [HttpPost("items/{menuItemId:guid}/addons/{addonId:guid}")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<IActionResult> AttachAddon(Guid menuItemId, Guid addonId, CancellationToken ct)
+    {
+        await sender.Send(new AttachAddonToMenuItemCommand(menuItemId, addonId), ct);
+        return NoContent();
+    }
+
+    [HttpDelete("items/{menuItemId:guid}/addons/{addonId:guid}")]
+    [Authorize(Policy = Permissions.MenuManage)]
+    public async Task<IActionResult> DetachAddon(Guid menuItemId, Guid addonId, CancellationToken ct)
+    {
+        await sender.Send(new DetachAddonFromMenuItemCommand(menuItemId, addonId), ct);
+        return NoContent();
+    }
+
     [HttpGet("items/{menuItemId:guid}/modifier-groups")]
     public async Task<ActionResult<IReadOnlyList<ModifierGroupDto>>> ListModifierGroups(Guid menuItemId, CancellationToken ct) =>
         Ok(await sender.Send(new ListModifierGroupsByProductQuery(menuItemId), ct));

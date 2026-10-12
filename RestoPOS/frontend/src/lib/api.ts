@@ -991,11 +991,6 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ id, status }),
     }),
-  transferTable: (fromTableId: string, toTableId: string) =>
-    apiFetch<void>("/api/tables/transfer", {
-      method: "POST",
-      body: JSON.stringify({ fromTableId, toTableId }),
-    }),
 
   // ── Reports (legacy + new) ──
   reportProducts: (fromUtc: string, toUtc: string) =>

@@ -10,7 +10,7 @@ public sealed class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Ap
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseNpgsql(Environment.GetEnvironmentVariable("ConnectionStrings__PostgreSql")
-                          ?? "Host=localhost;Port=5432;Database=pnara;Username=pnara_app;Password=change-me")
+                          ?? "Host=localhost;Port=5432;Database=pnara;Username=postgres;Password=1qaz!QAZ1qaz")
             .Options;
 
         return new ApplicationDbContext(options, new DesignTimeCurrentUser(), new NoOpDomainEventDispatcher());

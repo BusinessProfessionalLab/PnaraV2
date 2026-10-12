@@ -22,7 +22,7 @@ const {
   <SectionHeader title={title} description={description} />
   <div class="max-w-2xl mx-auto mt-8">
     {items.map((item: { question: string; answer: string }, index: number) => (
-      <AccordionItem question={item.question} answer={item.answer} index={index}  data-aos="fade-up-xs" data-aos-once="true" data-aos-delay={index * 100}  />
+      <AccordionItem question={item.question} answer={item.answer} index={index}  />
     ))}
   </div>
 </section>

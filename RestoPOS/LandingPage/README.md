@@ -38,6 +38,14 @@ PUBLIC_UMAMI_ID=        # optional
 | `pnpm preview` | Preview the production build |
 | `pnpm brand:assets` | Regenerate `public/og.png` and `public/favicon.png` |
 | `pnpm check` | Biome lint + format |
+| `pnpm test:chat` | Live-chat suites (`node --test tests/chat/`, no extra deps) |
+
+## Live chat
+
+The Persian RTL support widget (`src/components/chat/`) talks to the Worker
+(`telegramworker/src/index.js`, deployed as `pnara-sup01`) with D1 persistence
+and a Telegram support group.
+Full setup, secrets, webhook, and deployment steps: `docs/LIVE_CHAT.md`.
 
 ## Pages
 
@@ -45,8 +53,7 @@ PUBLIC_UMAMI_ID=        # optional
 | --- | --- |
 | `/` | Landing page: hero, problems, capabilities, product showcases, a working day, setup, roles, before/after, FAQ, CTA |
 | `/features` | Feature deep-dives, one anchored module per workflow |
-| `/changelog` | Release notes, mirroring the product's own release history |
-| `/about` | Why it exists, design decisions, architecture, release timeline, explicit scope |
+| `/about` | Why it exists, design decisions, architecture, explicit scope |
 | `/contact` | Demo request form |
 | `/404` | Not-found page |
 
@@ -60,7 +67,6 @@ PUBLIC_UMAMI_ID=        # optional
 | Feature deep-dives | `src/pages/features.astro` |
 | Product mockups (POS, KDS, reports, inventory) | `src/components/product/` |
 | Currency/date formatting for mockups | `src/lib/fa.ts` |
-| Release notes | `src/content/changelog/*.mdx` |
 | Design tokens and fonts | `src/styles/global.css` |
 | Footer link groups | `src/components/sections/Footer.astro` |
 

@@ -51,7 +51,7 @@ The site is **Persian, RTL** (`<html lang="fa" dir="rtl">`), set in **Vazirmatn*
 | Styling | Tailwind CSS v4 with `@theme` tokens |
 | Content | MDX, `@astrojs/mdx`, Astro Content Layer |
 | Icons | `@lucide/astro` |
-| Motion | AOS + `motion` |
+| Motion | CSS-only (no animation libraries) |
 | SEO | `@astrojs/sitemap`, custom meta components |
 | Type checking | TypeScript, `astro check` |
 | Raster assets | `sharp` via `scripts/generate-brand-assets.mjs` |
@@ -79,17 +79,16 @@ pnpm brand:assets    # regenerate public/og.png + public/favicon.png
 
 ```text
 src/
-  assets/js/main.js      Dark mode, sticky header, mobile menu, AOS init
+  assets/js/main.js      Dark mode, sticky header, mobile menu
   collections/menu.json  Header navigation (single source of truth)
   components/
     elements/            SectionHeader, PageHeader, SeparatorLine
     home/                HeroSection
     product/             Application mockups — POS, KDS, reports, inventory
     sections/            Header, Footer, FAQ
-    ui/                  Button, Badge, Logo, AppFrame, BrowserFrame, AnimatedText…
+    ui/                  Button, Badge, Logo, AppFrame, BrowserFrame…
     widgets/             ToTop, TrackGa, OptimizedImage
   config/site.js         Brand, metadata, product facts
-  content/changelog/     Release notes (MDX)
   layouts/               Layout, PageLayout, Meta
   lib/fa.ts              Persian number/date/currency formatting helpers
   pages/                 Routes
@@ -104,8 +103,7 @@ scripts/                 Brand asset generator
 | --- | --- |
 | `/` | Landing page — hero, problems, capabilities, showcases, workflow, setup, roles, comparison, FAQ, CTA |
 | `/features` | Anchored deep-dives per workflow |
-| `/changelog` | Release notes from the `changelog` collection |
-| `/about` | Product rationale, architecture, release history, explicit scope |
+| `/about` | Product rationale, architecture, explicit scope |
 | `/contact` | Demo request form |
 | `/404` | Not-found page |
 
@@ -157,8 +155,7 @@ content on the site, so:
 - Copy is Persian, written for a café owner, about real daily workflows.
 - Avoid generic SaaS filler ("transform your business", "all-in-one solution").
 - Money is stored in Rial and always displayed in Toman.
-- Dates are Jalali/Shamsi. `changelog` frontmatter carries a pre-formatted
-  `dateLabel` so the build never depends on ICU calendar data.
+- Dates are Jalali/Shamsi.
 
 ## SEO And Analytics
 

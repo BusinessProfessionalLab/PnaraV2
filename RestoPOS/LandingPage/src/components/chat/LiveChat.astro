@@ -1,0 +1,545 @@
+---
+/**
+ * Pnara live-chat widget: floating button + RTL Persian chat panel.
+ * Mounted globally from `src/layouts/Layout.astro`. Behavior lives in
+ * `./live-chat.ts` (vanilla TS, no dependencies).
+ */
+const apiBase =
+	import.meta.env.PUBLIC_CHAT_API_URL ||
+	"https://pnara-sup01.mr-2donya9034.workers.dev";
+---
+
+<div
+  id="pnara-live-chat"
+  class="pnara-chat"
+  data-api-url={apiBase}
+  dir="rtl"
+  lang="fa"
+>
+  <div
+    id="pnara-chat-sr"
+    data-chat-sr
+    class="pnara-chat-sr"
+    role="status"
+    aria-live="polite"
+  ></div>
+
+  <button
+    type="button"
+    class="pnara-chat-fab"
+    data-chat-fab
+    aria-expanded="false"
+    aria-controls="pnara-chat-panel"
+    aria-label="گفتگو با پشتیبانی"
+  >
+    <svg
+      class="pnara-chat-fab-icon"
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path>
+      <path d="M8 12h.01"></path>
+      <path d="M12 12h.01"></path>
+      <path d="M16 12h.01"></path>
+    </svg>
+    <span class="pnara-chat-badge is-hidden" data-chat-badge aria-hidden="true"></span>
+  </button>
+
+  <section
+    id="pnara-chat-panel"
+    class="pnara-chat-panel"
+    data-chat-panel
+    role="dialog"
+    aria-modal="false"
+    aria-labelledby="pnara-chat-title"
+    aria-hidden="true"
+  >
+    <header class="pnara-chat-header">
+      <span class="pnara-chat-avatar" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+      </span>
+      <span class="pnara-chat-head-text">
+        <strong id="pnara-chat-title" class="pnara-chat-title">پشتیبانی پینارا</strong>
+        <small class="pnara-chat-sub">معمولاً در ساعات کاری پاسخ می‌دهیم</small>
+      </span>
+      <span class="pnara-chat-head-actions">
+        <button type="button" class="pnara-chat-icon-btn" data-chat-min aria-label="کوچک کردن گفتگو">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg>
+        </button>
+        <button type="button" class="pnara-chat-icon-btn" data-chat-close aria-label="بستن گفتگو">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+        </button>
+      </span>
+    </header>
+
+    <div class="pnara-chat-body">
+      <div class="pnara-chat-screen" data-chat-loading role="status">
+        <span class="pnara-chat-spinner" aria-hidden="true"></span>
+        <p>در حال اتصال به پشتیبانی…</p>
+      </div>
+
+      <div class="pnara-chat-screen is-hidden" data-chat-error>
+        <p class="pnara-chat-error-text" data-chat-error-text role="alert"></p>
+        <button type="button" class="pnara-chat-primary-btn" data-chat-retry>تلاش مجدد</button>
+      </div>
+
+      <div class="pnara-chat-screen is-hidden" data-chat-onboarding>
+        <p class="pnara-chat-welcome">
+          سلام! 👋 برای شروع گفتگو با پشتیبانی، لطفاً خودتان را معرفی کنید.
+          پیام‌های شما همین‌جا پاسخ داده می‌شود.
+        </p>
+        <form data-chat-form novalidate>
+          <div class="pnara-chat-field">
+            <label for="pnara-chat-firstname">نام</label>
+            <input id="pnara-chat-firstname" name="firstName" type="text" autocomplete="given-name" required maxlength="80" />
+            <p class="pnara-chat-field-error is-hidden" id="pnara-chat-err-firstname" role="alert"></p>
+          </div>
+          <div class="pnara-chat-field">
+            <label for="pnara-chat-lastname">نام خانوادگی</label>
+            <input id="pnara-chat-lastname" name="lastName" type="text" autocomplete="family-name" required maxlength="80" />
+            <p class="pnara-chat-field-error is-hidden" id="pnara-chat-err-lastname" role="alert"></p>
+          </div>
+          <div class="pnara-chat-field">
+            <label for="pnara-chat-cafename">نام کافه</label>
+            <input id="pnara-chat-cafename" name="cafeName" type="text" autocomplete="organization" required maxlength="120" />
+            <p class="pnara-chat-field-error is-hidden" id="pnara-chat-err-cafename" role="alert"></p>
+          </div>
+          <div class="pnara-chat-field">
+            <label for="pnara-chat-phone">شماره موبایل</label>
+            <input id="pnara-chat-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required dir="ltr" placeholder="0912 000 0000" class="pnara-chat-ltr" />
+            <p class="pnara-chat-field-error is-hidden" id="pnara-chat-err-phone" role="alert"></p>
+          </div>
+          <button type="submit" class="pnara-chat-primary-btn" data-chat-submit>شروع گفتگو</button>
+        </form>
+      </div>
+
+      <div class="pnara-chat-screen pnara-chat-thread is-hidden" data-chat-thread>
+        <div class="pnara-chat-closed is-hidden" data-chat-closed role="status">
+          این گفتگو بسته شده است. پیام جدید بفرستید تا دوباره باز شود.
+        </div>
+        <div class="pnara-chat-log" data-chat-log role="log" aria-label="پیام‌های گفتگو" tabindex="0"></div>
+        <button type="button" class="pnara-chat-new-pill is-hidden" data-chat-new-pill>پیام‌های جدید ↓</button>
+        <p class="pnara-chat-send-error is-hidden" data-chat-send-error role="alert"></p>
+        <form class="pnara-chat-composer" data-chat-composer>
+          <label class="pnara-chat-sr" for="pnara-chat-input">متن پیام</label>
+          <input
+            id="pnara-chat-input"
+            data-chat-input
+            type="text"
+            autocomplete="off"
+            maxlength="2000"
+            placeholder="پیام خود را بنویسید…"
+          />
+          <button type="submit" class="pnara-chat-send" data-chat-send aria-label="ارسال پیام">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="pnara-chat-send-icon">
+              <path d="m22 2-7 20-4-9-9-4Z"></path>
+              <path d="M22 2 11 13"></path>
+            </svg>
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  import { initLiveChat } from "./live-chat.ts";
+
+  const mount = (): void => {
+    const root = document.getElementById("pnara-live-chat");
+    if (!root || root.dataset.chatReady === "true") return;
+    root.dataset.chatReady = "true";
+    initLiveChat(root as HTMLElement, { apiBase: root.dataset.apiUrl || "" });
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", mount, { once: true });
+  } else {
+    mount();
+  }
+  document.addEventListener("astro:page-load", mount);
+</script>
+
+<style>
+  .pnara-chat {
+    --chat-z: 1200;
+    --chat-primary: var(--color-btn-primary, #2d6dc3);
+    --chat-primary-hover: var(--color-btn-primary-hover, #0066ff);
+    --chat-surface: var(--color-bg-secondary, #fff);
+    --chat-ink: var(--color-neutral-800, #2c3542);
+    --chat-muted: var(--color-neutral-500, #677487);
+    --chat-line: var(--color-neutral-200, #dfe4ed);
+    position: static;
+  }
+  :global(.dark) .pnara-chat {
+    --chat-surface: var(--color-bg-secondary-dark, #0f1b2d);
+    --chat-ink: var(--color-neutral-100, #edf1f8);
+    --chat-muted: var(--color-neutral-400, #92a1b7);
+    --chat-line: var(--color-neutral-700, #3f4a5a);
+  }
+
+  .pnara-chat-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  /* Floating button: physical bottom-right, clear of the back-to-top (left). */
+  .pnara-chat-fab {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    left: auto;
+    z-index: var(--chat-z);
+    width: 3.5rem;
+    height: 3.5rem;
+    border: none;
+    border-radius: 50%;
+    background: var(--chat-primary);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(45, 109, 195, 0.35);
+    opacity: 0;
+    transform: translateY(1rem) scale(0.9);
+    animation: pnara-chat-fab-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) 0.6s forwards;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  }
+  .pnara-chat-fab:hover {
+    background: var(--chat-primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(45, 109, 195, 0.45);
+  }
+  .pnara-chat-fab:active { transform: scale(0.94); }
+  .pnara-chat-fab:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--chat-primary) 55%, #fff);
+    outline-offset: 2px;
+  }
+  @keyframes pnara-chat-fab-in {
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .pnara-chat-fab-icon { pointer-events: none; }
+  .pnara-chat-badge {
+    position: absolute;
+    top: -4px;
+    inset-inline-start: -4px;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: #e11d48;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+  }
+  .pnara-chat-badge.is-hidden { display: none; }
+
+  /* Panel */
+  .pnara-chat-panel {
+    position: fixed;
+    bottom: calc(1.5rem + 4.25rem);
+    right: 1.5rem;
+    left: auto;
+    z-index: var(--chat-z);
+    width: min(24rem, calc(100vw - 2rem));
+    height: min(35rem, calc(100dvh - 8rem));
+    min-height: 22rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 1.1rem;
+    border: 1px solid var(--chat-line);
+    background: var(--chat-surface);
+    color: var(--chat-ink);
+    box-shadow: 0 24px 70px rgba(25, 34, 47, 0.22);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(12px) scale(0.97);
+    transform-origin: bottom right;
+    transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.2, 0.8, 0.3, 1), visibility 0s linear 0.22s;
+  }
+  .pnara-chat-panel.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.2, 0.8, 0.3, 1), visibility 0s;
+  }
+
+  .pnara-chat-header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.85rem 1rem;
+    background: var(--chat-primary);
+    color: #fff;
+  }
+  .pnara-chat-avatar {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .pnara-chat-head-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .pnara-chat-title { font-size: 0.95rem; font-weight: 700; line-height: 1.5; }
+  .pnara-chat-sub { font-size: 0.72rem; opacity: 0.85; line-height: 1.6; }
+  .pnara-chat-head-actions { display: flex; gap: 0.25rem; }
+  .pnara-chat-icon-btn {
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: 0.6rem;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+  }
+  .pnara-chat-icon-btn:hover { background: rgba(255, 255, 255, 0.18); }
+  .pnara-chat-icon-btn:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+
+  .pnara-chat-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .pnara-chat-screen { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem; overflow-y: auto; }
+  .pnara-chat-screen.is-hidden { display: none; }
+
+  .pnara-chat-spinner {
+    width: 1.75rem;
+    height: 1.75rem;
+    margin: 3rem auto 0;
+    border-radius: 50%;
+    border: 3px solid var(--chat-line);
+    border-top-color: var(--chat-primary);
+    animation: pnara-chat-spin 0.8s linear infinite;
+  }
+  @keyframes pnara-chat-spin { to { transform: rotate(360deg); } }
+
+  .pnara-chat-welcome { font-size: 0.85rem; line-height: 2; color: var(--chat-muted); margin: 0; }
+  .pnara-chat-field { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.7rem; }
+  .pnara-chat-field label { font-size: 0.8rem; font-weight: 600; }
+  .pnara-chat-field input {
+    border-radius: 0.7rem;
+    border: 1px solid var(--chat-line);
+    background: transparent;
+    color: inherit;
+    padding: 0.65rem 0.85rem;
+    font: inherit;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .pnara-chat-field input:focus {
+    border-color: var(--chat-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--chat-primary) 22%, transparent);
+  }
+  .pnara-chat-field input[aria-invalid="true"] { border-color: #e11d48; }
+  .pnara-chat-ltr { text-align: left; }
+  .pnara-chat-ltr::placeholder { text-align: right; }
+  .pnara-chat-field-error { font-size: 0.75rem; color: #e11d48; margin: 0; line-height: 1.9; }
+  .pnara-chat-field-error.is-hidden { display: none; }
+
+  .pnara-chat-primary-btn {
+    border: none;
+    border-radius: 0.8rem;
+    background: var(--chat-primary);
+    color: #fff;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+  .pnara-chat-primary-btn:hover { background: var(--chat-primary-hover); }
+  .pnara-chat-primary-btn:disabled { opacity: 0.65; cursor: wait; }
+  .pnara-chat-primary-btn:focus-visible { outline: 3px solid color-mix(in srgb, var(--chat-primary) 45%, transparent); outline-offset: 2px; }
+  .pnara-chat-error-text { font-size: 0.85rem; line-height: 2.1; margin: 2rem 0 0.5rem; text-align: center; }
+
+  /* Thread */
+  .pnara-chat-thread { padding: 0; }
+  .pnara-chat-closed {
+    margin: 0.75rem 0.9rem 0;
+    padding: 0.55rem 0.8rem;
+    border-radius: 0.7rem;
+    font-size: 0.78rem;
+    line-height: 2;
+    text-align: center;
+    background: color-mix(in srgb, #f59e0b 14%, transparent);
+    border: 1px solid color-mix(in srgb, #f59e0b 40%, transparent);
+  }
+  .pnara-chat-closed.is-hidden { display: none; }
+  .pnara-chat-log {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.9rem;
+    overscroll-behavior: contain;
+  }
+  .pnara-chat-empty {
+    margin: auto;
+    font-size: 0.82rem;
+    line-height: 2.1;
+    color: var(--chat-muted);
+    text-align: center;
+    max-width: 16rem;
+  }
+  .pnara-chat-msg { display: flex; flex-direction: column; gap: 0.15rem; max-width: 88%; }
+  .pnara-chat-msg.is-visitor { align-self: flex-end; align-items: flex-end; }
+  .pnara-chat-msg.is-support, .pnara-chat-msg.is-system { align-self: flex-start; align-items: flex-start; }
+  .pnara-chat-bubble {
+    padding: 0.55rem 0.85rem;
+    border-radius: 1rem;
+    font-size: 0.86rem;
+    line-height: 2;
+    overflow-wrap: anywhere;
+    unicode-bidi: plaintext;
+    text-align: start;
+  }
+  .is-visitor .pnara-chat-bubble {
+    background: var(--chat-primary);
+    color: #fff;
+    border-end-start-radius: 0.3rem;
+  }
+  .is-support .pnara-chat-bubble {
+    background: color-mix(in srgb, var(--chat-ink) 8%, transparent);
+    border: 1px solid var(--chat-line);
+    border-start-start-radius: 0.3rem;
+  }
+  .is-system .pnara-chat-bubble {
+    background: transparent;
+    border: 1px dashed var(--chat-line);
+    color: var(--chat-muted);
+    font-size: 0.78rem;
+    text-align: center;
+  }
+  .pnara-chat-meta { display: flex; gap: 0.5rem; font-size: 0.68rem; color: var(--chat-muted); line-height: 1.8; }
+  .pnara-chat-link { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+  .is-visitor .pnara-chat-link { color: #fff; }
+  .is-support .pnara-chat-link, .is-system .pnara-chat-link { color: var(--chat-primary); }
+  :global(.dark) .is-support .pnara-chat-link { color: var(--color-primary-light, #8fb9ff); }
+  .pnara-chat-state { font-size: 0.7rem; }
+  .pnara-chat-retry {
+    border: none;
+    background: none;
+    color: #e11d48;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+  }
+  .pnara-chat-retry:focus-visible { outline: 2px solid #e11d48; outline-offset: 2px; }
+  .is-pending { opacity: 0.85; }
+
+  .pnara-chat-new-pill {
+    align-self: center;
+    border: 1px solid var(--chat-line);
+    background: var(--chat-surface);
+    color: var(--chat-primary);
+    border-radius: 999px;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.3rem 0.9rem;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(25, 34, 47, 0.12);
+  }
+  .pnara-chat-new-pill.is-hidden { display: none; }
+
+  .pnara-chat-send-error { font-size: 0.75rem; color: #e11d48; margin: 0 0.9rem; line-height: 1.9; }
+  .pnara-chat-send-error.is-hidden { display: none; }
+
+  .pnara-chat-composer {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.7rem 0.9rem calc(0.9rem + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--chat-line);
+    background: var(--chat-surface);
+  }
+  .pnara-chat-composer input {
+    flex: 1;
+    min-width: 0;
+    border-radius: 0.8rem;
+    border: 1px solid var(--chat-line);
+    background: transparent;
+    color: inherit;
+    padding: 0.65rem 0.9rem;
+    font: inherit;
+    font-size: 0.88rem;
+    outline: none;
+  }
+  .pnara-chat-composer input:focus {
+    border-color: var(--chat-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--chat-primary) 22%, transparent);
+  }
+  .pnara-chat-send {
+    width: 2.75rem;
+    height: 2.75rem;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 0.8rem;
+    background: var(--chat-primary);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+  .pnara-chat-send:hover { background: var(--chat-primary-hover); }
+  .pnara-chat-send:active { transform: scale(0.93); }
+  .pnara-chat-send:focus-visible { outline: 3px solid color-mix(in srgb, var(--chat-primary) 45%, transparent); outline-offset: 2px; }
+  .pnara-chat-send-icon { transform: scaleX(-1); }
+
+  @media (max-width: 480px) {
+    .pnara-chat-fab { bottom: 1rem; right: 1rem; width: 3.25rem; height: 3.25rem; }
+    .pnara-chat-panel {
+      bottom: 0;
+      right: 0;
+      width: 100vw;
+      height: 100dvh;
+      min-height: 0;
+      border-radius: 0;
+      border: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pnara-chat-fab { animation: none; opacity: 1; transform: none; }
+    .pnara-chat-fab, .pnara-chat-panel, .pnara-chat-icon-btn,
+    .pnara-chat-primary-btn, .pnara-chat-send, .pnara-chat-field input {
+      transition: none;
+    }
+    .pnara-chat-panel { transform: none; }
+    .pnara-chat-spinner { animation-duration: 1.6s; }
+  }
+</style>

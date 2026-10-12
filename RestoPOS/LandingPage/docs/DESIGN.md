@@ -5,12 +5,15 @@ This document describes the visual system implemented in the landing page.
 ## Design Direction
 
 The site keeps the calm, product-led aesthetic of the original RicoFast system and
-adapts it for a Persian (RTL) product:
+adapts it for a Persian (RTL) product, with a warm editorial layer inspired by
+the reference (warm stone canvas, sand bands, pastel preview stages, pill
+buttons, 24px cards, playful CSS-only decorations — reinterpreted, never copied):
 
 - Warm light canvas, blue primary accent, gold highlight accent.
-- Editorial display weight for headings — carried by **weight**, not by a serif.
-- Dashed separators and restrained card borders.
-- Subtle motion, never heavy animation.
+- Ink headings (`#19222f`); blue stays reserved for actions, links and accents.
+- Eyebrow pills above section headings, sand bands alternating with white cards.
+- Pastel stages behind product previews; playful sun/ring/smile/diamond/dot shapes.
+- Pill buttons, 24px card radii, subtle hover lift, single soft hero entrance.
 - Full support for class-based dark mode.
 
 ## Language And Script
@@ -73,10 +76,30 @@ Defined in `src/styles/global.css`. Palette unchanged from the base system.
 
 | Token | Value | Usage |
 | --- | --- | --- |
-| `--color-primary` | `#2d6dc3` | Brand color, links, CTAs, headings |
+| `--color-primary` | `#2d6dc3` | Brand color, links, CTAs, small accents |
 | `--color-primary-strong` | `#0066ff` | Hover and emphasis |
 | `--color-primary-light` | `#8fb9ff` | Light accents |
 | `--color-accent` | `#fad13b` | Badges, highlights |
+
+### Warm surfaces (reference-inspired, original values)
+
+| Token | Value | Usage |
+| --- | --- | --- |
+| `--color-ink` | `#19222f` | Headings |
+| `--color-cream` | `#faf8f3` | Band gradient start |
+| `--color-sand` | `#f1ece2` | Band gradient end |
+| `--color-sand-border` | `#e5dccb` | Card borders |
+| `--color-mist-blue` | `#e9f1fd` | Preview stage tint |
+| `--color-mist-green` | `#ecf6d9` | Preview stage tint |
+| `--color-mist-pink` | `#fbe8fa` | Preview stage tint |
+| `--color-mist-amber` | `#fcf0c2` | Preview stage tint |
+| `--color-lime` | `#dbfc74` | Tiny playful accent only |
+| `--radius-xl` | `24px` | Cards, stages, bands |
+| `--radius-lg` | `16px` | Small cards |
+| `--radius-pill` | `999px` | Buttons, eyebrows, chips |
+
+Shared utilities in `global.css`: `.eyebrow`, `.band-sand`, `.band-card`,
+`.card-lift`, `.preview-stage`, `.deco-*`, `.rise`.
 
 ### Background
 
@@ -92,13 +115,13 @@ Defined in `src/styles/global.css`. Palette unchanged from the base system.
 
 | Token | Value | Usage |
 | --- | --- | --- |
-| `--color-text-primary` | `#2d6dc3` | Light-mode headings |
+| `--color-text-primary` | `#19222f` | Light-mode headings (ink, not blue) |
 | `--color-text-secondary` | `#3f4a5a` | Light-mode body text |
-| `--color-text-primary-dark` | `#3884eb` | Dark-mode headings |
+| `--color-text-primary-dark` | `#e8eef7` | Dark-mode headings |
 | `--color-text-secondary-dark` | `#c5cedb` | Dark-mode body text |
 
-`h1`, `h2` and `h3` are colored with the primary token globally. Dark mode is
-class-based (`html.dark`), stored in `localStorage` under `dark_mode`.
+`h1`, `h2` and `h3` use the ink token globally; blue is reserved for actions.
+Dark mode is class-based (`html.dark`), stored in `localStorage` under `dark_mode`.
 
 ## Typography
 
@@ -133,6 +156,8 @@ Major marketing sections use `py-16 md:py-24`.
 - No scroll-reveal or text-stagger animation libraries. Pages render static
   content so mobile devices never pay for scroll listeners or per-word
   blur/transform work.
+- One soft hero entrance (`.rise`, staggered `rise-1/2/3`) plus CSS-only hover
+  lifts (`.card-lift`); everything respects `prefers-reduced-motion`.
 - Component-level CSS animation is used sparingly for product previews
   (pulsing live dots) and respects `prefers-reduced-motion`.
 - Hover transitions stay CSS-only (`transform`/`opacity`).
@@ -194,7 +219,7 @@ The generator draws from the tokens above — update `TOKENS` in
 - Use Lucide icons via `@lucide/astro`.
 - Use `Button.astro` for primary and secondary CTAs.
 - Use `AppFrame.astro` for application screens, `BrowserFrame.astro` for generic frames.
-- Keep cards restrained: subtle borders, low shadow, clean spacing.
+- Keep cards warm and generous: white on sand, `rounded-[24px]`, token borders, token shadows, `.card-lift` on hover.
 - Maintain light and dark mode styles for every new surface.
 - Prefer token values over one-off hex colors.
 

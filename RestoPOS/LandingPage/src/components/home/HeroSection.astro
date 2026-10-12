@@ -1,6 +1,5 @@
 ---
 import Button from "@/components/ui/Button.astro";
-import Badge from "@/components/ui/Badge.astro";
 import AppFrame from "@/components/ui/AppFrame.astro";
 import PosPreview from "@/components/product/PosPreview.astro";
 
@@ -24,27 +23,34 @@ const facts = [
 <div
   class="relative site-container z-20 w-full mx-auto mt-16 px-4 md:mt-20 lg:mt-28 xl:px-0"
 >
+  <!-- Playful CSS-only decorations -->
+  <div class="deco deco-sun top-2 start-[6%] hidden md:block" aria-hidden="true"></div>
+  <div class="deco deco-ring top-24 end-[4%] hidden lg:block" aria-hidden="true"></div>
+  <div class="deco deco-smile bottom-[38%] start-[2%] hidden lg:block" aria-hidden="true"></div>
+  <div class="deco deco-diamond top-16 end-[16%] hidden md:block" aria-hidden="true"></div>
+  <div class="deco deco-dot-grid bottom-[42%] end-[1%] hidden xl:block" aria-hidden="true"></div>
+
   <!-- ── Copy ───────────────────────────────────────────────────────── -->
-  <div class="flex flex-col items-center text-center max-w-3xl mx-auto">
+  <div class="relative z-10 flex flex-col items-center text-center max-w-3xl mx-auto">
     <div
-      class="flex flex-wrap gap-2 justify-center mb-6"
+      class="rise flex flex-wrap gap-2 justify-center mb-6"
     >
-      <Badge variant="accent">صندوق لمسی + انبار</Badge>
+      <span class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>صندوق لمسی + انبار</span>
     </div>
 
-    <h1 class="mb-5 text-3xl leading-[1.35] sm:text-4xl lg:text-[3.4rem] lg:leading-[1.25] font-brand">
+    <h1 class="rise rise-1 mb-5 text-3xl leading-[1.35] sm:text-4xl lg:text-[3.4rem] lg:leading-[1.25] font-brand text-balance">
       صندوق لمسی کافه، با انباری که خودش حساب می‌کند
     </h1>
 
-    <p class="mb-8 max-w-2xl text-base sm:text-lg text-neutral-600 dark:text-neutral-300 leading-8 sm:leading-9">
+    <p class="rise rise-2 mb-8 max-w-2xl text-base sm:text-lg text-neutral-600 dark:text-neutral-300 leading-8 sm:leading-9 text-balance">
       سفارش را در صندوق لمسی می‌زنید؛ سیستم بر اساس رسپی، مواد اولیه را از انبار کم می‌کند، بلیت بار و آشپزخانه را می‌فرستد و پایان شیفت نشان می‌دهد چقدر فروختید، چقدر خرج کردید و چقدر سود کردید.
     </p>
 
     <div
-      class="flex flex-wrap gap-3 justify-center"
+      class="rise rise-3 flex flex-wrap gap-3 justify-center"
     >
       <Button url="/contact" type="fill" size="lg">درخواست دمو</Button>
-      <Button url="/features" size="lg">قابلیت‌ها را ببینید</Button>
+      <Button url="/features" type="solid" size="lg">قابلیت‌ها را ببینید</Button>
     </div>
 
     <!-- Concrete facts instead of vague trust badges -->
@@ -53,7 +59,7 @@ const facts = [
     >
       {
         facts.map((fact) => (
-          <div class="rounded-xl border border-primary/10 dark:border-neutral-700 bg-bg-secondary/70 dark:bg-bg-secondary-dark/70 px-4 py-3 text-start">
+          <div class="card-lift rounded-2xl border border-[#e9e2d4] dark:border-neutral-700 bg-white dark:bg-bg-secondary-dark px-4 py-3 text-start" style="box-shadow: var(--shadow-card);">
             <dt class="font-brand text-primary dark:text-primary-light text-base">
               {fact.value}
             </dt>
@@ -66,9 +72,9 @@ const facts = [
     </dl>
   </div>
 
-  <!-- ── Register preview ───────────────────────────────────────────── -->
+  <!-- ── Register preview on a pastel stage ─────────────────────────── -->
   <div
-    class="relative mt-12 md:mt-16 mx-auto max-w-[1120px]"
+    class="preview-stage relative mt-12 md:mt-16 mx-auto max-w-[1120px]"
   >
     <AppFrame label="صندوق لمسی · کافه ونوشه" route="/pos" live={true}>
       <PosPreview />

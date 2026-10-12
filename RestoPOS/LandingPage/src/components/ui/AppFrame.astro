@@ -25,7 +25,8 @@ const { label = "", route = "", live = false, className = "" } = Astro.props;
 ---
 
 <div
-  class={`relative rounded-2xl overflow-hidden border shadow-[0_1px_2px_0_rgb(17_24_39/0.04)] bg-white dark:bg-[#151923] border-[#e2e5ea] dark:border-[#272d39] ${className}`}
+  class={`relative rounded-[24px] overflow-hidden border bg-white dark:bg-[#151923] border-[#e2e5ea] dark:border-[#272d39] ${className}`}
+  style="box-shadow: var(--shadow-card);"
 >
   <!-- Screen chrome -->
   <div

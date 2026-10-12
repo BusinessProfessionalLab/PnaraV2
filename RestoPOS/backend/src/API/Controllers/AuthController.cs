@@ -8,13 +8,13 @@ namespace RestoPOS.API.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public sealed class AuthController(ISender sender, OfflineLicenseService license) : ControllerBase
+public sealed class AuthController(ISender sender, OfflineLicenseService license, IWebHostEnvironment environment) : ControllerBase
 {
     [HttpPost("login")]
     [AllowAnonymous]
     public async Task<ActionResult<AuthResponse>> Login(LoginCommand command, CancellationToken ct)
     {
-        if (license.Validate() is null)
+        if (environment.IsProduction() && license.Validate() is null)
             return StatusCode(StatusCodes.Status403Forbidden, new { title = "LicenseExpired", detail = "لایسنس این نرم‌افزار معتبر نیست یا مدت اعتبار آن به پایان رسیده است." });
         return Ok(await sender.Send(command, ct));
     }

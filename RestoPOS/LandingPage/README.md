@@ -43,7 +43,8 @@ PUBLIC_UMAMI_ID=        # optional
 ## Live chat
 
 The Persian RTL support widget (`src/components/chat/`) talks to the Worker
-(`CloudflareWorker.js`) with D1 persistence and a Telegram support group.
+(`telegramworker/src/index.js`, deployed as `pnara-sup01`) with D1 persistence
+and a Telegram support group.
 Full setup, secrets, webhook, and deployment steps: `docs/LIVE_CHAT.md`.
 
 ## Pages

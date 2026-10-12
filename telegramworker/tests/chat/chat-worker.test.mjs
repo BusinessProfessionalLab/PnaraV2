@@ -7,7 +7,7 @@ import worker, {
 	shortRef,
 	validateMessageText,
 	validateOnboarding,
-} from "../../CloudflareWorker.js";
+} from "../../src/index.js";
 
 /* ------------------------------------------------------------------ */
 /* Minimal in-memory D1 mock that understands exactly the SQL our       */

@@ -2,10 +2,9 @@
  * Shared chat helpers — single source of truth for validation rules.
  *
  * Used by the Astro widget (`src/components/chat/live-chat.ts`) and mirrored
- * inside `CloudflareWorker.js` (which must stay a self-contained file so the
- * existing single-file dashboard deploy keeps working). Keep the two copies in
- * sync — `tests/chat-shared.test.mjs` and `tests/chat-worker.test.mjs` assert
- * parity on the same vectors.
+ * inside `telegramworker/src/index.js` (which must stay a self-contained file
+ * so the existing single-file dashboard deploy keeps working). Keep the two
+ * copies in sync — `telegramworker/tests/chat/` parity tests assert it.
  *
  * Plain ESM with no dependencies so it runs in the browser, Workers, and Node.
  */

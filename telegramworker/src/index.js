@@ -1,5 +1,5 @@
 /**
- * Pnara landing-site Cloudflare Worker.
+ * Pnara live-chat Cloudflare Worker (canonical location: telegramworker/src/index.js).
  *
  * Two responsibilities, one bot, one webhook:
  *
@@ -14,7 +14,7 @@
  * production. No in-memory object is used as a message store.
  *
  * Secrets / config (set via `wrangler secret put` or `.dev.vars`, see
- * `wrangler.toml.example` + `docs/LIVE_CHAT.md`):
+ * `wrangler.jsonc` + `RestoPOS/LandingPage/docs/LIVE_CHAT.md`):
  *   TELEGRAM_BOT_TOKEN          bot token (falls back to the legacy embedded
  *                               token until rotated — see MIGRATION note below)
  *   CONTACT_TELEGRAM_CHAT_IDS   comma-separated, legacy demo-form recipients

@@ -10,7 +10,7 @@ from Telegram with the native **Reply** feature. No admin panel (v1).
 Visitor (Astro widget, RTL Persian)
    │  fetch + credentials:include, X-Visitor-Token fallback
    ▼
-Cloudflare Worker (CloudflareWorker.js)
+Cloudflare Worker (telegramworker/src/index.js, deployed as pnara-sup01)
    │  /api/chat/* ......... visitor API (CORS, cookie + header auth)
    │  /api/telegram/webhook  Telegram updates (secret-token verified)
    ├─ D1 (binding DB) ...... visitors, conversations, messages,
@@ -34,22 +34,23 @@ Cloudflare Worker (CloudflareWorker.js)
 
 | Path | Purpose |
 | --- | --- |
-| `CloudflareWorker.js` | Legacy `POST /` demo form (preserved) + chat API + webhook |
+| `telegramworker/src/index.js` | Legacy `POST /` demo form (preserved) + chat API + webhook (canonical; migrated from `RestoPOS/LandingPage/CloudflareWorker.js`) |
 | `src/components/chat/LiveChat.astro` | Widget markup + styles, mounted globally in `Layout.astro` |
 | `src/components/chat/live-chat.ts` | Widget client (state, polling, safe rendering) |
 | `shared/chat-shared.js` (+`.d.ts`) | Canonical validation/tokenize/merge helpers (browser + Worker mirror + tests) |
-| `migrations/0001_chat_init.sql` | D1 schema |
-| `wrangler.toml.example` | Bindings + vars template (copy to `wrangler.toml`, gitignored) |
-| `.dev.vars.example` | Local-dev secrets template (copy to `.dev.vars`, gitignored) |
+| `telegramworker/migrations/0001_chat_init.sql` | D1 schema |
+| `telegramworker/wrangler.jsonc` | Bindings (`DB` → `pnara_chat`) + vars; secrets via `wrangler secret put` |
+| `telegramworker/.dev.vars.example` | Local-dev secrets template (copy to `telegramworker/.dev.vars`, gitignored) |
 | `.env.example` | Adds `PUBLIC_CHAT_API_URL` (widget → Worker base URL) |
-| `tests/chat/` | `node --test` suites, no new dependencies (`pnpm test:chat`) |
+| `telegramworker/tests/chat/` (+ widget contract in `tests/chat/`) | `node --test` suites, no new dependencies (`pnpm test:chat` in either dir) |
 
 ## Required Cloudflare setup
 
-1. **D1 database**
+1. **D1 database** (commands run from `telegramworker/`)
    ```powershell
+   cd telegramworker
    wrangler d1 create pnara_chat
-   # paste database_id into wrangler.toml, then:
+   # database_id is already in wrangler.jsonc, then:
    wrangler d1 execute pnara_chat --file=./migrations/0001_chat_init.sql
    wrangler d1 execute pnara_chat --file=./migrations/0001_chat_init.sql --local  # local dev
    ```
@@ -60,11 +61,11 @@ Cloudflare Worker (CloudflareWorker.js)
    wrangler secret put TELEGRAM_BOT_TOKEN      # migrates the embedded legacy fallback
    wrangler secret put TELEGRAM_WEBHOOK_SECRET # random string, e.g. 32-hex
    ```
-3. **Vars** (in `wrangler.toml`): `SUPPORT_GROUP_ID` (e.g. `-1001234567890`,
+3. **Vars** (in `telegramworker/wrangler.jsonc`): `SUPPORT_GROUP_ID` (e.g. `-1001234567890`,
    required), `SUPPORT_USER_IDS` (comma list, required in production),
    `CONTACT_TELEGRAM_CHAT_IDS`, `ALLOWED_ORIGINS` (extra origins only;
    `pnara.ir` + local dev are built in).
-4. **Deploy** `wrangler deploy` (single file; dashboard paste still works).
+4. **Deploy** from `telegramworker/`: `wrangler deploy` (single file; dashboard paste still works).
 
 ## Telegram setup
 
@@ -86,11 +87,12 @@ Cloudflare Worker (CloudflareWorker.js)
 ## Local development
 
 ```powershell
-Copy-Item .dev.vars.example .dev.vars   # fill test values
-wrangler dev                             # Worker + local D1
-pnpm dev                                 # Astro on :5200 (allowed origin)
-pnpm test:chat                           # 50 backend/contract tests
-pnpm build                               # astro check && astro build
+Copy-Item telegramworker/.dev.vars.example telegramworker/.dev.vars   # fill test values
+cd telegramworker; wrangler dev                                        # Worker + local D1
+cd RestoPOS/LandingPage; pnpm dev                                     # Astro on :5200 (allowed origin)
+npm run test:chat --prefix ../telegramworker                          # worker + parity tests
+pnpm test:chat                                                        # widget contract tests
+pnpm build                                                            # astro check && astro build
 ```
 
 ## API summary
@@ -126,7 +128,7 @@ Rate limits per IP: session 20/min, send 15/min, poll 60/min.
 
 | Symptom | Cause / fix |
 | --- | --- |
-| Widget shows “service unavailable” | `DB` binding missing → 503; check `wrangler.toml` |
+| Widget shows “service unavailable” | `DB` binding missing → 503; check `telegramworker/wrangler.jsonc` |
 | No Telegram notices | `SUPPORT_GROUP_ID` unset or bot not group admin; check Worker logs |
 | Replies don't reach visitor | Staff didn't use Reply on a mapped message, or sender not in `SUPPORT_USER_IDS` |
 | 401 loops in widget | Token cleared → onboarding reshown; check cookies/third-party blocking (header fallback covers it) |

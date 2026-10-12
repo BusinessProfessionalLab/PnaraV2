@@ -38,6 +38,13 @@ PUBLIC_UMAMI_ID=        # optional
 | `pnpm preview` | Preview the production build |
 | `pnpm brand:assets` | Regenerate `public/og.png` and `public/favicon.png` |
 | `pnpm check` | Biome lint + format |
+| `pnpm test:chat` | Live-chat suites (`node --test tests/chat/`, no extra deps) |
+
+## Live chat
+
+The Persian RTL support widget (`src/components/chat/`) talks to the Worker
+(`CloudflareWorker.js`) with D1 persistence and a Telegram support group.
+Full setup, secrets, webhook, and deployment steps: `docs/LIVE_CHAT.md`.
 
 ## Pages
 

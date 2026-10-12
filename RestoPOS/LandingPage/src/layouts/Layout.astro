@@ -4,6 +4,7 @@ import TopBg from "@/components/ui/TopBg.astro";
 import Footer from "@/components/sections/Footer.astro";
 import Header from "@/components/sections/Header.astro";
 import TrackGa from "@/components/widgets/TrackGa.astro";
+import LiveChat from "@/components/chat/LiveChat.astro";
 interface Props {
 	title?: string | undefined;
 	description?: string | undefined;
@@ -86,6 +87,7 @@ import '../styles/article-enhancements.css';
     <Header />
     <slot />
     <Footer />
+    <LiveChat />
     <script src="../assets/js/main.js"></script>
   </body>
 </html>

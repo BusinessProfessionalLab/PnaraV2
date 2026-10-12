@@ -1,0 +1,31 @@
+# Copy to wrangler.toml and fill in real values. Never commit secrets here —
+# use `wrangler secret put <NAME>` for tokens (see docs/LIVE_CHAT.md).
+name = "pnara-sup01"
+main = "CloudflareWorker.js"
+compatibility_date = "2024-11-01"
+
+# --- D1 (required for live chat; legacy contact form works without it) ---
+# Create once:  wrangler d1 create pnara_chat
+# Then paste the returned database_id below and apply migrations:
+#   wrangler d1 execute pnara_chat --file=./migrations/0001_chat_init.sql
+[[d1_databases]]
+binding = "DB"
+database_name = "pnara_chat"
+database_id = "PASTE_D1_DATABASE_ID_HERE"
+
+[vars]
+# Public demo-form recipients (fallback exists in code; prefer setting this).
+# CONTACT_TELEGRAM_CHAT_IDS = "1304766783,101717055"
+# Support group chat id (e.g. -1001234567890). Required for live chat.
+# SUPPORT_GROUP_ID = "-1000000000000"
+# Comma-separated Telegram user ids allowed to reply as support.
+# Empty = any support-group member (dev only; set in production).
+# SUPPORT_USER_IDS = "123456789"
+# Extra site origins allowed to call the chat API (production domains are
+# built in; add staging/preview hosts here).
+# ALLOWED_ORIGINS = "https://staging.pnara.ir"
+
+# --- Secrets (set with `wrangler secret put`, NOT here) ---
+# TELEGRAM_BOT_TOKEN       Bot token (migrates the embedded legacy fallback).
+# TELEGRAM_WEBHOOK_SECRET  Random string; must match the secret_token used in
+#                          setWebhook (see docs/LIVE_CHAT.md).

@@ -45,7 +45,8 @@
     "preview": "astro preview",
     "brand:assets": "node scripts/generate-brand-assets.mjs",
     "astro": "astro",
-    "check": "biome check --apply-unsafe ."
+    "check": "biome check --apply-unsafe .",
+    "test:chat": "node --test tests/chat/"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",

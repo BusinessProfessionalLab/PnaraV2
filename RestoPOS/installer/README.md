@@ -27,7 +27,7 @@ Optional signing uses a certificate thumbprint in `CAFE_SIGN_CERT_THUMBPRINT`. T
 
 Existing SQL Server databases are not converted automatically. Export the data to PostgreSQL and verify it before upgrading an existing SQL Server installation; setup deliberately stops rather than connecting that installation to a new, empty database.
 
-The service runs as the virtual account `NT SERVICE\CafeApiService`. PostgreSQL credentials are stored in the protected production configuration. The service listens only on `127.0.0.1:5077`; setup creates no firewall rules.
+The service runs as the built-in low-privilege `NT AUTHORITY\LocalService` account. Its service SID receives only the file access needed by the app, while PostgreSQL credentials remain in the protected production configuration. The service listens only on `127.0.0.1:5077`; setup creates no firewall rules.
 
 ## Data, upgrades, and recovery
 
@@ -48,7 +48,7 @@ Uninstall removes the Cafe API service, application files, and shortcuts. It lea
 - Card-terminal integration is not ready for live payment. The repository's terminal service has no certified PSP SDK and now returns a failed/unavailable result instead of fabricating an approval. Obtain and test the actual vendor SDK/protocol before enabling terminal payments.
 - Receipt printing currently sends ESC/POS bytes to the configured LAN printer host and port 9100. No printer model, Persian text code page, USB/serial path, or reconnect behavior has been tested. The cafe must verify its model and driver with test receipts.
 - Browser login, menu and inventory flows, sales, and PostgreSQL migration behavior can be validated in software tests. Physical printer, payment-terminal, restart/recovery, clean Windows installation, and upgrade tests still require a dedicated test computer and hardware.
-- The repository does not include an approved application license, so the CafeSetup wizard does not add a project license page.
+- The setup wizard is localized in Persian, displays the per-installation 8-digit request code, and accepts an offline signed license. It creates a desktop shortcut after a successful installation.
 
 ## Manual verification checklist
 

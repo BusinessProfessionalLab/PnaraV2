@@ -98,6 +98,7 @@ _ReSharper*/
 # Local overrides & production secrets (Keep appsettings.json and appsettings.Development.json tracked!)
 appsettings.*.local.json
 appsettings.Production.json
+backend/tools/LicenseConsole/issuer-private.pem
 secrets.json
 .env
 .env.*

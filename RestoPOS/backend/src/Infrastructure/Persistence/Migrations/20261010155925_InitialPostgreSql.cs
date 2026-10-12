@@ -1536,7 +1536,7 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                 table: "Recipes",
                 column: "AddonId",
                 unique: true,
-                filter: "[AddonId] IS NOT NULL");
+                filter: "\"AddonId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Recipes_IsDeleted",
@@ -1548,14 +1548,14 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                 table: "Recipes",
                 column: "MenuItemId",
                 unique: true,
-                filter: "[MenuItemId] IS NOT NULL");
+                filter: "\"MenuItemId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Recipes_MenuItemModifierId",
                 table: "Recipes",
                 column: "MenuItemModifierId",
                 unique: true,
-                filter: "[MenuItemModifierId] IS NOT NULL");
+                filter: "\"MenuItemModifierId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RolePermissions_PermissionId",

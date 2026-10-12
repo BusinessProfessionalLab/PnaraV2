@@ -36,6 +36,11 @@ export function LoginForm() {
       toast.success(`خوش آمدید ${session.fullName}`);
       router.replace(next);
     } catch (err) {
+      const payload = (err as { payload?: { title?: string } })?.payload;
+      if (payload?.title === "LicenseExpired") {
+        router.replace("/license-expired");
+        return;
+      }
       toast.error(errorMessage(err));
     } finally {
       setLoading(false);

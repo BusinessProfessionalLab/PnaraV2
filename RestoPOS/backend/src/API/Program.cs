@@ -1,4 +1,5 @@
 using System.Text;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RestoPOS.API.Authorization;
 using RestoPOS.API.Hubs;
+using RestoPOS.API.Licensing;
 using RestoPOS.API.Middleware;
 using RestoPOS.API.Services;
 using RestoPOS.Application;
@@ -15,6 +17,25 @@ using RestoPOS.Infrastructure;
 using RestoPOS.Infrastructure.Identity;
 using RestoPOS.Infrastructure.Persistence;
 using Serilog;
+
+if (args.Length > 0 && string.Equals(args[0], "--verify-offline-license", StringComparison.OrdinalIgnoreCase))
+{
+    try
+    {
+        if (args.Length is not (4 or 5)) throw new ArgumentException("License verification arguments are incomplete.");
+        var publicKeys = new List<string> { File.ReadAllText(args[1]) };
+        if (args.Length == 5 && File.Exists(args[4])) publicKeys.Add(File.ReadAllText(args[4]));
+        var licenseCode = File.ReadAllText(args[2]);
+        var installationCode = args[3];
+        Environment.ExitCode = publicKeys.Any(publicKey => OfflineLicenseService.ValidateToken(publicKey, licenseCode, installationCode) is not null) ? 0 : 1;
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or CryptographicException)
+    {
+        Console.Error.WriteLine(ex.Message);
+        Environment.ExitCode = 1;
+    }
+    return;
+}
 
 var migrateAndSeed = args.Contains("--migrate-and-seed", StringComparer.OrdinalIgnoreCase);
 var hostArgs = args.Where(arg => !string.Equals(arg, "--migrate-and-seed", StringComparison.OrdinalIgnoreCase)).ToArray();
@@ -58,6 +79,7 @@ try
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddHttpContextAccessor();
+    builder.Services.AddSingleton<OfflineLicenseService>();
     builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
     builder.Services.AddScoped<IOrderKitchenNotifier, SignalROrderKitchenNotifier>();
     builder.Services.AddControllers().AddJsonOptions(options =>

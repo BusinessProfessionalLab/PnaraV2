@@ -46,6 +46,30 @@ Build requirements are Node.js 18.18 or later, a .NET SDK 8 or later, Inno Setup
 
 To sign the API, launcher, and installer with a code-signing certificate in the Windows certificate store, set `CAFE_SIGN_CERT_THUMBPRINT` before building. `CAFE_TIMESTAMP_URL` optionally selects a timestamp server. Without a certificate, the build succeeds unsigned and reports that status.
 
+## Offline licenses
+
+Licenses are RSA-signed and checked locally by the API. No external licensing database or internet connection is required during activation.
+
+Create a signing key pair once on the issuer computer. Keep the private key offline and access-controlled. The public key is placed in the installer payload so the destination computer can validate codes without internet:
+
+```powershell
+New-Item -ItemType Directory -Force D:\PnaraIssuer | Out-Null
+dotnet run --project backend/tools/LicenseConsole -- keygen --private-key D:\PnaraIssuer\issuer-private.pem --public-key backend\tools\LicenseConsole\issuer-public.pem
+.\scripts\build-installer.ps1
+```
+
+Run the issuer console on your computer:
+
+```powershell
+dotnet run --project backend/tools/LicenseConsole
+```
+
+Setup displays an 8-digit random installation request code. Give that number to the issuer. The console asks for the number and active days, then creates a signed license file under `Documents\PnaraIssuer`. Transfer that file to the destination by USB or other offline media, paste its code into Setup, and continue installation. The API checks the signature, installation code, and expiration during login. The expiration is calculated from issuance time in UTC.
+
+You can also use `dotnet run --project backend/tools/LicenseConsole -- issue --installation-code 12345678 --valid-days 365 --output D:\PnaraIssuer\license.txt` to set the installation code and days on the command line.
+
+Each license is signed for the installation's 8-digit request code. It can be reused on that installation, including across logins, but will not validate on an installation with another code. There is no external activation database. Since the request code has only 8 digits and offline issuance has no central collision check, issue one license per request and keep the signed key private. Licenses cannot be revoked remotely. Replacing the signing key requires rebuilding the installer with the matching public key; never distribute or commit the private key.
+
 ## Deployment notes
 
 - Setup installs `CafeApiService` as a virtual service account, binds the web app and API to `127.0.0.1:5077`, and serves the exported frontend from the ASP.NET Core origin. Customer computers do not need Node.js or the .NET runtime.

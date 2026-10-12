@@ -4,7 +4,7 @@ Pnara is a cafe point-of-sale and inventory system. The repository contains a Ne
 
 ## Development
 
-Required tools: Node.js 18.18 or later, npm, a .NET SDK 8 or later, and a locally installed PostgreSQL 14 or later server. Docker is not required. The POS frontend is in `frontend`; `LandingPage` is a separate Astro site.
+Development requires Node.js 18.18 or later, npm, a .NET SDK 8 or later, and a local PostgreSQL server. The Windows installer bundles PostgreSQL 17.11 and installs it natively; Docker is not used. The POS frontend is in `frontend`; `LandingPage` is a separate Astro site.
 
 Set local-only credentials with .NET user secrets before starting the API:
 
@@ -42,7 +42,7 @@ From this directory, run:
 
 The script restores the npm lockfile, runs frontend lint and type checks, builds the static export, builds and tests the .NET solution, publishes self-contained Windows x64 binaries, compiles the Inno Setup project, and writes `artifacts/CafeSetup.exe`.
 
-Build requirements are Node.js 18.18 or later, a .NET SDK 8 or later, Inno Setup 6 or 7, and internet access for dependency restore. PostgreSQL must be installed and configured natively on each target computer; the installer does not use Docker or install a database server.
+Build requirements are Node.js 18.18 or later, a .NET SDK 8 or later, Inno Setup 6 or 7, and internet access for dependency restore and the official PostgreSQL installer download. The generated installer can install and configure PostgreSQL natively on the target computer; Docker is not used.
 
 To sign the API, launcher, and installer with a code-signing certificate in the Windows certificate store, set `CAFE_SIGN_CERT_THUMBPRINT` before building. `CAFE_TIMESTAMP_URL` optionally selects a timestamp server. Without a certificate, the build succeeds unsigned and reports that status.
 

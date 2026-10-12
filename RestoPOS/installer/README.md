@@ -5,7 +5,7 @@
 ## Build requirements
 
 - Windows x64, Node.js 18.18 or later, npm, .NET SDK 8 or later, and Inno Setup 6 or 7.
-- Internet access for npm and NuGet restore. Install PostgreSQL 14 or later directly on the target machine before running setup. The installer does not install a database server and does not use Docker.
+- Internet access for npm and NuGet restore when building. The setup package bundles the signed PostgreSQL 17.11 Windows x64 installer, so the target computer does not need internet access or Docker.
 - To sign the deliverables, install a code-signing certificate with its private key in the Windows certificate store and the Windows SDK SignTool.
 
 From the repository's `RestoPOS` directory, build with:
@@ -21,9 +21,9 @@ Optional signing uses a certificate thumbprint in `CAFE_SIGN_CERT_THUMBPRINT`. T
 ## Installation
 
 1. Run `CafeSetup.exe` as an administrator.
-2. Create a PostgreSQL database named `pnara` and an application role that owns it. The role must be able to create and update the schema.
-3. Enter the PostgreSQL connection string when setup asks for it, then choose the install directory and enter the first administrator password. The password must contain at least 12 characters, including an uppercase Latin letter, a lowercase Latin letter, and a digit; a symbol is optional. The account name is `admin`; its password is stored as an ASP.NET Identity hash.
-4. Setup applies PostgreSQL migrations, starts `CafeApiService`, waits for the database-backed health endpoint, and reports failure if the service does not become healthy. On success, use the desktop or Start Menu shortcut to open the cafe application.
+2. Leave the PostgreSQL connection field blank for automatic PostgreSQL 17 installation and database setup. If you already have PostgreSQL, enter the connection string for a database role that owns `pnara` and can create or update its schema. Existing PostgreSQL services, files, and databases are never replaced by the bundled install.
+3. Choose the install directory and enter the first administrator password. The password must contain at least 12 characters, including an uppercase Latin letter, a lowercase Latin letter, and a digit; a symbol is optional. The account name is `admin`; its password is stored as an ASP.NET Identity hash.
+4. Setup installs PostgreSQL 17 when requested, creates the `pnara` database and least-privilege `pnara_app` role with a randomly generated password, applies application migrations, starts `CafeApiService`, waits for the database-backed health endpoint, and reports failure if the service does not become healthy. On success, use the desktop or Start Menu shortcut to open the cafe application.
 
 Existing SQL Server databases are not converted automatically. Export the data to PostgreSQL and verify it before upgrading an existing SQL Server installation; setup deliberately stops rather than connecting that installation to a new, empty database.
 
@@ -52,4 +52,4 @@ Uninstall removes the Cafe API service, application files, and shortcuts. It lea
 
 ## Manual verification checklist
 
-Use [`../docs/deployment.md`](../docs/deployment.md) to validate a fresh Windows 10/11 x64 machine with PostgreSQL preinstalled, upgrades, data-preserving uninstall, browser refreshes, and hardware integration.
+Use [`../docs/deployment.md`](../docs/deployment.md) to validate a fresh Windows 10/11 x64 installation with bundled PostgreSQL, upgrades, data-preserving uninstall, browser refreshes, and hardware integration.

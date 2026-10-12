@@ -191,6 +191,106 @@ function Install-CafeService([string]$ApiPath) {
     ) | Out-Null
 }
 
+function New-PostgreSqlPassword {
+    $bytes = [byte[]]::new(48)
+    $generator = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try { $generator.GetBytes($bytes) } finally { $generator.Dispose() }
+    $alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    $password = [System.Text.StringBuilder]::new(40)
+    [void]$password.Append([char](65 + ($bytes[0] % 26)))
+    [void]$password.Append([char](97 + ($bytes[1] % 26)))
+    [void]$password.Append([char](48 + ($bytes[2] % 10)))
+    for ($index = 3; $index -lt 40; $index++) {
+        [void]$password.Append($alphabet[$bytes[$index] % $alphabet.Length])
+    }
+    return $password.ToString()
+}
+
+function Install-LocalPostgreSql {
+    if (-not $PostgreSqlInstallerPath -or -not (Test-Path -LiteralPath $PostgreSqlInstallerPath -PathType Leaf)) {
+        throw 'The bundled PostgreSQL installer is missing. Rerun the complete Pnara setup package.'
+    }
+    $existingDatabaseService = Get-CimInstance Win32_Service -ErrorAction Stop |
+        Where-Object { $_.Name -match '^postgresql' } |
+        Select-Object -First 1
+    if ($existingDatabaseService) {
+        throw "A PostgreSQL service '$($existingDatabaseService.Name)' is already installed. Enter its application connection string in setup to use it; the existing service and data were left unchanged."
+    }
+    if (Test-Path -LiteralPath (Join-Path $env:ProgramFiles 'PostgreSQL')) {
+        throw 'A PostgreSQL installation directory already exists. Setup left it unchanged; enter a connection string for its database or remove the previous installation before retrying.'
+    }
+    $portListener = Get-NetTCPConnection -LocalPort 5432 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($portListener) {
+        throw 'Port 5432 is already in use. Enter the connection string for that database server, or free the port before installing the bundled server.'
+    }
+
+    $superPassword = New-PostgreSqlPassword
+    $appPassword = New-PostgreSqlPassword
+    $optionPath = Join-Path $env:TEMP ("pnara-postgresql-options-{0}.txt" -f [guid]::NewGuid().ToString('N'))
+    $sqlPath = Join-Path $env:TEMP ("pnara-postgresql-provision-{0}.sql" -f [guid]::NewGuid().ToString('N'))
+    try {
+        $options = @(
+            'mode=unattended',
+            'unattendedmodeui=none',
+            'installer-language=en',
+            'prefix=C:\Program Files\PostgreSQL\17',
+            'datadir=C:\Program Files\PostgreSQL\17\data',
+            'serverport=5432',
+            'servicename=postgresql-x64-17',
+            'serviceaccount=postgres',
+            "servicepassword=$superPassword",
+            'superaccount=postgres',
+            "superpassword=$superPassword",
+            'enable-components=server,commandlinetools',
+            'install_runtimes=1',
+            'create_shortcuts=0',
+            'locale=C'
+        ) -join [Environment]::NewLine
+        [System.IO.File]::WriteAllText($optionPath, $options, [System.Text.Encoding]::ASCII)
+        Invoke-Icacls $optionPath @('/inheritance:r', '/grant:r', '*S-1-5-18:(F)', '*S-1-5-32-544:(F)')
+
+        Write-Host 'Installing PostgreSQL 17...'
+        $installer = Start-Process -FilePath $PostgreSqlInstallerPath -ArgumentList @('--optionfile', ('"{0}"' -f $optionPath)) -Wait -PassThru -WindowStyle Hidden
+        if ($installer.ExitCode -ne 0) {
+            throw "The PostgreSQL 17 installer failed with exit code $($installer.ExitCode). Review the PostgreSQL installer log under the Windows temporary directory."
+        }
+
+        $serviceName = 'postgresql-x64-17'
+        $deadline = (Get-Date).AddSeconds(90)
+        do {
+            $databaseService = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+            if ($databaseService -and $databaseService.Status -eq [System.ServiceProcess.ServiceControllerStatus]::Running) { break }
+            Start-Sleep -Seconds 1
+        } while ((Get-Date) -lt $deadline)
+        if (-not $databaseService -or $databaseService.Status -ne [System.ServiceProcess.ServiceControllerStatus]::Running) {
+            throw 'PostgreSQL installed but its Windows service did not start. Review the PostgreSQL installer log and Windows Event Viewer.'
+        }
+
+        $psqlPath = Join-Path $env:ProgramFiles 'PostgreSQL\17\bin\psql.exe'
+        if (-not (Test-Path -LiteralPath $psqlPath -PathType Leaf)) { throw 'PostgreSQL command-line tools were not installed; psql.exe is missing.' }
+        $sql = @"
+CREATE ROLE pnara_app LOGIN PASSWORD '$appPassword';
+SELECT 'CREATE DATABASE pnara OWNER pnara_app ENCODING ''UTF8'' TEMPLATE template0'
+WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'pnara')\gexec
+"@
+        [System.IO.File]::WriteAllText($sqlPath, $sql, [System.Text.Encoding]::ASCII)
+        Invoke-Icacls $sqlPath @('/inheritance:r', '/grant:r', '*S-1-5-18:(F)', '*S-1-5-32-544:(F)')
+        $env:PGPASSWORD = $superPassword
+        try {
+            & $psqlPath '--no-psqlrc' '--set=ON_ERROR_STOP=1' '--host=127.0.0.1' '--port=5432' '--username=postgres' '--dbname=postgres' '--file' $sqlPath
+            if ($LASTEXITCODE -ne 0) { throw "PostgreSQL database setup failed with exit code $LASTEXITCODE." }
+        }
+        finally { Remove-Item Env:\PGPASSWORD -ErrorAction SilentlyContinue }
+
+        return "Host=127.0.0.1;Port=5432;Database=pnara;Username=pnara_app;Password=$appPassword;Timeout=15;Command Timeout=30"
+    }
+    finally {
+        Remove-Item -LiteralPath $optionPath, $sqlPath -Force -ErrorAction SilentlyContinue
+        $superPassword = $null
+        $appPassword = $null
+    }
+}
+
 function Set-ProductionConfiguration {
     Set-DiagnosticPhase 'configuration.write-production-settings'
     $configPath = Join-Path $DataRoot 'appsettings.Production.json'
@@ -672,6 +772,7 @@ try {
     [System.IO.File]::WriteAllText((Join-Path $DataRoot 'installation-code'), $InstallationCode, [System.Text.Encoding]::ASCII)
     Invoke-PostgreSqlSetup
     Set-ProductionConfiguration
+    Backup-PostgreSqlDatabase
 
     $bootstrapPassword = $null
     if ($AdminPasswordFile -and (Test-Path -LiteralPath $AdminPasswordFile)) {

@@ -1,6 +1,15 @@
 ﻿#ifndef AppVersion
   #define AppVersion "1.4.0"
 #endif
+#ifndef PayloadDir
+  #define PayloadDir "..\artifacts\cafe-build\payload"
+#endif
+#ifndef InstallerOutputDir
+  #define InstallerOutputDir "..\artifacts\cafe-build\installer"
+#endif
+#ifndef PostgreSqlInstallerPath
+  #define PostgreSqlInstallerPath "..\artifacts\postgresql\postgresql-17.11-1-windows-x64.exe"
+#endif
 
 [Setup]
 AppId={{C3C38D0D-0318-4C4C-9BC5-D041A5E5AB29}
@@ -13,7 +22,7 @@ DefaultGroupName=پنارا کافه
 DisableProgramGroupPage=yes
 UsePreviousAppDir=yes
 Uninstallable=yes
-OutputDir=..\artifacts\cafe-build\installer
+OutputDir={#InstallerOutputDir}
 OutputBaseFilename=CafeSetup
 SetupIconFile=assets\Pnara.ico
 UninstallDisplayIcon={app}\Pnara.ico
@@ -307,6 +316,7 @@ begin
       end;
       Parameters := Parameters + ' -PostgreSqlInstallerPath "' + PostgreSqlInstallerPath + '"';
     end;
+    Parameters := Parameters + ' -PostgreSqlInstallerPath "' + ExpandConstant('{tmp}\postgresql-17.11-1-windows-x64.exe') + '"';
 
     if NeedsInitialPassword then begin
       if not SaveStringToFile(PasswordPath, UTF8Encode(AdminPasswordPage.Values[0]), False) then

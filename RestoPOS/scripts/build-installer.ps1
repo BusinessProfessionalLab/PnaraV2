@@ -123,6 +123,17 @@ try {
     }
 
     New-Item -ItemType Directory -Force -Path $artifactRoot | Out-Null
+    New-Item -ItemType Directory -Force -Path $postgresqlInstallerDirectory | Out-Null
+    if (-not (Test-Path -LiteralPath $postgresqlInstaller -PathType Leaf)) {
+        Write-Host 'Downloading the official PostgreSQL 17.11 Windows installer for the offline setup package...'
+        Invoke-WebRequest -Uri $postgresqlInstallerUrl -OutFile $postgresqlInstaller -UseBasicParsing
+    }
+    $postgresqlSignature = Get-AuthenticodeSignature -LiteralPath $postgresqlInstaller
+    $actualPostgreSqlHash = (Get-FileHash -LiteralPath $postgresqlInstaller -Algorithm SHA256).Hash
+    if ($postgresqlSignature.Status -ne 'Valid' -or $postgresqlSignature.SignerCertificate.Subject -notmatch 'EnterpriseDB' -or
+        $actualPostgreSqlHash -ne $postgresqlInstallerSha256) {
+        throw 'The bundled PostgreSQL installer does not match the pinned PostgreSQL 17.11 package and valid EnterpriseDB signature.'
+    }
     Reset-BuildDirectory $buildRoot
     $nextBuildDirectory = [System.IO.Path]::GetFullPath((Join-Path $frontendRoot '.next'))
     $frontendFullPath = [System.IO.Path]::GetFullPath($frontendRoot).TrimEnd('\')
@@ -267,7 +278,7 @@ try {
     }
 
     Write-Host 'Compiling the Inno Setup installer...'
-    Invoke-NativeCommand $innoCompiler @("/DAppVersion=$AppVersion", $installerScript) $projectRoot
+    Invoke-NativeCommand $innoCompiler @("/DAppVersion=$AppVersion", "/DPostgreSqlInstallerPath=$postgresqlInstaller", $installerScript) $projectRoot
     $compiledInstaller = Join-Path $installerStaging 'CafeSetup.exe'
     if (-not (Test-Path -LiteralPath $compiledInstaller)) {
         throw "Inno Setup did not create the expected installer at $compiledInstaller."

@@ -11,9 +11,9 @@ public class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
         builder.ToTable("Recipes");
         builder.ConfigureSoftDelete();
         builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
-        builder.HasIndex(x => x.MenuItemId).IsUnique().HasFilter("[MenuItemId] IS NOT NULL");
-        builder.HasIndex(x => x.MenuItemModifierId).IsUnique().HasFilter("[MenuItemModifierId] IS NOT NULL");
-        builder.HasIndex(x => x.AddonId).IsUnique().HasFilter("[AddonId] IS NOT NULL");
+        builder.HasIndex(x => x.MenuItemId).IsUnique().HasFilter("\"MenuItemId\" IS NOT NULL");
+        builder.HasIndex(x => x.MenuItemModifierId).IsUnique().HasFilter("\"MenuItemModifierId\" IS NOT NULL");
+        builder.HasIndex(x => x.AddonId).IsUnique().HasFilter("\"AddonId\" IS NOT NULL");
     }
 }
 

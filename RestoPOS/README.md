@@ -4,7 +4,7 @@ Pnara is a cafe point-of-sale and inventory system. The repository contains a Ne
 
 ## Development
 
-Required tools: Node.js 18.18 or later, npm, a .NET SDK 8 or later, and a locally installed PostgreSQL 14 or later server. Docker is not required. The POS frontend is in `frontend`; `LandingPage` is a separate Astro site.
+Development requires Node.js 18.18 or later, npm, a .NET SDK 8 or later, and a local PostgreSQL server. The Windows installer bundles PostgreSQL 17.11 and installs it natively; Docker is not used. The POS frontend is in `frontend`; `LandingPage` is a separate Astro site.
 
 Set local-only credentials with .NET user secrets before starting the API:
 
@@ -42,9 +42,33 @@ From this directory, run:
 
 The script restores the npm lockfile, runs frontend lint and type checks, builds the static export, builds and tests the .NET solution, publishes self-contained Windows x64 binaries, compiles the Inno Setup project, and writes `artifacts/CafeSetup.exe`.
 
-Build requirements are Node.js 18.18 or later, a .NET SDK 8 or later, Inno Setup 6 or 7, and internet access for dependency restore. PostgreSQL must be installed and configured natively on each target computer; the installer does not use Docker or install a database server.
+Build requirements are Node.js 18.18 or later, a .NET SDK 8 or later, Inno Setup 6 or 7, and internet access for dependency restore and the official PostgreSQL installer download. The generated installer can install and configure PostgreSQL natively on the target computer; Docker is not used.
 
 To sign the API, launcher, and installer with a code-signing certificate in the Windows certificate store, set `CAFE_SIGN_CERT_THUMBPRINT` before building. `CAFE_TIMESTAMP_URL` optionally selects a timestamp server. Without a certificate, the build succeeds unsigned and reports that status.
+
+## Offline licenses
+
+Licenses are RSA-signed and checked locally by the API. No external licensing database or internet connection is required during activation.
+
+Create a signing key pair once on the issuer computer. Keep the private key offline and access-controlled. The public key is placed in the installer payload so the destination computer can validate codes without internet:
+
+```powershell
+New-Item -ItemType Directory -Force D:\PnaraIssuer | Out-Null
+dotnet run --project backend/tools/LicenseConsole -- keygen --private-key D:\PnaraIssuer\issuer-private.pem --public-key backend\tools\LicenseConsole\issuer-public.pem
+.\scripts\build-installer.ps1
+```
+
+Run the issuer console on your computer:
+
+```powershell
+dotnet run --project backend/tools/LicenseConsole
+```
+
+Setup displays an 8-digit random installation request code. Give that number to the issuer. The console asks for the number and active days, then creates a signed license file under `Documents\PnaraIssuer`. Transfer that file to the destination by USB or other offline media, paste its code into Setup, and continue installation. The API checks the signature, installation code, and expiration during login. The expiration is calculated from issuance time in UTC.
+
+You can also use `dotnet run --project backend/tools/LicenseConsole -- issue --installation-code 12345678 --valid-days 365 --output D:\PnaraIssuer\license.txt` to set the installation code and days on the command line.
+
+Each license is signed for the installation's 8-digit request code. It can be reused on that installation, including across logins, but will not validate on an installation with another code. There is no external activation database. Since the request code has only 8 digits and offline issuance has no central collision check, issue one license per request and keep the signed key private. Licenses cannot be revoked remotely. Replacing the signing key requires rebuilding the installer with the matching public key; never distribute or commit the private key.
 
 ## Deployment notes
 

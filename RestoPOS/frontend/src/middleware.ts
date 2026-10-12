@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC = ["/login"];
+const PUBLIC = ["/login", "/license-expired"];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

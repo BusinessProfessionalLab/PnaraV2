@@ -1743,17 +1743,17 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("AddonId")
                         .IsUnique()
-                        .HasFilter("[AddonId] IS NOT NULL");
+                        .HasFilter("\"AddonId\" IS NOT NULL");
 
                     b.HasIndex("IsDeleted");
 
                     b.HasIndex("MenuItemId")
                         .IsUnique()
-                        .HasFilter("[MenuItemId] IS NOT NULL");
+                        .HasFilter("\"MenuItemId\" IS NOT NULL");
 
                     b.HasIndex("MenuItemModifierId")
                         .IsUnique()
-                        .HasFilter("[MenuItemModifierId] IS NOT NULL");
+                        .HasFilter("\"MenuItemModifierId\" IS NOT NULL");
 
                     b.ToTable("Recipes", (string)null);
                 });

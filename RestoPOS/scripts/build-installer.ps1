@@ -1,7 +1,10 @@
 [CmdletBinding()]
 param(
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$AppVersion = '0.1.0'
+    [string]$AppVersion = '1.4.0',
+    [string]$PostgreSqlInstallerPath,
+    [switch]$OfflineBuild,
+    [switch]$SkipTests
 )
 
 $ErrorActionPreference = 'Stop'
@@ -19,6 +22,11 @@ $frontendExport = Join-Path $frontendRoot 'out'
 $installerStaging = Join-Path $buildRoot 'installer'
 $installerOutput = Join-Path $artifactRoot 'CafeSetup.exe'
 $installerScript = Join-Path $projectRoot 'installer\CafeSetup.iss'
+$issuerPublicKey = Join-Path $backendRoot 'tools\LicenseConsole\issuer-public.pem'
+$issuerPreviousPublicKey = Join-Path $backendRoot 'tools\LicenseConsole\issuer-previous-public.pem'
+$postgresqlInstallerName = 'postgresql-18.6-1-windows-x64.exe'
+$postgresqlInstallerUrl = "https://get.enterprisedb.com/postgresql/$postgresqlInstallerName"
+$postgresqlInstaller = Join-Path $payloadRoot $postgresqlInstallerName
 
 function Invoke-NativeCommand {
     param(
@@ -110,11 +118,22 @@ try {
     if (-not ($sdkVersions | Where-Object Major -GE 8)) {
         throw 'A .NET SDK 8 or newer is required to build the net8.0 solution.'
     }
-    foreach ($required in @($frontendRoot, $backendRoot, $installerScript, (Join-Path $projectRoot 'installer\assets\Pnara.ico'))) {
+    foreach ($required in @($frontendRoot, $backendRoot, $installerScript, $issuerPublicKey, $issuerPreviousPublicKey, (Join-Path $projectRoot 'installer\assets\Pnara.ico'))) {
         if (-not (Test-Path -LiteralPath $required)) { throw "Required project file or directory is missing: $required" }
     }
 
     New-Item -ItemType Directory -Force -Path $artifactRoot | Out-Null
+    New-Item -ItemType Directory -Force -Path $postgresqlInstallerDirectory | Out-Null
+    if (-not (Test-Path -LiteralPath $postgresqlInstaller -PathType Leaf)) {
+        Write-Host 'Downloading the official PostgreSQL 17.11 Windows installer for the offline setup package...'
+        Invoke-WebRequest -Uri $postgresqlInstallerUrl -OutFile $postgresqlInstaller -UseBasicParsing
+    }
+    $postgresqlSignature = Get-AuthenticodeSignature -LiteralPath $postgresqlInstaller
+    $actualPostgreSqlHash = (Get-FileHash -LiteralPath $postgresqlInstaller -Algorithm SHA256).Hash
+    if ($postgresqlSignature.Status -ne 'Valid' -or $postgresqlSignature.SignerCertificate.Subject -notmatch 'EnterpriseDB' -or
+        $actualPostgreSqlHash -ne $postgresqlInstallerSha256) {
+        throw 'The bundled PostgreSQL installer does not match the pinned PostgreSQL 17.11 package and valid EnterpriseDB signature.'
+    }
     Reset-BuildDirectory $buildRoot
     $nextBuildDirectory = [System.IO.Path]::GetFullPath((Join-Path $frontendRoot '.next'))
     $frontendFullPath = [System.IO.Path]::GetFullPath($frontendRoot).TrimEnd('\')
@@ -128,12 +147,37 @@ try {
         New-Item -ItemType Directory -Force -Path $directory | Out-Null
     }
 
+    $curlCommand = Get-Command curl.exe -ErrorAction Stop
+    if ($PostgreSqlInstallerPath) {
+        if (-not (Test-Path -LiteralPath $PostgreSqlInstallerPath -PathType Leaf)) { throw "The supplied PostgreSQL installer does not exist: $PostgreSqlInstallerPath" }
+        Copy-Item -LiteralPath $PostgreSqlInstallerPath -Destination $postgresqlInstaller -Force
+        Write-Host "Using the supplied PostgreSQL installer: $PostgreSqlInstallerPath"
+    }
+    else {
+        Write-Host 'Downloading the offline PostgreSQL 18.6 installer from EDB...'
+        & $curlCommand.Source --fail --location --retry 3 --output $postgresqlInstaller $postgresqlInstallerUrl
+        if ($LASTEXITCODE -ne 0) { throw 'The PostgreSQL installer download failed. Pass -PostgreSqlInstallerPath with the official installer file to build without downloading it.' }
+    }
+    $postgresqlSignature = Get-AuthenticodeSignature -LiteralPath $postgresqlInstaller
+    if ($postgresqlSignature.Status -ne 'Valid' -or $postgresqlSignature.SignerCertificate.Subject -notmatch '(?i)EnterpriseDB') {
+        throw 'The bundled PostgreSQL installer does not have a valid EnterpriseDB Authenticode signature.'
+    }
+    if ((Get-Item -LiteralPath $postgresqlInstaller).Length -lt 300MB) {
+        throw 'The bundled PostgreSQL installer is unexpectedly small; the offline package may be incomplete.'
+    }
+
     Write-Host "Using Node.js $nodeVersion, .NET SDK $($sdkVersions[-1]), and Inno Setup compiler $innoCompiler."
     Write-Host 'Restoring the frontend from package-lock.json...'
-    Invoke-NativeCommand $npmCommand.Source @('ci') $frontendRoot
+    $npmCiArguments = if ($OfflineBuild) { @('ci', '--offline') } else { @('ci') }
+    Invoke-NativeCommand $npmCommand.Source $npmCiArguments $frontendRoot
     Invoke-NativeCommand $npmCommand.Source @('run', 'lint') $frontendRoot
     Invoke-NativeCommand $npmCommand.Source @('run', 'typecheck') $frontendRoot
-    Invoke-NativeCommand $npmCommand.Source @('audit', '--omit=dev', '--audit-level=high') $frontendRoot
+    if (-not $OfflineBuild) {
+        Invoke-NativeCommand $npmCommand.Source @('audit', '--omit=dev', '--audit-level=high') $frontendRoot
+    }
+    else {
+        Write-Warning 'Skipped npm audit because this is an offline build. Run npm audit on a connected build machine before release.'
+    }
 
     Write-Host 'Building the Next.js static export...'
     $oldStaticExport = $env:CAFE_STATIC_EXPORT
@@ -176,15 +220,22 @@ try {
         throw 'Static frontend assets contain the old hard-coded LAN API host.'
     }
 
-    Write-Host 'Restoring, building, and testing the .NET solution...'
+    Write-Host 'Restoring and building the .NET solution...'
     Invoke-NativeCommand $dotnetCommand.Source @('restore', 'RestoPOS.sln') $backendRoot
     Invoke-NativeCommand $dotnetCommand.Source @('build', 'RestoPOS.sln', '--configuration', 'Release', '--no-restore') $backendRoot
-    Invoke-NativeCommand $dotnetCommand.Source @('test', 'RestoPOS.sln', '--configuration', 'Release', '--no-build', '--logger', 'console;verbosity=normal') $backendRoot
+    if (-not $SkipTests) {
+        Write-Host 'Running the .NET solution tests...'
+        Invoke-NativeCommand $dotnetCommand.Source @('test', 'RestoPOS.sln', '--configuration', 'Release', '--no-build', '--logger', 'console;verbosity=normal') $backendRoot
+    }
+    else {
+        Write-Host 'Skipping .NET tests as requested.'
+    }
 
     Write-Host 'Publishing the backend and desktop launcher as self-contained Windows x64 applications...'
     Invoke-NativeCommand $dotnetCommand.Source @(
         'publish', 'src\API\RestoPOS.API.csproj', '--configuration', 'Release', '--runtime', 'win-x64',
-        '--self-contained', 'true', "-p:Version=$AppVersion", '--output', $serverPublish
+        '--self-contained', 'true', '-p:PublishSingleFile=true', '-p:IncludeNativeLibrariesForSelfExtract=true',
+        "-p:Version=$AppVersion", '--output', $serverPublish
     ) $backendRoot
     Invoke-NativeCommand $dotnetCommand.Source @(
         'publish', 'installer\launcher\CafeLauncher.csproj', '--configuration', 'Release', '--runtime', 'win-x64',
@@ -199,10 +250,12 @@ try {
     Copy-Item -LiteralPath (Join-Path $projectRoot 'installer\assets\Pnara.ico') -Destination (Join-Path $payloadRoot 'Pnara.ico') -Force
     Copy-Item -LiteralPath (Join-Path $projectRoot 'installer\scripts\Configure-Machine.ps1') -Destination (Join-Path $serverPublish 'Configure-Machine.ps1') -Force
     Copy-Item -LiteralPath (Join-Path $projectRoot 'installer\scripts\Configure-Machine.ps1') -Destination (Join-Path $payloadRoot 'Configure-Machine.ps1') -Force
+    Copy-Item -LiteralPath $issuerPublicKey -Destination (Join-Path $payloadRoot 'issuer-public.pem') -Force
+    Copy-Item -LiteralPath $issuerPreviousPublicKey -Destination (Join-Path $payloadRoot 'issuer-previous-public.pem') -Force
     Copy-Item -Path (Join-Path $serverPublish '*') -Destination $payloadRoot -Recurse -Force
     Copy-Item -LiteralPath (Join-Path $projectRoot 'installer\README.md') -Destination (Join-Path $payloadRoot 'Installation-Guide.md') -Force
 
-    foreach ($requiredPayload in @('RestoPOS.API.exe', 'CafeLauncher.exe', 'wwwroot\index.html', 'Configure-Machine.ps1', 'Pnara.ico')) {
+    foreach ($requiredPayload in @('RestoPOS.API.exe', 'CafeLauncher.exe', 'wwwroot\index.html', 'Configure-Machine.ps1', 'issuer-public.pem', 'issuer-previous-public.pem', 'Pnara.ico')) {
         $path = Join-Path $payloadRoot $requiredPayload
         if (-not (Test-Path -LiteralPath $path)) { throw "Installer payload is missing '$requiredPayload'." }
     }
@@ -225,7 +278,7 @@ try {
     }
 
     Write-Host 'Compiling the Inno Setup installer...'
-    Invoke-NativeCommand $innoCompiler @("/DAppVersion=$AppVersion", $installerScript) $projectRoot
+    Invoke-NativeCommand $innoCompiler @("/DAppVersion=$AppVersion", "/DPostgreSqlInstallerPath=$postgresqlInstaller", $installerScript) $projectRoot
     $compiledInstaller = Join-Path $installerStaging 'CafeSetup.exe'
     if (-not (Test-Path -LiteralPath $compiledInstaller)) {
         throw "Inno Setup did not create the expected installer at $compiledInstaller."

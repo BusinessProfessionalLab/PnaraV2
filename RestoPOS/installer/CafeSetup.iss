@@ -1,19 +1,28 @@
-#ifndef AppVersion
-  #define AppVersion "0.1.0"
+﻿#ifndef AppVersion
+  #define AppVersion "1.4.0"
+#endif
+#ifndef PayloadDir
+  #define PayloadDir "..\artifacts\cafe-build\payload"
+#endif
+#ifndef InstallerOutputDir
+  #define InstallerOutputDir "..\artifacts\cafe-build\installer"
+#endif
+#ifndef PostgreSqlInstallerPath
+  #define PostgreSqlInstallerPath "..\artifacts\postgresql\postgresql-17.11-1-windows-x64.exe"
 #endif
 
 [Setup]
 AppId={{C3C38D0D-0318-4C4C-9BC5-D041A5E5AB29}
-AppName=Pnara Cafe
+AppName=پنارا کافه
 AppVersion={#AppVersion}
-AppVerName=Pnara Cafe {#AppVersion}
+AppVerName=پنارا کافه {#AppVersion}
 AppPublisher=Pnara
 DefaultDirName={autopf}\Pnara Cafe
-DefaultGroupName=Pnara Cafe
+DefaultGroupName=پنارا کافه
 DisableProgramGroupPage=yes
 UsePreviousAppDir=yes
 Uninstallable=yes
-OutputDir=..\artifacts\cafe-build\installer
+OutputDir={#InstallerOutputDir}
 OutputBaseFilename=CafeSetup
 SetupIconFile=assets\Pnara.ico
 UninstallDisplayIcon={app}\Pnara.ico
@@ -22,6 +31,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
 MinVersion=10.0
 WizardStyle=modern
+ShowLanguageDialog=no
 CloseApplications=yes
 RestartApplications=no
 Compression=lzma2/ultra64
@@ -34,33 +44,50 @@ VersionInfoProductVersion={#AppVersion}
 VersionInfoVersion={#AppVersion}.0
 
 [Languages]
-Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "farsi"; MessagesFile: "Farsi.isl"
 
-[Tasks]
-Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: checkedonce
+[Messages]
+farsi.WelcomeLabel1=به راه‌انداز نصب پنارا کافه خوش آمدید
+farsi.WelcomeLabel2=این برنامه، فایل‌های پنارا کافه را روی رایانهٔ شما نصب می‌کند.
+farsi.WizardReady=آمادهٔ نصب
+farsi.ReadyLabel1=پس از کلیک روی «نصب»، راه‌اندازی پنارا کافه آغاز می‌شود.
+farsi.ReadyLabel2a=برای شروع نصب روی «نصب» کلیک کنید یا برای بازبینی تنظیمات روی «قبلی» کلیک کنید.
+farsi.ReadyLabel2b=برای شروع نصب روی «نصب» کلیک کنید.
+farsi.WizardInstalling=در حال نصب
+farsi.InstallingLabel=لطفاً تا پایان نصب پنارا کافه صبر کنید.
+farsi.FinishedLabel=نصب پنارا کافه پایان یافت. برای بازکردن نرم‌افزار، میانبر دسکتاپ را اجرا کنید.
+farsi.FinishedLabelNoIcons=نصب پنارا کافه پایان یافت.
+farsi.ClickFinish=برای خروج از نصب روی «پایان» کلیک کنید.
 
 [Files]
-Source: "..\artifacts\cafe-build\payload\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\artifacts\cafe-build\payload\postgresql-18.6-1-windows-x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
+Source: "..\artifacts\cafe-build\payload\RestoPOS.API.exe"; DestDir: "{tmp}"; Flags: dontcopy
+Source: "..\artifacts\cafe-build\payload\issuer-public.pem"; DestDir: "{tmp}"; Flags: dontcopy
+Source: "..\artifacts\cafe-build\payload\issuer-previous-public.pem"; DestDir: "{tmp}"; Flags: dontcopy
+Source: "..\artifacts\cafe-build\payload\*"; DestDir: "{app}"; Excludes: "postgresql-18.6-1-windows-x64.exe"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "assets\Pnara.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\Pnara Cafe"; Filename: "{app}\CafeLauncher.exe"; WorkingDir: "{app}"; IconFilename: "{app}\Pnara.ico"
-Name: "{autodesktop}\Pnara Cafe"; Filename: "{app}\CafeLauncher.exe"; WorkingDir: "{app}"; IconFilename: "{app}\Pnara.ico"; Tasks: desktopicon
+Name: "{group}\پنارا کافه"; Filename: "{app}\CafeLauncher.exe"; WorkingDir: "{app}"; IconFilename: "{app}\Pnara.ico"
+Name: "{autodesktop}\پنارا کافه"; Filename: "{app}\CafeLauncher.exe"; WorkingDir: "{app}"; IconFilename: "{app}\Pnara.ico"
 
 [Run]
-Filename: "{app}\CafeLauncher.exe"; Description: "Launch Pnara Cafe"; Flags: postinstall nowait skipifsilent; Check: IsInstallReady
+Filename: "{app}\CafeLauncher.exe"; Description: "اجرای پنارا کافه"; Flags: postinstall nowait skipifsilent; Check: IsInstallReady
 
 [UninstallRun]
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File ""{app}\Configure-Machine.ps1"" -InstallRoot ""{app}"" -UninstallService"; Flags: runhidden waituntilterminated; RunOnceId: "RemoveCafeApiService"
 
 [Code]
 var
+  LicensePage: TInputQueryWizardPage;
+  InstallationCode: String;
   AdminPasswordPage: TInputQueryWizardPage;
-  PostgreSqlPage: TInputQueryWizardPage;
-  PostgreSqlConnectionString: String;
+  PostgreSqlAdminPage: TInputQueryWizardPage;
   NeedsInitialPassword: Boolean;
-  NeedsPostgreSqlConnection: Boolean;
+  NeedsInitialLicense: Boolean;
+  NeedsInitialDatabase: Boolean;
   InstallReady: Boolean;
+  InstallFailed: Boolean;
 
 function HasRequiredPasswordCharacters(const Value: String): Boolean;
 var
@@ -85,43 +112,117 @@ begin
   Result := FileExists(ExpandConstant('{commonappdata}\Pnara\install-state.json'));
 end;
 
+function VerifyEnteredLicense(const LicenseCode: String): Boolean;
+var
+  LicensePath: String;
+  PublicKeyPath: String;
+  PreviousPublicKeyPath: String;
+  VerifierPath: String;
+  ExitCode: Integer;
+begin
+  Result := False;
+  LicensePath := ExpandConstant('{tmp}\PnaraLicensePreflight.txt');
+  PublicKeyPath := ExpandConstant('{tmp}\issuer-public.pem');
+  PreviousPublicKeyPath := ExpandConstant('{tmp}\issuer-previous-public.pem');
+  VerifierPath := ExpandConstant('{tmp}\RestoPOS.API.exe');
+  if not SaveStringToFile(LicensePath, UTF8Encode(Trim(LicenseCode)), False) then exit;
+  ExtractTemporaryFile('issuer-public.pem');
+  ExtractTemporaryFile('issuer-previous-public.pem');
+  ExtractTemporaryFile('RestoPOS.API.exe');
+  if Exec(VerifierPath,
+    '--verify-offline-license "' + PublicKeyPath + '" "' + LicensePath + '" "' + InstallationCode + '" "' + PreviousPublicKeyPath + '"',
+    '', SW_HIDE, ewWaitUntilTerminated, ExitCode) then
+    Result := ExitCode = 0;
+  DeleteFile(LicensePath);
+  DeleteFile(VerifierPath);
+  DeleteFile(PublicKeyPath);
+  DeleteFile(PreviousPublicKeyPath);
+end;
+
 procedure InitializeWizard;
+var
+  ExistingLicenseCode: AnsiString;
+  ExistingInstallationCode: AnsiString;
 begin
   NeedsInitialPassword := not ExistingCafeInstall;
-  NeedsPostgreSqlConnection := not ExistingCafeInstall;
+  NeedsInitialLicense := not ExistingCafeInstall;
+  NeedsInitialDatabase := not ExistingCafeInstall;
 
-  if NeedsPostgreSqlConnection then begin
-    PostgreSqlPage := CreateInputQueryPage(wpWelcome,
-      'Connect to PostgreSQL',
-      'Install PostgreSQL locally and create the Pnara database and application role first.',
-      'Enter an Npgsql connection string. Example: Host=localhost;Port=5432;Database=pnara;Username=pnara_app;Password=your-password. Grant this role ownership of the pnara database so migrations can create and update its schema.');
-    PostgreSqlPage.Add('PostgreSQL connection string:', True);
+  LicensePage := CreateInputQueryPage(wpWelcome,
+    'فعال‌سازی و نصب آفلاین',
+    'کد درخواست ۸ رقمی را به صادرکنندهٔ لایسنس بدهید. پس از دریافت، لایسنس را در کادر دوم وارد کنید.',
+    'کد درخواست برای این نصب نگه‌داری می‌شود و در ارتقاهای بعدی تغییر نمی‌کند.');
+  if LoadStringFromFile(ExpandConstant('{commonappdata}\Pnara\installation-code'), ExistingInstallationCode) and
+     (Length(Trim(ExistingInstallationCode)) = 8) then
+    InstallationCode := Trim(ExistingInstallationCode)
+  else begin
+    InstallationCode := IntToStr(10000000 + Random(90000000));
+  end;
+  if not ForceDirectories(ExpandConstant('{commonappdata}\Pnara')) then
+    RaiseException('پوشهٔ داده‌های پنارا ساخته نشد؛ Setup را با دسترسی مدیر اجرا کنید.');
+  if not SaveStringToFile(ExpandConstant('{commonappdata}\Pnara\installation-code'), UTF8Encode(InstallationCode), False) then
+    RaiseException('کد درخواست نصب ذخیره نشد؛ Setup را دوباره با دسترسی مدیر اجرا کنید.');
+  LicensePage.Add('کد درخواست این نصب (۸ رقم):', False);
+  LicensePage.Values[0] := InstallationCode;
+  LicensePage.Edits[0].ReadOnly := True;
+  LicensePage.Add('کد لایسنس:', False);
+  if LoadStringFromFile(ExpandConstant('{commonappdata}\Pnara\license.key'), ExistingLicenseCode) then
+    LicensePage.Values[1] := Trim(ExistingLicenseCode);
+
+  if NeedsInitialDatabase then begin
+    PostgreSqlAdminPage := CreateInputQueryPage(LicensePage.ID,
+      'پایگاه داده PostgreSQL',
+      'اگر PostgreSQL از قبل روی این رایانه نصب است، گذرواژهٔ مدیر postgres را وارد کنید.',
+      'اگر PostgreSQL نصب نیست، این کادر را خالی بگذارید تا نسخهٔ همراه نصب‌کننده به‌صورت آفلاین نصب شود. Setup پایگاه دادهٔ pnara را ایجاد و آماده می‌کند.');
+    PostgreSqlAdminPage.Add('گذرواژهٔ مدیر PostgreSQL (در صورت نصب بودن):', True);
   end;
 
   if NeedsInitialPassword then begin
     AdminPasswordPage := CreateInputQueryPage(wpSelectDir,
-      'Create the first administrator password',
-      'This password protects the initial Pnara Cafe administrator account.',
-      'Enter at least 12 characters, including an uppercase Latin letter, a lowercase Latin letter, and a digit. A symbol is optional. The password is stored as an Identity password hash in the database.');
-    AdminPasswordPage.Add('Administrator password:', True);
-    AdminPasswordPage.Add('Confirm password:', True);
+      'ساخت گذرواژهٔ مدیر',
+      'این گذرواژه برای ورود مدیر اصلی پنارا کافه استفاده می‌شود.',
+      'حداقل ۱۲ نویسه شامل حروف لاتین کوچک و بزرگ و یک عدد وارد کنید.');
+    AdminPasswordPage.Add('گذرواژهٔ مدیر:', True);
+    AdminPasswordPage.Add('تکرار گذرواژه:', True);
   end;
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
 var
   Password: String;
-  ConnectionStringLowercase: String;
+  LicenseCode: String;
+  ExistingLicenseCode: AnsiString;
 begin
   Result := True;
-  if NeedsPostgreSqlConnection and (CurPageID = PostgreSqlPage.ID) then begin
-    PostgreSqlConnectionString := PostgreSqlPage.Values[0];
-    ConnectionStringLowercase := Lowercase(PostgreSqlConnectionString);
-    if (Pos('host=', ConnectionStringLowercase) = 0) or
-       (Pos('database=', ConnectionStringLowercase) = 0) or
-       (Pos('username=', ConnectionStringLowercase) = 0) or
-       (Pos('password=', ConnectionStringLowercase) = 0) then begin
-      MsgBox('Enter a PostgreSQL connection string containing Host, Database, Username, and Password.', mbError, MB_OK);
+  if CurPageID = LicensePage.ID then begin
+    LicenseCode := Trim(LicensePage.Values[1]);
+    if (LicenseCode = '') and not NeedsInitialLicense and
+       LoadStringFromFile(ExpandConstant('{commonappdata}\Pnara\license.key'), ExistingLicenseCode) then begin
+      LicenseCode := Trim(ExistingLicenseCode);
+      LicensePage.Values[1] := LicenseCode;
+    end;
+    if Length(InstallationCode) <> 8 then begin
+      MsgBox('ساخت کد درخواست ۸ رقمی ناموفق بود. نصب را ببندید و دوباره اجرا کنید.', mbError, MB_OK);
+      Result := False;
+      exit;
+    end;
+    if NeedsInitialLicense and ((Length(LicenseCode) < 100) or (Pos('.', LicenseCode) = 0)) then begin
+      MsgBox('کد کامل لایسنس صادرشده را وارد کنید.', mbError, MB_OK);
+      Result := False;
+      exit;
+    end;
+    if (LicenseCode <> '') and ((Length(LicenseCode) < 100) or (Pos('.', LicenseCode) = 0)) then begin
+      MsgBox('قالب کد لایسنس معتبر نیست.', mbError, MB_OK);
+      Result := False;
+      exit;
+    end;
+    if LicenseCode = '' then begin
+      MsgBox('برای ادامه، کد لایسنس را وارد کنید.', mbError, MB_OK);
+      Result := False;
+      exit;
+    end;
+    if not VerifyEnteredLicense(LicenseCode) then begin
+      MsgBox('لایسنس معتبر نیست، منقضی شده یا برای کد درخواست این نصب صادر نشده است.', mbError, MB_OK);
       Result := False;
       exit;
     end;
@@ -130,20 +231,28 @@ begin
   if NeedsInitialPassword and (CurPageID = AdminPasswordPage.ID) then begin
     Password := AdminPasswordPage.Values[0];
     if Length(Password) < 12 then begin
-      MsgBox('Choose a password with at least 12 characters.', mbError, MB_OK);
+      MsgBox('گذرواژه باید دست‌کم ۱۲ نویسه داشته باشد.', mbError, MB_OK);
       Result := False;
       exit;
     end;
     if not HasRequiredPasswordCharacters(Password) then begin
-      MsgBox('Include at least one uppercase Latin letter, one lowercase Latin letter, and one digit. A symbol is optional.', mbError, MB_OK);
+      MsgBox('گذرواژه باید شامل حروف لاتین کوچک و بزرگ و دست‌کم یک عدد باشد.', mbError, MB_OK);
       Result := False;
       exit;
     end;
     if Password <> AdminPasswordPage.Values[1] then begin
-      MsgBox('The passwords do not match.', mbError, MB_OK);
+      MsgBox('دو گذرواژه با هم مطابقت ندارند.', mbError, MB_OK);
       Result := False;
       exit;
     end;
+  end;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if (CurPageID = wpFinished) and InstallFailed then begin
+    WizardForm.FinishedHeadingLabel.Caption := 'نصب کامل نشد';
+    WizardForm.FinishedLabel.Caption := 'فایل‌های برنامه نصب شدند، اما پیکربندی پایگاه داده یا سرویس کامل نشد. برنامه را اجرا نکنید. گزارش کامل در C:\ProgramData\Pnara\installation-diagnostics.txt قرار دارد.';
   end;
 end;
 
@@ -159,9 +268,9 @@ begin
   PowerShellPath := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
   Parameters := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ExpandConstant('{app}\Configure-Machine.ps1') + '" -InstallRoot "' + ExpandConstant('{app}') + '" -PrepareUpgrade';
   if not Exec(PowerShellPath, Parameters, '', SW_HIDE, ewWaitUntilTerminated, ExitCode) then
-    Result := 'Pnara Cafe could not stop its Windows service before the upgrade.'
+    Result := 'سرویس پنارا کافه پیش از ارتقا متوقف نشد.'
   else if ExitCode <> 0 then
-    Result := 'Pnara Cafe could not stop its Windows service before the upgrade. Restart Windows and run setup again.';
+    Result := 'سرویس پنارا کافه متوقف نشد. ویندوز را راه‌اندازی مجدد کنید و نصب را دوباره اجرا کنید.';
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
@@ -170,8 +279,12 @@ var
   PowerShellPath: String;
   ScriptPath: String;
   PasswordPath: String;
-  ConnectionPath: String;
+  LicensePath: String;
+  PostgreSqlAdminPasswordPath: String;
+  PostgreSqlInstallerPath: String;
   ErrorPath: String;
+  StableErrorPath: String;
+  DiagnosticPath: String;
   Parameters: String;
   ErrorText: String;
   ErrorLines: TArrayOfString;
@@ -179,43 +292,62 @@ var
 begin
   if CurStep = ssPostInstall then begin
     InstallReady := False;
-    WizardForm.StatusLabel.Caption := 'Connecting to PostgreSQL, backing up existing data, applying migrations, and starting the local service...';
+    WizardForm.StatusLabel.Caption := 'در حال پیکربندی PostgreSQL، اعمال تغییرات پایگاه داده و راه‌اندازی سرویس...';
     WizardForm.ProgressGauge.Style := npbstMarquee;
     WizardForm.Update;
 
     PowerShellPath := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
     ScriptPath := ExpandConstant('{app}\Configure-Machine.ps1');
     PasswordPath := ExpandConstant('{tmp}\PnaraInitialAdminPassword.txt');
-    ConnectionPath := ExpandConstant('{tmp}\PnaraPostgreSqlConnection.txt');
+    LicensePath := ExpandConstant('{tmp}\PnaraOfflineLicense.txt');
+    PostgreSqlAdminPasswordPath := ExpandConstant('{tmp}\PnaraPostgreSqlAdminPassword.txt');
+    PostgreSqlInstallerPath := ExpandConstant('{tmp}\postgresql-18.6-1-windows-x64.exe');
     ErrorPath := ExpandConstant('{tmp}\CafeSetup-error.txt');
+    StableErrorPath := ExpandConstant('{commonappdata}\Pnara\installation-error.txt');
+    DiagnosticPath := ExpandConstant('{commonappdata}\Pnara\installation-diagnostics.txt');
     DeleteFile(ErrorPath);
     Parameters := '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + ScriptPath + '" -InstallRoot "' + ExpandConstant('{app}') + '" -DataRoot "' + ExpandConstant('{commonappdata}\Pnara') + '" -AppVersion "{#AppVersion}" -ErrorFile "' + ErrorPath + '"';
 
-    if NeedsPostgreSqlConnection then begin
-      if not SaveStringToFile(ConnectionPath, UTF8Encode(PostgreSqlPage.Values[0]), False) then
-        RaiseException('The PostgreSQL connection string could not be passed securely to setup.');
-      Parameters := Parameters + ' -PostgreSqlConnectionFile "' + ConnectionPath + '"';
+    if NeedsInitialDatabase then begin
+      if Trim(PostgreSqlAdminPage.Values[0]) <> '' then begin
+        if not SaveStringToFile(PostgreSqlAdminPasswordPath, UTF8Encode(PostgreSqlAdminPage.Values[0]), False) then
+          RaiseException('گذرواژهٔ مدیر PostgreSQL برای ادامهٔ نصب ذخیره نشد.');
+        Parameters := Parameters + ' -PostgreSqlAdminPasswordFile "' + PostgreSqlAdminPasswordPath + '"';
+      end;
+      Parameters := Parameters + ' -PostgreSqlInstallerPath "' + PostgreSqlInstallerPath + '"';
     end;
+    Parameters := Parameters + ' -PostgreSqlInstallerPath "' + ExpandConstant('{tmp}\postgresql-17.11-1-windows-x64.exe') + '"';
 
     if NeedsInitialPassword then begin
       if not SaveStringToFile(PasswordPath, UTF8Encode(AdminPasswordPage.Values[0]), False) then
-        RaiseException('The initial administrator password could not be passed securely to setup.');
+        RaiseException('گذرواژهٔ مدیر برای ادامهٔ نصب ذخیره نشد.');
       Parameters := Parameters + ' -AdminPasswordFile "' + PasswordPath + '"';
     end;
+    if Trim(LicensePage.Values[1]) <> '' then begin
+      if not SaveStringToFile(LicensePath, UTF8Encode(Trim(LicensePage.Values[1])), False) then
+        RaiseException('کد لایسنس برای ادامهٔ نصب ذخیره نشد.');
+      Parameters := Parameters + ' -LicenseFile "' + LicensePath + '"';
+    end;
+    Parameters := Parameters + ' -InstallationCode "' + InstallationCode + '"';
     if not Exec(PowerShellPath, Parameters, ExpandConstant('{app}'), SW_HIDE, ewWaitUntilTerminated, ExitCode) then
       ExitCode := -1;
     DeleteFile(PasswordPath);
-    DeleteFile(ConnectionPath);
+    DeleteFile(LicensePath);
+    DeleteFile(PostgreSqlAdminPasswordPath);
 
     if ExitCode <> 0 then begin
-      ErrorText := 'Pnara Cafe setup could not complete. No success will be reported.';
-      if LoadStringsFromFile(ErrorPath, ErrorLines) and (GetArrayLength(ErrorLines) > 0) then begin
-        ErrorText := 'Pnara Cafe setup failed:';
+      InstallFailed := True;
+      ErrorText := 'نصب پنارا کافه کامل نشد.';
+      if not LoadStringsFromFile(ErrorPath, ErrorLines) or (GetArrayLength(ErrorLines) = 0) then
+        LoadStringsFromFile(StableErrorPath, ErrorLines);
+      if GetArrayLength(ErrorLines) > 0 then begin
+        ErrorText := 'نصب پنارا کافه ناموفق بود:';
         for Index := 0 to GetArrayLength(ErrorLines) - 1 do
           ErrorText := ErrorText + #13#10 + ErrorLines[Index];
       end;
+      ErrorText := ErrorText + #13#10 + #13#10 + 'گزارش کامل نصب:' + #13#10 + DiagnosticPath;
       MsgBox(ErrorText, mbError, MB_OK);
-      RaiseException('Service or database initialization failed. Review the message above and setup log before retrying.');
+      Exit;
     end;
 
     InstallReady := True;
@@ -223,6 +355,7 @@ begin
 
   if CurStep = ssDone then begin
     DeleteFile(ExpandConstant('{tmp}\PnaraInitialAdminPassword.txt'));
+    DeleteFile(ExpandConstant('{tmp}\PnaraOfflineLicense.txt'));
     DeleteFile(ExpandConstant('{tmp}\CafeSetup-error.txt'));
   end;
 end;

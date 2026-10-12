@@ -123,15 +123,14 @@ try
             };
         });
 
-    if (builder.Environment.IsDevelopment())
-    {
-        builder.Services.AddCors(options =>
-            options.AddPolicy("spa", policy =>
-                policy.WithOrigins("http://localhost:3000", "http://127.0.0.1:3000")
-                    .AllowAnyHeader()
-                    .AllowAnyMethod()
-                    .AllowCredentials()));
-    }
+    var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+        ?? new[] { "http://localhost:3000", "http://127.0.0.1:3000" };
+    builder.Services.AddCors(options =>
+        options.AddPolicy("spa", policy =>
+            policy.WithOrigins(corsOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials()));
 
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>
@@ -168,11 +167,12 @@ try
     {
         app.UseSwagger();
         app.UseSwaggerUI();
-        app.UseCors("spa");
     }
 
     app.UseDefaultFiles();
     app.UseStaticFiles();
+    app.UseRouting();
+    app.UseCors("spa");
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();

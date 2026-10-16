@@ -13,6 +13,7 @@ public class Order : BaseEntity
     public OrderType OrderType { get; set; }
     public string? TableNumber { get; set; }
     public string? CustomerPhone { get; set; }
+    public string? CustomerName { get; set; }
     public Guid? CustomerId { get; set; }
     public Guid CashierId { get; set; }
     public Guid? ShiftId { get; set; }

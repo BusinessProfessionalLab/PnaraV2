@@ -31,6 +31,9 @@ public interface IApplicationDbContext
     DbSet<DiningTable> DiningTables { get; }
     DbSet<CashDrawerMovement> CashDrawerMovements { get; }
     DbSet<LoyaltyPointLedger> LoyaltyPointLedgers { get; }
+    DbSet<CustomerWalletLedger> CustomerWalletLedgers { get; }
+    DbSet<LoyaltySmsCampaign> LoyaltySmsCampaigns { get; }
+    DbSet<LoyaltySmsMessage> LoyaltySmsMessages { get; }
     DbSet<Order> Orders { get; }
     DbSet<OrderItem> OrderItems { get; }
     DbSet<OrderItemModifier> OrderItemModifiers { get; }
@@ -47,4 +50,9 @@ public interface IApplicationDbContext
     /// then saves changes once and commits.
     /// </summary>
     Task ExecuteResilientTransactionAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken = default);
+}
+
+public interface ILoyaltySmsProvider
+{
+    Task<string?> SendAsync(string phoneNumber, string message, CancellationToken cancellationToken);
 }

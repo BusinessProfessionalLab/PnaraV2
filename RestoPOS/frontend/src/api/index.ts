@@ -24,10 +24,16 @@ export {
   useCustomer,
   useCustomerByPhone,
   useCustomerOrders,
+  useCustomerPointHistory,
   useCreateCustomer,
+  useRegisterOnlineCustomer,
   useUpdateCustomer,
   useDeleteCustomer,
   useAdjustLoyalty,
+  useLoyaltySettings,
+  useUpdateLoyaltySettings,
+  useLoyaltyCampaigns,
+  useQueueLoyaltyCampaign,
 } from "./controllers/customers-settings/customers-settings.api";
 export * from "./controllers/staff/staff.api";
 export * from "./controllers/tables/tables.api";

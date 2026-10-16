@@ -1,0 +1,12 @@
+C:\Users\sepeh\source\repos\PnaraV2\RestoPOS\backend\src\Domain\bin\Release\net8.0\RestoPOS.Domain.deps.json
+C:\Users\sepeh\source\repos\PnaraV2\RestoPOS\backend\src\Domain\bin\Release\net8.0\RestoPOS.Domain.dll
+C:\Users\sepeh\source\repos\PnaraV2\RestoPOS\backend\src\Domain\bin\Release\net8.0\RestoPOS.Domain.pdb
+C:\Users\sepeh\source\repos\PnaraV2\RestoPOS\backend\src\Domain\obj\Release\net8.0\RestoPOS.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\sepeh\source\repos\PnaraV2\RestoPOS\backend\src\Domain\obj\Release\net8.0\RestoPOS.Domain.AssemblyInfoInputs.cache
+C:\Users\sepeh\source\repos\PnaraV2\RestoPOS\backend\src\Domain\obj\Release\net8.0\RestoPOS.Domain.AssemblyInfo.cs
+C:\Users\sepeh\source\repos\PnaraV2\RestoPOS\backend\src\Domain\obj\Release\net8.0\RestoPOS.Domain.csproj.CoreCompileInputs.cache
+C:\Users\sepeh\source\repos\PnaraV2\RestoPOS\backend\src\Domain\obj\Release\net8.0\RestoPOS.Domain.sourcelink.json
+C:\Users\sepeh\source\repos\PnaraV2\RestoPOS\backend\src\Domain\obj\Release\net8.0\RestoPOS.Domain.dll
+C:\Users\sepeh\source\repos\PnaraV2\RestoPOS\backend\src\Domain\obj\Release\net8.0\refint\RestoPOS.Domain.dll
+C:\Users\sepeh\source\repos\PnaraV2\RestoPOS\backend\src\Domain\obj\Release\net8.0\RestoPOS.Domain.pdb
+C:\Users\sepeh\source\repos\PnaraV2\RestoPOS\backend\src\Domain\obj\Release\net8.0\ref\RestoPOS.Domain.dll

@@ -13,6 +13,7 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.HasIndex(x => x.OrderNumber).IsUnique();
         builder.Property(x => x.TableNumber).HasMaxLength(16);
         builder.Property(x => x.CustomerPhone).HasMaxLength(16);
+        builder.Property(x => x.CustomerName).HasMaxLength(200);
         builder.Property(x => x.Notes).HasMaxLength(1000);
         builder.Property(x => x.CancelReason).HasMaxLength(500);
         builder.Property(x => x.Subtotal).HasColumnType(MoneyConfig.Rial);
@@ -103,6 +104,12 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(x => x.PhoneNumber).HasMaxLength(16).IsRequired();
         builder.HasIndex(x => x.PhoneNumber).IsUnique();
         builder.Property(x => x.FullName).HasMaxLength(200);
+        builder.Property(x => x.Gender).HasMaxLength(32);
+        builder.Property(x => x.PersonalityType).HasMaxLength(64);
+        builder.Property(x => x.FavoriteProducts).HasColumnType("text[]");
+        builder.Property(x => x.Tags).HasColumnType("text[]");
+        builder.Property(x => x.Notes).HasMaxLength(2000);
+        builder.Property(x => x.RegistrationSource).HasMaxLength(32).IsRequired();
         builder.Property(x => x.TotalSpent).HasColumnType(MoneyConfig.Rial);
     }
 }
@@ -122,6 +129,19 @@ public class StoreSettingsConfiguration : IEntityTypeConfiguration<StoreSettings
         builder.Property(x => x.VatRate).HasColumnType(MoneyConfig.Rate);
         builder.Property(x => x.CurrencyCode).HasMaxLength(8);
         builder.Property(x => x.ThermalPrinterHost).HasMaxLength(128);
+        builder.Property(x => x.LoyaltyEarnMode).HasMaxLength(16).IsRequired();
+        builder.Property(x => x.LoyaltyEarnAmountRials).HasColumnType(MoneyConfig.Rial);
+        builder.Property(x => x.LoyaltyEarnPercent).HasColumnType(MoneyConfig.Rate);
+        builder.Property(x => x.ThankYouSmsTemplate).HasMaxLength(1000);
+        builder.Property(x => x.SmsQuietHoursStart).HasMaxLength(5);
+        builder.Property(x => x.SmsQuietHoursEnd).HasMaxLength(5);
+        builder.Property(x => x.CashbackPercent).HasColumnType(MoneyConfig.Rate);
+        builder.Property(x => x.CashbackMaxRials).HasColumnType(MoneyConfig.Rial);
+        builder.Property(x => x.CashbackMinSpendRials).HasColumnType(MoneyConfig.Rial);
+        builder.Property(x => x.CashbackProductIds).HasColumnType("text[]");
+        builder.Property(x => x.RewardDiscountRials).HasColumnType(MoneyConfig.Rial);
+        builder.Property(x => x.RewardProductName).HasMaxLength(200);
+        builder.Property(x => x.LoyaltyTierRulesJson).HasColumnType("text");
     }
 }
 

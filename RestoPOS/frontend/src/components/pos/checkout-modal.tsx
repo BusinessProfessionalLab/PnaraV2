@@ -153,8 +153,14 @@ export function CheckoutModal({
     toast.success("تسویه انجام شد و فیش‌ها ارسال شدند");
   };
 
+  const ensureCustomerContact = () => {
+    if (!cart.customerName.trim()) throw new Error("نام مشتری را وارد کنید.");
+    if (cart.customerPhone.replace(/\D/g, "").length < 10) throw new Error("شماره موبایل معتبر مشتری را وارد کنید.");
+  };
+
   const cashMut = useMutation({
     mutationFn: async () => {
+      ensureCustomerContact();
       const tendered = Number(received) || 0;
       if (tendered <= 0) {
         throw new Error("مبلغ پرداختی را وارد کنید.");
@@ -175,6 +181,7 @@ export function CheckoutModal({
 
   const c2cMut = useMutation({
     mutationFn: async () => {
+      ensureCustomerContact();
       const tracking = refNo.trim();
       if (!tracking) {
         throw new Error("شماره پیگیری را وارد کنید.");
@@ -196,6 +203,7 @@ export function CheckoutModal({
 
   const posMut = useMutation({
     mutationFn: async () => {
+      ensureCustomerContact();
       if (!deviceId) throw new Error("کارت‌خوان را انتخاب کنید.");
       if (amountToPayRials <= 0) throw new Error("مبلغ پرداختی را وارد کنید.");
       setWaiting(true);
@@ -221,6 +229,29 @@ export function CheckoutModal({
         </DialogHeader>
 
         <DialogBody className="space-y-5 py-5">
+          <div className="grid gap-3 rounded-xl border border-primary/15 bg-primary/5 p-3 sm:grid-cols-2">
+            <Field label="نام مشتری">
+              <Input
+                autoComplete="name"
+                value={cart.customerName}
+                onChange={(event) => cart.setMeta({ customerName: event.target.value })}
+                placeholder="نام و نام خانوادگی"
+              />
+            </Field>
+            <Field label="شماره موبایل برای باشگاه مشتریان">
+              <Input
+                autoComplete="tel-national"
+                inputMode="tel"
+                dir="ltr"
+                value={cart.customerPhone}
+                onChange={(event) => cart.setMeta({ customerPhone: event.target.value })}
+                placeholder="09xxxxxxxxx"
+              />
+            </Field>
+            <p className="text-[11px] text-muted-foreground sm:col-span-2">
+              اطلاعات مشتری به سفارش پیوست می‌شود تا خرید و امتیاز در سابقه باشگاه ثبت شود.
+            </p>
+          </div>
           <div className="flex items-end justify-between rounded-xl border border-border bg-muted/40 px-4 py-3">
             <div>
               <div className="text-[11px] font-medium text-muted-foreground">مانده قابل پرداخت</div>

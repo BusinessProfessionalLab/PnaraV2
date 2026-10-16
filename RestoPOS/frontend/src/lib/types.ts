@@ -199,6 +199,7 @@ export type OrderDto = {
   orderType: OrderType;
   tableNumber?: string | null;
   customerPhone?: string | null;
+  customerName?: string | null;
   cashierId: string;
   shiftId?: string | null;
   subtotal: number;
@@ -243,6 +244,15 @@ export type CustomerDto = {
   firstVisitShamsi: string;
   lastVisitAt: string;
   lastVisitShamsi: string;
+  birthDate?: string | null;
+  gender?: string | null;
+  personalityType?: string | null;
+  favoriteProducts?: string[];
+  tags?: string[];
+  notes?: string | null;
+  marketingConsent?: boolean;
+  marketingConsentUpdatedAtUtc?: string | null;
+  registrationSource?: string;
 };
 
 export type UnitConversionDto = {

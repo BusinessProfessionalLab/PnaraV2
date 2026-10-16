@@ -14,6 +14,11 @@ namespace RestoPOS.API.Controllers;
 [Authorize(Policy = Permissions.CustomersView)]
 public sealed class CustomersController(ISender sender) : ControllerBase
 {
+    [HttpPost("online-registration")]
+    [AllowAnonymous]
+    public Task<CustomerDto> RegisterOnline(RegisterOnlineCustomerCommand command, CancellationToken ct) =>
+        sender.Send(command, ct);
+
     [HttpGet]
     public Task<IReadOnlyList<CustomerDto>> Search([FromQuery] string? term, CancellationToken ct) =>
         sender.Send(new SearchCustomersQuery(term), ct);
@@ -64,6 +69,32 @@ public sealed class CustomersController(ISender sender) : ControllerBase
         [FromQuery] int pageSize = 50,
         CancellationToken ct = default) =>
         sender.Send(new GetCustomerOrderHistoryQuery(id, page, pageSize), ct);
+
+    [HttpGet("{id:guid}/loyalty/transactions")]
+    public Task<PaginatedList<LoyaltyPointTransactionDto>> LoyaltyHistory(
+        Guid id,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken ct = default) =>
+        sender.Send(new GetCustomerPointHistoryQuery(id, page, pageSize), ct);
+
+    [HttpGet("loyalty/settings")]
+    public Task<LoyaltyProgramSettingsDto> LoyaltySettings(CancellationToken ct) =>
+        sender.Send(new GetLoyaltyProgramSettingsQuery(), ct);
+
+    [HttpPut("loyalty/settings")]
+    [Authorize(Policy = Permissions.CustomersManage)]
+    public Task<LoyaltyProgramSettingsDto> UpdateLoyaltySettings(UpdateLoyaltyProgramSettingsCommand command, CancellationToken ct) =>
+        sender.Send(command, ct);
+
+    [HttpGet("loyalty/campaigns")]
+    public Task<PaginatedList<LoyaltyCampaignDto>> LoyaltyCampaigns([FromQuery] int page = 1, [FromQuery] int pageSize = 25, CancellationToken ct = default) =>
+        sender.Send(new GetLoyaltyCampaignsQuery(page, pageSize), ct);
+
+    [HttpPost("loyalty/campaigns")]
+    [Authorize(Policy = Permissions.CustomersManage)]
+    public Task<LoyaltyCampaignDto> QueueLoyaltyCampaign(QueueLoyaltyCampaignCommand command, CancellationToken ct) =>
+        sender.Send(command, ct);
 }
 
 [ApiController]

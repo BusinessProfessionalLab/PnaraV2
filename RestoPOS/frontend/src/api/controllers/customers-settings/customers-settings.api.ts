@@ -11,7 +11,69 @@ import type {
 export interface CreateCustomerVariables {
   phoneNumber: string;
   fullName?: string | null;
+  birthDate?: string | null;
+  gender?: string | null;
+  personalityType?: string | null;
+  favoriteProducts?: string[];
+  tags?: string[];
+  notes?: string | null;
+  marketingConsent?: boolean;
+  registrationSource?: string;
 }
+
+export type LoyaltyPointTransactionDto = {
+  id: string;
+  type: string;
+  pointsDelta: number;
+  balanceAfter: number;
+  orderId?: string | null;
+  notes?: string | null;
+  occurredAtUtc: string;
+};
+
+export type LoyaltyTierRuleDto = {
+  name: string;
+  minimumVisits: number;
+  minimumSpendRials: number;
+  pointsMultiplier: number;
+  cashbackPercent: number;
+};
+
+export type LoyaltyProgramSettingsDto = {
+  earnMode: "Amount" | "Visit" | "Percent";
+  earnAmountRials: number;
+  earnPoints: number;
+  earnEveryVisits: number;
+  earnPercent: number;
+  thankYouSmsEnabled: boolean;
+  smsEnabled: boolean;
+  smsQuietHoursStart: string;
+  smsQuietHoursEnd: string;
+  thankYouSmsTemplate: string;
+  cashbackPercent: number;
+  cashbackMaxRials: number;
+  cashbackMinSpendRials: number;
+  cashbackProductIds: string[];
+  rewardPointsThreshold: number;
+  rewardDiscountRials: number;
+  rewardProductName: string;
+  tiers: LoyaltyTierRuleDto[];
+  lapsedCustomerDays: number;
+};
+
+export type LoyaltyCampaignDto = {
+  id: string;
+  name: string;
+  body: string;
+  queuedAtUtc: string;
+  scheduledAtUtc?: string | null;
+  recipientCount: number;
+  sentCount: number;
+  deliveredCount: number;
+  failedCount: number;
+  convertedCount: number;
+  attributedRevenueRials: number;
+};
 
 /**
  * CustomersAndSettingsController — the backend groups the `api/customers`
@@ -61,12 +123,30 @@ export const customersSettingsApi = {
       })
       .then((r) => r.data),
 
+  customerPointHistory: (id: string, page = 1, pageSize = 50) =>
+    apiClient.get<PaginatedList<LoyaltyPointTransactionDto>>(`/api/customers/${id}/loyalty/transactions`, { params: { page, pageSize } }).then((r) => r.data),
+
   customerOrders: (id: string, page = 1, pageSize = 50) =>
     apiClient
       .get<PaginatedList<OrderDto>>(`/api/customers/${id}/orders`, {
         params: { page, pageSize },
       })
       .then((r) => r.data),
+
+  registerOnlineCustomer: (payload: { phoneNumber: string; fullName: string; marketingConsent: boolean }) =>
+    apiClient.post<CustomerDto>("/api/customers/online-registration", payload).then((r) => r.data),
+
+  loyaltySettings: () =>
+    apiClient.get<LoyaltyProgramSettingsDto>("/api/customers/loyalty/settings").then((r) => r.data),
+
+  updateLoyaltySettings: (payload: LoyaltyProgramSettingsDto) =>
+    apiClient.put<LoyaltyProgramSettingsDto>("/api/customers/loyalty/settings", payload).then((r) => r.data),
+
+  loyaltyCampaigns: (page = 1, pageSize = 25) =>
+    apiClient.get<PaginatedList<LoyaltyCampaignDto>>("/api/customers/loyalty/campaigns", { params: { page, pageSize } }).then((r) => r.data),
+
+  queueLoyaltyCampaign: (payload: { name: string; body: string; customerIds?: string[]; filter?: Record<string, unknown>; scheduledAtUtc?: string | null }) =>
+    apiClient.post<LoyaltyCampaignDto>("/api/customers/loyalty/campaigns", payload).then((r) => r.data),
 
   /* ------------------------------- settings ------------------------------ */
   settings: () =>
@@ -136,11 +216,49 @@ export function useCustomerByPhone(phone: string | null) {
   });
 }
 
+export function useCustomerPointHistory(id: string | null) {
+  return useQuery({
+    queryKey: [...customerKeys.all, "loyalty-transactions", id ?? ""] as const,
+    queryFn: () => customersSettingsApi.customerPointHistory(id as string),
+    enabled: Boolean(id),
+  });
+}
+
 export function useCustomerOrders(id: string | null) {
   return useQuery({
     queryKey: customerKeys.orders(id ?? ""),
     queryFn: () => customersSettingsApi.customerOrders(id as string),
     enabled: Boolean(id),
+  });
+}
+
+export function useLoyaltySettings() {
+  return useQuery({
+    queryKey: [...customerKeys.all, "loyalty-settings"],
+    queryFn: customersSettingsApi.loyaltySettings,
+  });
+}
+
+export function useUpdateLoyaltySettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: customersSettingsApi.updateLoyaltySettings,
+    onSuccess: (settings) => queryClient.setQueryData([...customerKeys.all, "loyalty-settings"], settings),
+  });
+}
+
+export function useLoyaltyCampaigns() {
+  return useQuery({
+    queryKey: [...customerKeys.all, "loyalty-campaigns"],
+    queryFn: () => customersSettingsApi.loyaltyCampaigns(),
+  });
+}
+
+export function useQueueLoyaltyCampaign() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: customersSettingsApi.queueLoyaltyCampaign,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [...customerKeys.all, "loyalty-campaigns"] }),
   });
 }
 
@@ -152,6 +270,14 @@ export function useCreateCustomer() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: customersSettingsApi.createCustomer,
+    onSuccess: invalidateCustomers(queryClient),
+  });
+}
+
+export function useRegisterOnlineCustomer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: customersSettingsApi.registerOnlineCustomer,
     onSuccess: invalidateCustomers(queryClient),
   });
 }

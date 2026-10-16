@@ -1,0 +1,7 @@
+{
+  "RestoPOS.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\sepeh\\source\\repos\\PnaraV2\\RestoPOS\\backend\\src\\API",
+  "RestoPOS.Application, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\sepeh\\source\\repos\\PnaraV2\\RestoPOS\\backend\\src\\Application",
+  "RestoPOS.Common.TestKit, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\sepeh\\source\\repos\\PnaraV2\\RestoPOS\\backend\\tests\\Common.TestKit",
+  "RestoPOS.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\sepeh\\source\\repos\\PnaraV2\\RestoPOS\\backend\\src\\Domain",
+  "RestoPOS.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "C:\\Users\\sepeh\\source\\repos\\PnaraV2\\RestoPOS\\backend\\src\\Infrastructure"
+}

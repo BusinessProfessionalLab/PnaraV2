@@ -1,8 +1,0 @@
-# Local dev only. Copy to .dev.vars (gitignored). `wrangler dev` reads `.dev.vars`.
-# Never put real production secrets here.
-TELEGRAM_BOT_TOKEN="test-bot-token"
-CONTACT_TELEGRAM_CHAT_IDS="1304766783"
-SUPPORT_GROUP_ID="-1000000000000"
-TELEGRAM_WEBHOOK_SECRET="local-dev-secret-change-me"
-SUPPORT_USER_IDS=""
-ALLOWED_ORIGINS="http://localhost:5200,http://127.0.0.1:5200"

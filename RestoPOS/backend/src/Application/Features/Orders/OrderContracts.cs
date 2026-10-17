@@ -14,6 +14,7 @@ public sealed record OrderDto(
     string? TableNumber,
     Guid? DiningTableId,
     string? CustomerPhone,
+    string? CustomerName,
     Guid CashierId,
     Guid? ShiftId,
     decimal Subtotal,
@@ -38,6 +39,7 @@ public sealed record CreateDraftOrderCommand(
     OrderType OrderType,
     string? TableNumber,
     string? CustomerPhone,
+    string? CustomerName,
     string? Notes,
     Guid? DiningTableId = null,
     IReadOnlyList<CreateDraftOrderItemRequest>? Items = null) : MediatR.IRequest<OrderDto>;
@@ -66,7 +68,7 @@ public sealed record GetDraftOrdersQuery : MediatR.IRequest<IReadOnlyList<OrderD
 public static class OrderMapping
 {
     public static OrderDto ToDto(Domain.Entities.Order o) => new(
-        o.Id, o.OrderNumber, o.Status, o.OrderType, o.TableNumber, o.DiningTableId, o.CustomerPhone, o.CashierId, o.ShiftId,
+        o.Id, o.OrderNumber, o.Status, o.OrderType, o.TableNumber, o.DiningTableId, o.CustomerPhone, o.CustomerName, o.CashierId, o.ShiftId,
         o.Subtotal, o.ModifiersTotal, o.DiscountAmount, o.DiscountPercent, o.ServiceChargeAmount, o.TaxRate, o.TaxAmount, o.GrandTotal,
         o.Notes, o.CreatedAt, PersianDateTime.ToShamsiDateTime(o.CreatedAt), o.SubmittedAt,
         o.Items.Select(ToItem).ToList(),

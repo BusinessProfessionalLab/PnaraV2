@@ -14,6 +14,15 @@ namespace RestoPOS.API.Controllers;
 [Authorize(Policy = Permissions.CustomersView)]
 public sealed class CustomersController(ISender sender) : ControllerBase
 {
+    [HttpGet("loyalty/overview")]
+    public Task<LoyaltyOverviewDto> LoyaltyOverview(CancellationToken ct) =>
+        sender.Send(new LoyaltyOverviewQuery(), ct);
+
+    [HttpPost("online-registration")]
+    [AllowAnonymous]
+    public Task<CustomerDto> RegisterOnline(RegisterOnlineCustomerCommand command, CancellationToken ct) =>
+        sender.Send(command, ct);
+
     [HttpGet]
     public Task<IReadOnlyList<CustomerDto>> Search([FromQuery] string? term, CancellationToken ct) =>
         sender.Send(new SearchCustomersQuery(term), ct);
@@ -23,12 +32,22 @@ public sealed class CustomersController(ISender sender) : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         [FromQuery] string? term = null,
+        [FromQuery] bool? marketingConsent = null,
+        [FromQuery] string? tier = null,
         CancellationToken ct = default) =>
-        sender.Send(new GetCustomersPagedQuery(page, pageSize, term), ct);
+        sender.Send(new GetCustomersPagedQuery(page, pageSize, term, marketingConsent, tier), ct);
 
     [HttpGet("by-id/{id:guid}")]
     public Task<CustomerDto> ById(Guid id, CancellationToken ct) =>
         sender.Send(new GetCustomerByIdQuery(id), ct);
+
+    [HttpGet("{id:guid}/wallet")]
+    public Task<CustomerWalletBalanceDto> Wallet(Guid id, CancellationToken ct) =>
+        sender.Send(new GetCustomerWalletBalanceQuery(id), ct);
+
+    [HttpGet("{id:guid}/loyalty/portal-preview")]
+    public Task<CustomerPortalPreviewDto> LoyaltyPortalPreview(Guid id, CancellationToken ct) =>
+        sender.Send(new GetCustomerPortalPreviewQuery(id), ct);
 
     [HttpGet("{phone}")]
     public Task<CustomerDto> ByPhone(string phone, CancellationToken ct) =>
@@ -64,6 +83,59 @@ public sealed class CustomersController(ISender sender) : ControllerBase
         [FromQuery] int pageSize = 50,
         CancellationToken ct = default) =>
         sender.Send(new GetCustomerOrderHistoryQuery(id, page, pageSize), ct);
+
+    [HttpGet("{id:guid}/loyalty/transactions")]
+    public Task<PaginatedList<LoyaltyPointTransactionDto>> LoyaltyHistory(
+        Guid id,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken ct = default) =>
+        sender.Send(new GetCustomerPointHistoryQuery(id, page, pageSize), ct);
+
+    [HttpGet("loyalty/settings")]
+    public Task<LoyaltyProgramSettingsDto> LoyaltySettings(CancellationToken ct) =>
+        sender.Send(new GetLoyaltyProgramSettingsQuery(), ct);
+
+    [HttpPut("loyalty/settings")]
+    [Authorize(Policy = Permissions.CustomersManage)]
+    public Task<LoyaltyProgramSettingsDto> UpdateLoyaltySettings(UpdateLoyaltyProgramSettingsCommand command, CancellationToken ct) =>
+        sender.Send(command, ct);
+
+    [HttpGet("loyalty/rewards")]
+    public Task<IReadOnlyList<LoyaltyRewardDto>> LoyaltyRewards([FromQuery] bool includeInactive = false, CancellationToken ct = default) =>
+        sender.Send(new GetLoyaltyRewardsQuery(includeInactive), ct);
+
+    [HttpPost("loyalty/rewards")]
+    [Authorize(Policy = Permissions.CustomersManage)]
+    public Task<LoyaltyRewardDto> CreateLoyaltyReward(CreateLoyaltyRewardCommand command, CancellationToken ct) =>
+        sender.Send(command, ct);
+
+    [HttpPut("loyalty/rewards/{id:guid}")]
+    [Authorize(Policy = Permissions.CustomersManage)]
+    public Task<LoyaltyRewardDto> UpdateLoyaltyReward(Guid id, UpdateLoyaltyRewardCommand command, CancellationToken ct) =>
+        sender.Send(command with { Id = id }, ct);
+
+    [HttpDelete("loyalty/rewards/{id:guid}")]
+    [Authorize(Policy = Permissions.CustomersManage)]
+    public async Task<IActionResult> DeactivateLoyaltyReward(Guid id, CancellationToken ct)
+    {
+        await sender.Send(new DeactivateLoyaltyRewardCommand(id), ct);
+        return NoContent();
+    }
+
+    [HttpPost("{customerId:guid}/loyalty/rewards/{rewardId:guid}/redeem")]
+    [Authorize(Policy = Permissions.CustomersManage)]
+    public Task<RedeemedLoyaltyRewardDto> RedeemLoyaltyReward(Guid customerId, Guid rewardId, CancellationToken ct) =>
+        sender.Send(new RedeemLoyaltyRewardCommand(customerId, rewardId), ct);
+
+    [HttpGet("loyalty/campaigns")]
+    public Task<PaginatedList<LoyaltyCampaignDto>> LoyaltyCampaigns([FromQuery] int page = 1, [FromQuery] int pageSize = 25, CancellationToken ct = default) =>
+        sender.Send(new GetLoyaltyCampaignsQuery(page, pageSize), ct);
+
+    [HttpPost("loyalty/campaigns")]
+    [Authorize(Policy = Permissions.CustomersManage)]
+    public Task<LoyaltyCampaignDto> QueueLoyaltyCampaign(QueueLoyaltyCampaignCommand command, CancellationToken ct) =>
+        sender.Send(command, ct);
 }
 
 [ApiController]

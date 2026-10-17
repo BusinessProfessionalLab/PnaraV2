@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using RestoPOS.Application.Common.Interfaces;
 using RestoPOS.Domain.Common;
 using RestoPOS.Infrastructure.Identity;
+using RestoPOS.Infrastructure.Customers;
 using RestoPOS.Infrastructure.Orders;
 using RestoPOS.Infrastructure.Persistence;
 using RestoPOS.Infrastructure.Pos;
@@ -36,6 +37,8 @@ public static class DependencyInjection
         services.AddScoped<IEscPosDispatcher, EscPosThermalDispatcher>();
         services.AddScoped<IOrderNumberGenerator, OrderNumberGenerator>();
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
+        services.AddHttpClient<ILoyaltySmsProvider, HttpLoyaltySmsProvider>();
+        services.AddHostedService<LoyaltySmsDispatcher>();
 
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
 

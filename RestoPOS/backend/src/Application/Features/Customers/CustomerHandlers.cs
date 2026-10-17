@@ -1,4 +1,6 @@
 using FluentValidation;
+using System.Linq.Expressions;
+using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using RestoPOS.Application.Common.Interfaces;
@@ -22,24 +24,51 @@ public sealed record CustomerDto(
     DateTime FirstVisitAt,
     string FirstVisitShamsi,
     DateTime LastVisitAt,
-    string LastVisitShamsi);
+    string LastVisitShamsi,
+    DateOnly? BirthDate = null,
+    string? Gender = null,
+    string? PersonalityType = null,
+    IReadOnlyList<string>? FavoriteProducts = null,
+    IReadOnlyList<string>? Tags = null,
+    string? Notes = null,
+    bool MarketingConsent = false,
+    DateTime? MarketingConsentUpdatedAtUtc = null,
+    string RegistrationSource = "Manual");
 
-public sealed record CreateCustomerCommand(string PhoneNumber, string? FullName) : IRequest<CustomerDto>;
-public sealed record UpdateCustomerCommand(Guid Id, string? FullName, string PhoneNumber) : IRequest<CustomerDto>;
+public sealed record CreateCustomerCommand(
+    string PhoneNumber, string? FullName, DateOnly? BirthDate = null, string? Gender = null,
+    string? PersonalityType = null, string[]? FavoriteProducts = null, string[]? Tags = null,
+    string? Notes = null, bool MarketingConsent = false, string RegistrationSource = "Manual") : IRequest<CustomerDto>;
+public sealed record UpdateCustomerCommand(
+    Guid Id, string? FullName, string PhoneNumber, DateOnly? BirthDate = null, string? Gender = null,
+    string? PersonalityType = null, string[]? FavoriteProducts = null, string[]? Tags = null,
+    string? Notes = null, bool? MarketingConsent = null) : IRequest<CustomerDto>;
 public sealed record SoftDeleteCustomerCommand(Guid Id) : IRequest;
 public sealed record GetCustomerByIdQuery(Guid Id) : IRequest<CustomerDto>;
 public sealed record GetCustomerByPhoneQuery(string PhoneNumber) : IRequest<CustomerDto>;
 public sealed record SearchCustomersQuery(string? Term) : IRequest<IReadOnlyList<CustomerDto>>;
-public sealed record GetCustomersPagedQuery(int Page = 1, int PageSize = 50, string? Term = null) : IRequest<PaginatedList<CustomerDto>>;
+public sealed record GetCustomersPagedQuery(
+    int Page = 1,
+    int PageSize = 50,
+    string? Term = null,
+    bool? MarketingConsent = null,
+    string? Tier = null) : IRequest<PaginatedList<CustomerDto>>;
 public sealed record AdjustLoyaltyPointsCommand(Guid CustomerId, int Delta, string? Notes) : IRequest<CustomerDto>;
+public sealed record LoyaltyPointTransactionDto(Guid Id, LoyaltyLedgerType Type, int PointsDelta, int BalanceAfter, Guid? OrderId, string? Notes, DateTime OccurredAtUtc);
+public sealed record GetCustomerPointHistoryQuery(Guid CustomerId, int Page = 1, int PageSize = 50)
+    : IRequest<PaginatedList<LoyaltyPointTransactionDto>>;
 public sealed record GetCustomerOrderHistoryQuery(Guid CustomerId, int Page = 1, int PageSize = 50) : IRequest<PaginatedList<OrderDto>>;
+public sealed record RegisterOnlineCustomerCommand(string PhoneNumber, string FullName, bool MarketingConsent)
+    : IRequest<CustomerDto>;
 
 internal static class CustomerMapping
 {
     public static CustomerDto Map(Customer c) => new(
         c.Id, c.PhoneNumber, c.FullName, c.VisitCount, c.TotalSpent, c.LoyaltyPoints,
         c.FirstVisitAt, PersianDateTime.ToShamsiDateTime(c.FirstVisitAt),
-        c.LastVisitAt, PersianDateTime.ToShamsiDateTime(c.LastVisitAt));
+        c.LastVisitAt, PersianDateTime.ToShamsiDateTime(c.LastVisitAt), c.BirthDate, c.Gender,
+        c.PersonalityType, c.FavoriteProducts, c.Tags, c.Notes, c.MarketingConsent,
+        c.MarketingConsentUpdatedAtUtc, c.RegistrationSource);
 }
 
 public sealed class CreateCustomerCommandValidator : AbstractValidator<CreateCustomerCommand>
@@ -56,6 +85,15 @@ public sealed class CreateCustomerCommandHandler(IApplicationDbContext db) : IRe
             throw new ConflictException("مشتری با این شماره تلفن از قبل وجود دارد.");
 
         var customer = Customer.Create(phone, request.FullName);
+        customer.BirthDate = request.BirthDate;
+        customer.Gender = request.Gender;
+        customer.PersonalityType = request.PersonalityType;
+        customer.FavoriteProducts = request.FavoriteProducts ?? [];
+        customer.Tags = request.Tags ?? [];
+        customer.Notes = request.Notes;
+        customer.MarketingConsent = request.MarketingConsent;
+        customer.MarketingConsentUpdatedAtUtc = request.MarketingConsent ? DateTime.UtcNow : null;
+        customer.RegistrationSource = request.RegistrationSource;
         db.Customers.Add(customer);
         await db.SaveChangesAsync(cancellationToken);
         return CustomerMapping.Map(customer);
@@ -74,6 +112,15 @@ public sealed class UpdateCustomerCommandHandler(IApplicationDbContext db) : IRe
 
         customer.PhoneNumber = phone;
         customer.FullName = request.FullName;
+        if (request.BirthDate is not null) customer.BirthDate = request.BirthDate;
+        if (request.Gender is not null) customer.Gender = request.Gender;
+        if (request.PersonalityType is not null) customer.PersonalityType = request.PersonalityType;
+        if (request.FavoriteProducts is not null) customer.FavoriteProducts = request.FavoriteProducts;
+        if (request.Tags is not null) customer.Tags = request.Tags;
+        if (request.Notes is not null) customer.Notes = request.Notes;
+        if (request.MarketingConsent is not null && customer.MarketingConsent != request.MarketingConsent.Value)
+            customer.MarketingConsentUpdatedAtUtc = DateTime.UtcNow;
+        if (request.MarketingConsent is not null) customer.MarketingConsent = request.MarketingConsent.Value;
         await db.SaveChangesAsync(cancellationToken);
         return CustomerMapping.Map(customer);
     }
@@ -139,6 +186,11 @@ public sealed class GetCustomersPagedQueryHandler(IApplicationDbContext db) : IR
             query = query.Where(c => c.PhoneNumber.Contains(term) || (c.FullName != null && c.FullName.Contains(term)));
         }
 
+        if (request.MarketingConsent.HasValue)
+            query = query.Where(c => c.MarketingConsent == request.MarketingConsent.Value);
+
+        query = await ApplyTierFilterAsync(query, request.Tier, db, cancellationToken);
+
         var total = await query.CountAsync(cancellationToken);
         var items = await query.OrderByDescending(c => c.LastVisitAt)
             .Skip((request.Page - 1) * request.PageSize)
@@ -152,6 +204,46 @@ public sealed class GetCustomersPagedQueryHandler(IApplicationDbContext db) : IR
             PageSize = request.PageSize,
             TotalCount = total
         };
+    }
+
+    private static async Task<IQueryable<Customer>> ApplyTierFilterAsync(
+        IQueryable<Customer> query, string? selectedTier, IApplicationDbContext db, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(selectedTier)) return query;
+
+        var json = await db.StoreSettings.AsNoTracking().Select(x => x.LoyaltyTierRulesJson).FirstOrDefaultAsync(cancellationToken);
+        LoyaltyTierRuleDto[] tiers;
+        try { tiers = string.IsNullOrWhiteSpace(json) ? [] : JsonSerializer.Deserialize<LoyaltyTierRuleDto[]>(json) ?? []; }
+        catch (JsonException) { tiers = []; }
+        if (tiers.Length == 0)
+        {
+            tiers =
+            [
+                new LoyaltyTierRuleDto("برنزی", 0, 0, 1, 0),
+                new LoyaltyTierRuleDto("نقره‌ای", 8, 50_000_000, 1.2m, 3),
+                new LoyaltyTierRuleDto("طلایی", 20, 150_000_000, 1.5m, 5)
+            ];
+        }
+
+        var orderedTiers = tiers.OrderByDescending(x => x.MinimumVisits)
+            .ThenByDescending(x => x.MinimumSpendRials).ToArray();
+        var selectedIndex = Array.FindIndex(orderedTiers, x => x.Name == selectedTier);
+        if (selectedIndex < 0) return query.Where(_ => false);
+
+        var customer = Expression.Parameter(typeof(Customer), "customer");
+        Expression IsEligible(LoyaltyTierRuleDto rule)
+        {
+            var visits = Expression.GreaterThanOrEqual(
+                Expression.Property(customer, nameof(Customer.VisitCount)), Expression.Constant(rule.MinimumVisits));
+            var spend = Expression.GreaterThanOrEqual(
+                Expression.Property(customer, nameof(Customer.TotalSpent)), Expression.Constant(rule.MinimumSpendRials));
+            return Expression.OrElse(visits, spend);
+        }
+
+        Expression predicate = IsEligible(orderedTiers[selectedIndex]);
+        for (var i = 0; i < selectedIndex; i++)
+            predicate = Expression.AndAlso(predicate, Expression.Not(IsEligible(orderedTiers[i])));
+        return query.Where(Expression.Lambda<Func<Customer, bool>>(predicate, customer));
     }
 }
 
@@ -203,6 +295,66 @@ public sealed class GetCustomerOrderHistoryQueryHandler(IApplicationDbContext db
             Items = orders.Select(OrderMapping.ToDto).ToList(),
             Page = request.Page,
             PageSize = request.PageSize,
+            TotalCount = total
+        };
+    }
+}
+
+public sealed class RegisterOnlineCustomerCommandHandler(IApplicationDbContext db)
+    : IRequestHandler<RegisterOnlineCustomerCommand, CustomerDto>
+{
+    public async Task<CustomerDto> Handle(RegisterOnlineCustomerCommand request, CancellationToken cancellationToken)
+    {
+        var phone = new PhoneNumber(request.PhoneNumber).Value;
+        var customer = await db.Customers.FirstOrDefaultAsync(c => c.PhoneNumber == phone, cancellationToken);
+        if (customer is null)
+        {
+            customer = Customer.Create(phone, request.FullName.Trim());
+            customer.RegistrationSource = "Online";
+            db.Customers.Add(customer);
+        }
+        else if (!string.IsNullOrWhiteSpace(request.FullName))
+        {
+            customer.FullName = request.FullName.Trim();
+        }
+
+        if (request.MarketingConsent && !customer.MarketingConsent)
+        {
+            customer.MarketingConsent = true;
+            customer.MarketingConsentUpdatedAtUtc = DateTime.UtcNow;
+        }
+        await db.SaveChangesAsync(cancellationToken);
+        return CustomerMapping.Map(customer);
+    }
+}
+
+public sealed class GetCustomerPointHistoryQueryHandler(IApplicationDbContext db)
+    : IRequestHandler<GetCustomerPointHistoryQuery, PaginatedList<LoyaltyPointTransactionDto>>
+{
+    public async Task<PaginatedList<LoyaltyPointTransactionDto>> Handle(
+        GetCustomerPointHistoryQuery request,
+        CancellationToken cancellationToken)
+    {
+        if (!await db.Customers.AnyAsync(c => c.Id == request.CustomerId, cancellationToken))
+            throw new NotFoundException(nameof(Customer), request.CustomerId);
+
+        var page = Math.Max(1, request.Page);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+        var query = db.LoyaltyPointLedgers.AsNoTracking().Where(x => x.CustomerId == request.CustomerId);
+        var total = await query.CountAsync(cancellationToken);
+        var entries = await query.OrderByDescending(x => x.OccurredAtUtc)
+            .ThenByDescending(x => x.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new LoyaltyPointTransactionDto(
+                x.Id, x.Type, x.PointsDelta, x.BalanceAfter, x.OrderId, x.Notes, x.OccurredAtUtc))
+            .ToListAsync(cancellationToken);
+
+        return new PaginatedList<LoyaltyPointTransactionDto>
+        {
+            Items = entries,
+            Page = page,
+            PageSize = pageSize,
             TotalCount = total
         };
     }

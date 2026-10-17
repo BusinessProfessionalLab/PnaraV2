@@ -8,6 +8,15 @@ public class Customer : BaseEntity, ISoftDeletable
 {
     public string PhoneNumber { get; set; } = default!;
     public string? FullName { get; set; }
+    public DateOnly? BirthDate { get; set; }
+    public string? Gender { get; set; }
+    public string? PersonalityType { get; set; }
+    public string[] FavoriteProducts { get; set; } = [];
+    public string[] Tags { get; set; } = [];
+    public string? Notes { get; set; }
+    public bool MarketingConsent { get; set; }
+    public DateTime? MarketingConsentUpdatedAtUtc { get; set; }
+    public string RegistrationSource { get; set; } = "Manual";
     public int VisitCount { get; set; }
     public decimal TotalSpent { get; set; }
     public int LoyaltyPoints { get; set; }

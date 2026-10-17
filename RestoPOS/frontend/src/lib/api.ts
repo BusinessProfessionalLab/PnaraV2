@@ -354,7 +354,9 @@ export const api = {
   reorderCategories: (orderedIds: string[]) =>
     apiFetch<void>("/api/menu/categories/reorder", {
       method: "PUT",
-      body: JSON.stringify({ orderedIds }),
+      body: JSON.stringify({
+        items: orderedIds.map((id, displayPriority) => ({ id, displayPriority })),
+      }),
     }),
   menuItems: (activeOnly = true) =>
     apiFetch<MenuItemDto[]>(`/api/menu/items?activeOnly=${activeOnly}`),

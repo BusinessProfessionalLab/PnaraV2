@@ -1,5 +1,5 @@
-import { CustomersHub } from "@/components/admin/customers-hub";
+import { LoyaltyClubHub } from "@/components/admin/loyalty-club-hub";
 
 export default function Page() {
-  return <CustomersHub />;
+  return <LoyaltyClubHub />;
 }

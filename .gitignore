@@ -1,0 +1,69 @@
+# Build outputs - never commit these
+[Bb]in/
+[Oo]bj/
+out/
+dist/
+build/
+TestResults/
+coverage/
+*.lcov
+
+# Visual Studio / Rider
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+.idea/
+*.DotSettings.user
+
+# .NET
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+publish/
+*.trx
+*.coverage
+*.coveragexml
+
+# Node / Frontend
+node_modules/
+.pnp
+.pnp.js
+.npm/
+.eslintcache
+*.tsbuildinfo
+.next/
+nuxt/
+.vercel/
+.astro/
+.turbo/
+
+# Env - keep examples, ignore real secrets
+.env
+.env.local
+.env*.local
+.dev.vars
+.wrangler/
+*.pem
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+tickets/
+tmp/
+temp/

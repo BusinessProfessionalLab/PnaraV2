@@ -26,7 +26,7 @@ public class InventoryItem : BaseEntity, ISoftDeletable
     public Guid? DeletedBy { get; set; }
 
     [Timestamp]
-    public byte[] RowVersion { get; set; } = default!;
+    public uint RowVersion { get; set; }
 
     public ICollection<InventoryTransaction> Transactions { get; set; } = [];
     public ICollection<RecipeLine> RecipeLines { get; set; } = [];

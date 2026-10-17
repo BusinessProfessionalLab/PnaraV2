@@ -53,7 +53,9 @@ export const menuApi = {
   /** Backend route is `categories/reorder` (not `/order`). */
   reorderCategories: (orderedIds: string[]) =>
     apiClient
-      .put<void>("/api/menu/categories/reorder", { orderedIds })
+      .put<void>("/api/menu/categories/reorder", {
+        items: orderedIds.map((id, displayPriority) => ({ id, displayPriority })),
+      })
       .then((r) => r.data),
 
   /* ------------------------------- menu items ---------------------------- */
@@ -81,13 +83,12 @@ export const menuApi = {
       .post<void>(`/api/menu/items/${id}/sold-out`, { id, isSoldOut })
       .then((r) => r.data),
 
-  /**
-   * NOTE: the backend MenuController has no `items/order` route, so this call
-   * currently 404s. Kept as-is to preserve existing behaviour.
-   */
   reorderMenuItems: (categoryId: string, orderedIds: string[]) =>
     apiClient
-      .put<void>("/api/menu/items/order", { categoryId, orderedIds })
+      .put<void>("/api/menu/items/reorder", {
+        categoryId,
+        items: orderedIds.map((id, displayPriority) => ({ id, displayPriority })),
+      })
       .then((r) => r.data),
 
   /* ------------------------------- modifiers ----------------------------- */

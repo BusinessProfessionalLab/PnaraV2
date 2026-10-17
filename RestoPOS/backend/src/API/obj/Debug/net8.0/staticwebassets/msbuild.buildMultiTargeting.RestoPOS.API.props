@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="..\build\RestoPOS.API.props" />
-</Project>

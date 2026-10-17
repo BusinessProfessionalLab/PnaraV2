@@ -1,0 +1,74 @@
+---
+import { group, type ComparisonGroup, type ComparisonPlan } from '../../lib/content';
+const groups = await group<ComparisonGroup>('comparisonGroups');
+const plans = await group<ComparisonPlan>('comparisonPlans');
+---
+<section class="ctable" data-plan="0" data-ctable>
+  <header class="ctable__header">
+    <div class="ctable__heading">
+      <p class="badge">Comparison table</p>
+      <h2 class="h2">It's all in the details</h2>
+    </div>
+    <p class="ctable__lede">
+      Every plan starts with the full Parley experience. The difference is in
+      how much you can push it.
+    </p>
+  </header>
+
+  <!-- Phone: the Framer component collapses to one plan column behind this
+       switcher (Compare table variants solo/pro/Team + Menu item pricing). -->
+  <div class="ctable__switch">
+    <button class="ctable__pick" type="button" aria-expanded="false" aria-haspopup="true" data-ctable-pick>
+      <span data-ctable-current>{plans[0].name}</span>
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4.5 6.5 3.5 3.5 3.5-3.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="ctable__menu" data-ctable-menu>
+      {plans.map((p, i) => (
+        <button class={`ctable__option${i === 0 ? ' is-active' : ''}`} type="button" data-ctable-option={i}>{p.name}</button>
+      ))}
+    </div>
+  </div>
+
+  <div class="ctable__scroll">
+    <table class="ctable__table">
+      <thead>
+        <tr>
+          <th scope="col"><span class="visually-hidden">Feature</span></th>
+          {plans.map((p) => (
+            <th scope="col">
+              <h4 class="ctable__plan">{p.name}</h4>
+              <span class="ctable__blurb">{p.blurb}</span>
+            </th>
+          ))}
+        </tr>
+      </thead>
+      {groups.map((g) => (
+        <tbody>
+          <tr class="ctable__grouprow">
+            <th scope="colgroup" colspan={plans.length + 1}><h5 class="ctable__group">{g.title}</h5></th>
+          </tr>
+          {g.rows.map((row) => (
+            <tr>
+              <th scope="row">{row.label}</th>
+              {row.values.map((v) => (
+                <td>
+                  {typeof v === 'string' ? (
+                    <span class="ctable__pill">{v}</span>
+                  ) : v ? (
+                    <span class="ctable__mark ctable__mark--yes" role="img" aria-label="Included">
+                      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="currentColor"/><path d="m4.8 8.2 2.1 2.1 4.3-4.4" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                  ) : (
+                    <span class="ctable__mark ctable__mark--no" role="img" aria-label="Not included">
+                      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="currentColor"/><path d="m5.6 5.6 4.8 4.8M10.4 5.6l-4.8 4.8" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+                    </span>
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      ))}
+    </table>
+  </div>
+</section>

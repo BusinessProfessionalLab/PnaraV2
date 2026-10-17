@@ -1,0 +1,31 @@
+---
+import { getCollection } from 'astro:content';
+import { dateLabel } from '../../lib/content';
+
+/** Framer fills this strip with other posts from the same category, so it
+ *  changes per article. Falls back to the newest posts if a category has
+ *  fewer than three siblings. */
+interface Props { slug: string; category: string }
+const { slug, category } = Astro.props;
+
+const posts = (await getCollection('blog')).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+const others = posts.filter((p) => p.id !== slug);
+const sameCategory = others.filter((p) => p.data.category === category);
+const related = [...sameCategory, ...others.filter((p) => !sameCategory.includes(p))].slice(0, 3);
+---
+<section class="related">
+  <h3 class="related__title">Related posts</h3>
+  <ul class="bgrid" role="list">
+    {related.map((p) => (
+      <li class="bcard">
+        <a class="bcard__link" href={`/blog/${p.id}`}>
+          <span class="bcard__media"><img src={p.data.cover} alt="" loading="lazy" /></span>
+          <span class="bcard__cat">{p.data.category}</span>
+          <h5 class="bcard__title">{p.data.title}</h5>
+        </a>
+      </li>
+    ))}
+  </ul>
+</section>

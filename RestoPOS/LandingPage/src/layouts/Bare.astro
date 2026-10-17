@@ -1,0 +1,36 @@
+---
+import GoogleAnalytics from '../components/GoogleAnalytics.astro';
+import StoreBadge from '../components/StoreBadge.astro';
+import Head from './Head.astro';
+import Analytics from '@vercel/analytics/astro';
+import SpeedInsights from '@vercel/speed-insights/astro';
+// Fonts ship with the site (no request to Google): DM Sans with its optical-size axis, upright and italic, and Geist.
+import '@fontsource-variable/dm-sans/opsz.css';
+import '@fontsource-variable/dm-sans/opsz-italic.css';
+import '@fontsource-variable/geist';
+import '../styles/global.css';
+
+/** Chromeless layout: no nav, no footer, no closing CTA. Used by /waitlist,
+ *  which the Framer original renders as a standalone split screen. */
+export interface Props { title: string; description: string; path: string; ogImage?: string; schema?: boolean }
+const { title, description, path, ogImage, schema } = Astro.props;
+---
+<!DOCTYPE html>
+<html lang="en">
+  <head><Head title={title} description={description} path={path} ogImage={ogImage} schema={schema} /></head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <main id="main">
+      <slot />
+    </main>
+    <script>
+      /* Only the form behaviour: this layout has no nav, hero or marquees. */
+      import { init as forms } from '../scripts/forms.js';
+      forms();
+    </script>
+    {import.meta.env.PUBLIC_VERCEL_ANALYTICS && <Analytics />}
+    {import.meta.env.PUBLIC_VERCEL_ANALYTICS && <SpeedInsights />}
+    <StoreBadge />
+    <GoogleAnalytics />
+  </body>
+</html>

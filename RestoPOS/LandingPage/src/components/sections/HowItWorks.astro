@@ -1,0 +1,26 @@
+---
+import { group, type HiwTab } from '../../lib/content';
+const tabs = await group<HiwTab>('hiwTabs');
+---
+<section class="hiw" id="how-it-works">
+  <header class="hiw__header">
+    <p class="badge">How it works</p>
+    <h2 class="h2 h2--center">
+      From ask to done.&nbsp;<em>Without the back-and-forth.</em>
+    </h2>
+  </header>
+
+  <div class="hiw__panel" id="hiw-panel">
+    <div class="hiw__pills" role="list">
+      {tabs.map((t) => (
+        <button class={`hiw__pill${t.step === 0 ? ' is-active' : ''}`} data-step={t.step} type="button" aria-pressed={t.step === 0 ? 'true' : 'false'}>{t.label}</button>
+      ))}
+    </div>
+
+    <div class="hiw__stage">
+      {tabs.map((t) => (
+        <div class={`hiw__lottie${t.step === 0 ? ' is-active' : ''}`} data-step={t.step} hidden={t.step !== 0}></div>
+      ))}
+    </div>
+  </div>
+</section>

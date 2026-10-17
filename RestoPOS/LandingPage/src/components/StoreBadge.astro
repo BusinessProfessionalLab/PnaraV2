@@ -1,0 +1,27 @@
+---
+/** Demo-only "All Astro Themes" button, fixed bottom-right. Rendered only when
+ *  PUBLIC_STORE_BADGE is "true", so a fresh clone ships without it. */
+const show = import.meta.env.PUBLIC_STORE_BADGE === 'true';
+const href =
+  'https://buy.polar.sh/polar_cl_C7mCmNfCQK9xTynrq5u0t4I4CpMoRc5tN5UCB3mx56l?utm_source=astro-demo&utm_medium=badge&utm_campaign=parley';
+const label = 'All Astro Themes';
+---
+{show && (
+  <a href={href} class="fbtn fbtn--primary store-badge" target="_blank" rel="noreferrer">
+    <span class="fbtn__chip"
+      ><span class="fbtn__arrows"
+        ><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6.5 15 12l-5.5 5.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg
+        ><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6.5 15 12l-5.5 5.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg
+      ></span
+    ></span
+    ><span class="fbtn__label"><span>{label}</span><span aria-hidden="true">{label}</span></span>
+  </a>
+)}
+<style>
+  .store-badge {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 10;
+  }
+</style>

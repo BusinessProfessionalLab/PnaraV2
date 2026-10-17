@@ -1,28 +1,28 @@
 ---
-import SectionHeader from "@/components/elements/SectionHeader.astro";
-import AccordionItem from "@/components/ui/AccordionItem.astro";
-
-interface Props {
-  /** Anchor target so other pages can deep-link a single question block. */
-  id?: string;
-  title?: string;
-  description?: string;
-  items: Array<{ question: string; answer: string }>;
-}
-
-const {
-  id,
-  title = "پرسش‌های متداول",
-  description = "",
-  items = []
-} = Astro.props;
+import Button from '../Button.astro';
+import { group, type FaqItem } from '../../lib/content';
+const faqs = await group<FaqItem>('faqs');
 ---
+<section class="faq" id="faq">
+  <div class="faq__left">
+    <p class="badge">FAQ</p>
+    <h2 class="h2">Questions<br />answered.</h2>
+    <p class="faq__sub">Still curious?</p>
+    <Button href="/contact" label="Chat with us" variant="primary" />
+    <img class="faq__mosaic" src="/assets/faq-mosaic.webp" alt="" width="1062" height="250" loading="lazy" decoding="async" />
+  </div>
 
-<section id={id} class="py-16 md:py-24 site-container">
-  <SectionHeader title={title} description={description} />
-  <div class="max-w-2xl mx-auto mt-8">
-    {items.map((item: { question: string; answer: string }, index: number) => (
-      <AccordionItem question={item.question} answer={item.answer} index={index}  />
+  <div class="faq__list">
+    {faqs.map((item) => (
+      <details class="faq__item">
+        <summary>
+          <h5>{item.q}</h5>
+          <svg class="faq__plus" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5v13M1.5 8h13" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2.1 1.7"/></svg>
+        </summary>
+        <div class="faq__answer">
+          <p>{item.a}</p>
+        </div>
+      </details>
     ))}
   </div>
 </section>

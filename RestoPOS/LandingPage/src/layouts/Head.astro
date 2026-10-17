@@ -1,0 +1,45 @@
+---
+import schema from '../content/schema.json';
+
+/**
+ * Page head. Titles, descriptions and the Open Graph image mirror the Framer
+ * project's own SEO settings; the JSON-LD block is the payload its
+ * StructuredData component emits site-wide (Organization, WebSite, Product,
+ * FAQPage), with the origin pointed at this deployment.
+ */
+export interface Props {
+  title: string;
+  description: string;
+  path: string;
+  /** Blog posts override the shared card with their own cover. */
+  ogImage?: string;
+  /** The waitlist and thank-you pages carry no structured data in Framer. */
+  schema?: boolean;
+}
+const { title, description, path, ogImage, schema: withSchema = true } = Astro.props;
+const canonical = new URL(path, Astro.site).href;
+const card = new URL(ogImage ?? '/assets/og-image.jpg', Astro.site).href;
+---
+<meta charset="UTF-8" />
+<meta name="generator" content={Astro.generator} />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#f7f7f4" />
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Parley" />
+<meta property="og:url" content={canonical} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={card} />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={card} />
+
+<link rel="icon" href="/assets/favicon.png" />
+<link rel="apple-touch-icon" href="/assets/favicon.png" />
+
+{withSchema && <script type="application/ld+json" set:html={JSON.stringify(schema)} />}

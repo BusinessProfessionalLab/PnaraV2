@@ -1,0 +1,2 @@
+2026-10-09 20:29:24.264 +03:30 [WRN] The WebRootPath was not found: C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\API\wwwroot. Static files may be unavailable.
+2026-10-09 20:29:24.360 +03:30 [INF] HTTP GET /health responded 200 in 43.8760 ms

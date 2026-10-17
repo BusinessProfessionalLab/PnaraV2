@@ -1,0 +1,73 @@
+---
+import { getCollection } from 'astro:content';
+import LoadMore from '../LoadMore.astro';
+import { group, dateLabel, type PostCard } from '../../lib/content';
+
+/** Cards that have an article behind them read title/category/excerpt/cover
+ *  from the Markdown post itself, so editing a post updates the index. */
+const posts = await getCollection('blog');
+const bySlug = new Map(posts.map((p) => [p.id, p.data]));
+const cards = (await group<PostCard>('postCards')).map((c) => {
+  const d = c.slug ? bySlug.get(c.slug) : undefined;
+  return d
+    ? { ...c, title: d.title, category: d.category, excerpt: d.excerpt, cover: d.cover, dateLabel: dateLabel(d.date) }
+    : c;
+});
+const featured = cards.find((c) => c.featured)!;
+const side = cards.filter((c) => c.side);
+const rest = cards.filter((c) => !c.featured && !c.side);
+/** Framer renders every card in the collection up front and still shows the
+ *  Load More control, which pages the CMS. There is no further page here, so
+ *  the button reports that on click rather than hiding a row of content. */
+const PER_PAGE = rest.length;
+
+/** Every card has an article behind it. The Framer original leaves the grid
+ *  cards unlinked, which reads as a dead card; here they all open. */
+const Tag = (slug: string | null) => (slug ? 'a' : 'div');
+---
+<section class="blog">
+  <div class="blog__top">
+    <article class="bfeat">
+      <a class="bfeat__media" href={`/blog/${featured.slug}`}>
+        <img src={featured.cover} alt="" />
+      </a>
+      <div class="bfeat__foot">
+        <h4 class="bfeat__title"><a href={`/blog/${featured.slug}`}>{featured.title}</a></h4>
+        <div class="bfeat__meta">
+          <p class="bcard__cat">{featured.category}</p>
+          <p class="bcard__excerpt">{featured.excerpt}</p>
+        </div>
+      </div>
+    </article>
+
+    <ul class="bside" role="list">
+      {side.map((c) => (
+        <li class="bside__item">
+          <p class="bcard__cat">{c.category}</p>
+          <h5 class="bside__title"><a href={`/blog/${c.slug}`}>{c.title}</a></h5>
+          <p class="bcard__excerpt">{c.excerpt}</p>
+          <p class="bcard__date">{c.dateLabel}</p>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  <ul class="bgrid" role="list">
+    {rest.map((c, i) => {
+      const El = Tag(c.slug);
+      return (
+        <li class="bcard" data-card hidden={i >= PER_PAGE}>
+          <El class="bcard__link" {...(c.slug ? { href: `/blog/${c.slug}` } : {})}>
+            <span class="bcard__media"><img src={c.cover} alt="" loading="lazy" /></span>
+            <span class="bcard__cat">{c.category}</span>
+            <h5 class="bcard__title">{c.title}</h5>
+          </El>
+        </li>
+      );
+    })}
+  </ul>
+
+  <div class="blog__more">
+    <LoadMore />
+  </div>
+</section>

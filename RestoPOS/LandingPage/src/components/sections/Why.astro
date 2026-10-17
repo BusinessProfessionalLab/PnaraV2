@@ -1,0 +1,36 @@
+---
+import { group, type Benefit } from '../../lib/content';
+const benefits = await group<Benefit>('benefits');
+---
+<section class="why" id="why">
+  <header class="why__header">
+    <div class="why__heading">
+      <p class="badge">Why Parley</p>
+      <h2 class="h2">A real partner,<br />not a chatbot in disguise</h2>
+    </div>
+    <p class="why__lede">
+      Most AI tools answer questions. Parley takes initiative —
+      anticipating needs, executing tasks, and growing smarter with every
+      interaction.
+    </p>
+  </header>
+
+  <div class="why-cards" id="why-cards" role="list">
+    {benefits.map((b) => (
+      <article class={`wcard${b.active ? ' is-active' : ''}`} data-index={b.num} tabindex="0" role="listitem">
+        <div class="wcard__closed" aria-hidden="true">
+          <p class="wcard__number">{b.num}.</p>
+          <div class="wcard__mosaic"><img src={b.mosaic} alt="" loading="lazy" /></div>
+          <p class="wcard__title-closed">{b.title}</p>
+        </div>
+        <div class="wcard__open">
+          <div class="wcard__img"><img src={b.image} alt="" width={b.w} height={b.h} loading="lazy" decoding="async" /></div>
+          <div class="wcard__content">
+            <h3 class="wcard__title">{b.title}</h3>
+            <p class="wcard__desc">{b.desc}</p>
+          </div>
+        </div>
+      </article>
+    ))}
+  </div>
+</section>

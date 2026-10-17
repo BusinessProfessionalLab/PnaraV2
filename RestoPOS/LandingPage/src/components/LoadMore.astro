@@ -1,0 +1,13 @@
+---
+/**
+ * Port of the Framer "Buttons/Load More" component: a 100px-wide Grey-900
+ * pill whose label swaps for a conic-gradient spinner while loading, and
+ * which removes itself entirely once there is nothing left to load.
+ */
+export interface Props { label?: string; state?: 'default' | 'loading' | 'hidden' }
+const { label = 'Load More', state = 'default' } = Astro.props;
+---
+<button class={`loadmore is-${state}`} type="button" data-load-more aria-busy="false">
+  <span class="loadmore__label">{label}</span>
+  <span class="loadmore__spinner" aria-hidden="true"><i></i></span>
+</button>

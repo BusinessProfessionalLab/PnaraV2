@@ -1,0 +1,21 @@
+---
+import { group, type Workflow } from '../../lib/content';
+const workflows = await group<Workflow>('workflows');
+---
+<section class="wfgrid">
+  <ul class="wfgrid__list" role="list">
+    {workflows.map((w) => (
+      <li class="wfcard">
+        <p class="wfcard__tag">{w.category}</p>
+        <div class="wfcard__body">
+          <h5 class="wfcard__title">{w.title}</h5>
+          <p class="wfcard__desc">{w.card}</p>
+          <a class="wfcard__link" href={`/${w.slug}`}>
+            View workflow
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6.5 15 12l-5.5 5.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </div>
+      </li>
+    ))}
+  </ul>
+</section>

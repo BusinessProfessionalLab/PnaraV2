@@ -1,0 +1,1072 @@
+{
+  "logos": [
+    {
+      "slug": "cloudplex",
+      "parts": [
+        {
+          "kind": "mark",
+          "w": 24,
+          "h": 24,
+          "d": "/assets/logo-cloudplex-mark-d.svg",
+          "h2": "/assets/logo-cloudplex-mark-h.svg"
+        },
+        {
+          "kind": "type",
+          "w": 88,
+          "h": 19,
+          "d": "/assets/logo-cloudplex-type-d.svg",
+          "h2": "/assets/logo-cloudplex-type-h.svg"
+        }
+      ]
+    },
+    {
+      "slug": "tytotone",
+      "parts": [
+        {
+          "kind": "mark",
+          "w": 25,
+          "h": 20,
+          "d": "/assets/logo-tytotone-mark-d.svg",
+          "h2": "/assets/logo-tytotone-mark-h.svg"
+        },
+        {
+          "kind": "type",
+          "w": 90,
+          "h": 16,
+          "d": "/assets/logo-tytotone-type-d.svg",
+          "h2": "/assets/logo-tytotone-type-h.svg"
+        }
+      ]
+    },
+    {
+      "slug": "bloopglow",
+      "parts": [
+        {
+          "kind": "mark",
+          "w": 28,
+          "h": 24,
+          "d": "/assets/logo-bloopglow-mark-d.svg",
+          "h2": "/assets/logo-bloopglow-mark-h.svg"
+        },
+        {
+          "kind": "type",
+          "w": 78,
+          "h": 19,
+          "d": "/assets/logo-bloopglow-type-d.svg",
+          "h2": "/assets/logo-bloopglow-type-h.svg"
+        }
+      ]
+    },
+    {
+      "slug": "zingzap",
+      "parts": [
+        {
+          "kind": "mark",
+          "w": 27,
+          "h": 22,
+          "d": "/assets/logo-zingzap-mark-d.svg",
+          "h2": "/assets/logo-zingzap-mark-h.svg"
+        },
+        {
+          "kind": "type",
+          "w": 80,
+          "h": 18,
+          "d": "/assets/logo-zingzap-type-d.svg",
+          "h2": "/assets/logo-zingzap-type-h.svg"
+        }
+      ]
+    },
+    {
+      "slug": "junotwig",
+      "parts": [
+        {
+          "kind": "type",
+          "w": 80,
+          "h": 18,
+          "d": "/assets/logo-junotwig-d.svg",
+          "h2": "/assets/logo-junotwig-h.svg"
+        }
+      ]
+    }
+  ],
+  "benefits": [
+    {
+      "num": "01",
+      "active": false,
+      "mosaic": "/assets/mosaic-a.webp",
+      "image": "/assets/benefit-1.webp",
+      "w": 772,
+      "h": 492,
+      "title": "Always context-aware",
+      "desc": "Parley remembers your preferences, priorities, and past decisions — so you never have to repeat yourself. It understands your work the way a long-time colleague would."
+    },
+    {
+      "num": "02",
+      "active": true,
+      "mosaic": "/assets/mosaic-d.webp",
+      "image": "/assets/parleys-plan.webp",
+      "w": 772,
+      "h": 492,
+      "title": "Takes real action",
+      "desc": "Beyond suggestions, Parley executes — sending emails, booking meetings, updating records, and managing tasks across all your tools without constant hand-holding."
+    },
+    {
+      "num": "03",
+      "active": false,
+      "mosaic": "/assets/mosaic-b.webp",
+      "image": "/assets/benefit-3.webp",
+      "w": 772,
+      "h": 492,
+      "title": "Connects everything",
+      "desc": "Slack, Notion, HubSpot, GitHub — all in one place. Parley connects to 60+ tools. One conversation updates everything, no extra work."
+    },
+    {
+      "num": "04",
+      "active": false,
+      "mosaic": "/assets/mosaic-c.webp",
+      "image": "/assets/benefit-4.webp",
+      "w": 772,
+      "h": 492,
+      "title": "Gets better over time",
+      "desc": "The longer you work together, the less you explain. Parley learns your tone, shortcuts, and rules. Today’s prompts become tomorrow’s one-word commands."
+    }
+  ],
+  "features": [
+    {
+      "step": 0,
+      "label": "Natural language commands",
+      "desc": "Just speak naturally — \"prep my Monday morning\" or \"follow up with leads who haven't replied in 5 days.\"",
+      "mock": "/assets/mock-0.webp",
+      "srcset": "/assets/mock-0.webp 1x, /assets/mock-0@2x.webp 2x",
+      "w": 1708,
+      "h": 1100
+    },
+    {
+      "step": 1,
+      "label": "Multi-step task execution",
+      "desc": "From a single intent, Parley plans the full sequence, runs every step, and recovers when something breaks.",
+      "mock": "/assets/mock-2.webp",
+      "srcset": "/assets/mock-2.webp 1x, /assets/mock-2@2x.webp 2x",
+      "w": 1708,
+      "h": 1100
+    },
+    {
+      "step": 2,
+      "label": "Human-in-the-loop control",
+      "desc": "Stay in charge of high-stakes actions. Parley pauses for approval whenever the call should be yours.",
+      "mock": "/assets/mock-1.webp",
+      "srcset": "/assets/mock-1.webp 1x, /assets/mock-1@2x.webp 2x",
+      "w": 1708,
+      "h": 1103
+    },
+    {
+      "step": 3,
+      "label": "Persistent user profile",
+      "desc": "Knows your team, your tools, your customers, across every session, never starting from zero.",
+      "mock": "/assets/mock-3.webp",
+      "srcset": "/assets/mock-3.webp 1x, /assets/mock-3@2x.webp 2x",
+      "w": 1708,
+      "h": 1100
+    }
+  ],
+  "testimonials": [
+    {
+      "quote": "Parley does what every other AI tool promised but never delivered — it actually takes things off my plate. My inbox went from 200 unread to zero, daily.",
+      "avatar": "/assets/avatar-james.webp",
+      "srcset": "/assets/avatar-james.webp 1x, /assets/avatar-james@2x.webp 2x",
+      "name": "James R.",
+      "role": "CEO, CloudPlex"
+    },
+    {
+      "quote": "I was skeptical about 'AI partners' — but Parley learned my communication style in a week and now drafts emails I barely need to edit. Genuinely impressive.",
+      "avatar": "/assets/avatar-sophie.webp",
+      "srcset": "/assets/avatar-sophie.webp 1x, /assets/avatar-sophie@2x.webp 2x",
+      "name": "Sophie K.",
+      "role": "VP Marketing, Tytotone"
+    },
+    {
+      "quote": "The CRM follow-up workflow alone saved our sales team 12 hours a week. And the meeting notes are better than anything our team was writing manually.\"",
+      "avatar": "/assets/avatar-daniel.webp",
+      "srcset": "/assets/avatar-daniel.webp 1x, /assets/avatar-daniel@2x.webp 2x",
+      "name": "Daniel M.",
+      "role": "Head of Sales, Bloopglow"
+    },
+    {
+      "quote": "Parley is the first AI tool that actually reduces my workload. I stay on top of emails, clients, and meetings without the usual chaos",
+      "avatar": "/assets/avatar-paul.webp",
+      "srcset": "",
+      "name": "Paul M.",
+      "role": "Operations Director, ZingZap"
+    },
+    {
+      "quote": "Parley feels like the assistant I always needed. It keeps conversations organized, handles follow-ups, and saves me hours every week.”",
+      "avatar": "/assets/avatar-emily.webp",
+      "srcset": "",
+      "name": "Emily C.",
+      "role": "Head of Client Success, Junotwig"
+    }
+  ],
+  "faqs": [
+    {
+      "q": "How is Parley different from ChatGPT and Copilot?",
+      "a": "Parley isn't a chatbot — it's an action-taking agent. While tools like ChatGPT generate text responses, Parley connects to your real tools, executes multi-step tasks, remembers your context across sessions, and proactively manages your work. It's the difference between answering a question and doing the job."
+    },
+    {
+      "q": "Is my data safe with Parley?",
+      "a": "Yes — and it's not a checkbox answer. Your data is encrypted in transit and at rest, never used to train shared models, and stays inside your workspace. Parley is SOC 2 Type II and GDPR-compliant, with EU data residency available on request. You own every record we touch, and you can delete it from us in one click."
+    },
+    {
+      "q": "What happens if Parley makes a mistake?",
+      "a": "Every action Parley takes is logged with field-level reasoning, so mistakes are traceable, not mysterious. High-impact actions stay in human-approval mode by default — Parley drafts, you confirm. If something does slip through, one-click undo reverses the change in your connected tools, and Parley learns from the correction so the same mistake doesn't ship twice."
+    },
+    {
+      "q": "How long does setup take?",
+      "a": "About 8 minutes for your first workflow. Connect one tool (HubSpot, Slack, or Zendesk to start), pick a template, run it in test mode against a real record. No implementation calls, no four-week pilot. The teams shipping fastest have a workflow running before lunch on day one — and a second one before they head home."
+    },
+    {
+      "q": "Can I build custom workflows without code?",
+      "a": "Yes — describe what you do in plain English and Parley drafts the workflow for you to review. Edit any step the same way: \"skip leads from competitors,\" \"only ping me about deals over $50k.\" Templates are forkable on a Friday afternoon. Engineers stay in their queue; RevOps, Support, and Ops own their workflows directly."
+    }
+  ],
+  "integrationRows": [
+    {
+      "dir": "left",
+      "tiles": [
+        {
+          "src": "/assets/icons/onenote.svg",
+          "alt": "OneNote"
+        },
+        {
+          "src": "/assets/icons/notion.svg",
+          "alt": "Notion"
+        },
+        {
+          "src": "/assets/icons/trello.svg",
+          "alt": "Trello"
+        },
+        {
+          "src": "/assets/icons/linear.svg",
+          "alt": "Linear"
+        },
+        {
+          "src": "/assets/icons/loom.svg",
+          "alt": "Loom"
+        },
+        {
+          "src": "/assets/icons/zapier.svg",
+          "alt": "Zapier"
+        },
+        {
+          "src": "/assets/icons/gcal.svg",
+          "alt": "Google Calendar"
+        },
+        {
+          "src": "/assets/icons/slack.svg",
+          "alt": "Slack"
+        }
+      ]
+    },
+    {
+      "dir": "right",
+      "tiles": [
+        {
+          "src": "/assets/icons/loom.svg",
+          "alt": "Loom"
+        },
+        {
+          "src": "/assets/icons/trello.svg",
+          "alt": "Trello"
+        },
+        {
+          "src": "/assets/icons/notion.svg",
+          "alt": "Notion"
+        },
+        {
+          "src": "/assets/icons/slack.svg",
+          "alt": "Slack"
+        },
+        {
+          "src": "/assets/icons/zapier.svg",
+          "alt": "Zapier"
+        },
+        {
+          "src": "/assets/icons/onenote.svg",
+          "alt": "OneNote"
+        },
+        {
+          "src": "/assets/icons/gcal.svg",
+          "alt": "Google Calendar"
+        },
+        {
+          "src": "/assets/icons/linear.svg",
+          "alt": "Linear"
+        }
+      ]
+    }
+  ],
+  "plans": [
+    {
+      "index": 0,
+      "featured": false,
+      "name": "Solo",
+      "currency": "$",
+      "amount": "0",
+      "period": "Free forever",
+      "desc": "Perfect for individuals getting started with AI-powered productivity. No credit card required.",
+      "features": [
+        {
+          "text": "1 connected workspace",
+          "off": false
+        },
+        {
+          "text": "Up to 5 integrations",
+          "off": false
+        },
+        {
+          "text": "100 AI tasks / month",
+          "off": false
+        },
+        {
+          "text": "Basic memory (30 days)",
+          "off": false
+        },
+        {
+          "text": "Email + calendar workflows",
+          "off": false
+        },
+        {
+          "text": "Custom workflows",
+          "off": true
+        },
+        {
+          "text": "Priority support",
+          "off": true
+        },
+        {
+          "text": "Team features",
+          "off": true
+        }
+      ],
+      "cta": {
+        "href": "/waitlist",
+        "label": "Get started free",
+        "variant": "secondary"
+      }
+    },
+    {
+      "index": 1,
+      "featured": true,
+      "name": "Pro",
+      "currency": "$",
+      "amount": "49",
+      "period": "per month, billed monthly",
+      "desc": "The full Parley experience for professionals who want a true AI partner in their work.",
+      "features": [
+        {
+          "text": "1 connected workspace"
+        },
+        {
+          "text": "Up to 20 integrations"
+        },
+        {
+          "text": "1,000 AI tasks / month"
+        },
+        {
+          "text": "Long-term memory (forever)"
+        },
+        {
+          "text": "All workflow templates"
+        },
+        {
+          "text": "Custom workflows & automations"
+        },
+        {
+          "text": "Priority support"
+        },
+        {
+          "text": "Team features",
+          "off": true
+        }
+      ],
+      "cta": {
+        "href": "/waitlist",
+        "label": "Get started free",
+        "variant": "primary"
+      }
+    },
+    {
+      "index": 2,
+      "featured": false,
+      "name": "Teams",
+      "currency": "$",
+      "amount": "89",
+      "period": "per seat / month",
+      "desc": "For growing teams that want shared intelligence, role-based access, and centralized control.",
+      "features": [
+        {
+          "text": "Unlimited workspaces"
+        },
+        {
+          "text": "Unlimited integrations"
+        },
+        {
+          "text": "Unlimited AI tasks / month"
+        },
+        {
+          "text": "Long-term memory (forever)"
+        },
+        {
+          "text": "All workflow templates"
+        },
+        {
+          "text": "Custom workflows & automations"
+        },
+        {
+          "text": "Priority support"
+        },
+        {
+          "text": "Team features"
+        }
+      ],
+      "cta": {
+        "href": "/contact",
+        "label": "Talk to sales",
+        "variant": "secondary"
+      }
+    }
+  ],
+  "footerColumns": [
+    {
+      "title": "Workflows",
+      "links": [
+        {
+          "href": "/workflow-1",
+          "label": "Lead enrichment"
+        },
+        {
+          "href": "/workflow-2",
+          "label": "Inbound triage"
+        },
+        {
+          "href": "/workflow-3",
+          "label": "Ticket triage"
+        }
+      ]
+    },
+    {
+      "title": "Company",
+      "links": [
+        {
+          "href": "/blog",
+          "label": "Blog"
+        },
+        {
+          "href": "/contact",
+          "label": "Contact"
+        }
+      ]
+    },
+    {
+      "title": "Legal",
+      "links": [
+        {
+          "href": "/404",
+          "label": "404"
+        },
+        {
+          "href": "/waitlist",
+          "label": "Waitlist"
+        }
+      ]
+    }
+  ],
+  "navLinks": [
+    {
+      "href": "/workflows",
+      "label": "ویژگی های پینارا",
+      "dropdown": [
+        {
+          "href": "/workflow-1",
+          "label": "Lead enrichment"
+        },
+        {
+          "href": "/workflow-2",
+          "label": "Inbound triage"
+        },
+        {
+          "href": "/workflow-3",
+          "label": "Ticket triage"
+        }
+      ]
+    },
+    {
+      "href": "/pricing",
+      "label": "تعرفه ها"
+    },
+    {
+      "href": "/contact",
+      "label": "تماس با ما"
+    },
+    {
+      "href": "/blog",
+      "label": "روزنامه پینارا"
+    }
+  ],
+  "hiwTabs": [
+    {
+      "step": 0,
+      "label": "Connect your tools"
+    },
+    {
+      "step": 1,
+      "label": "Brief & customize"
+    },
+    {
+      "step": 2,
+      "label": "Delegate everywhere"
+    }
+  ],
+  "postCards": [
+    {
+      "slug": "the-minimal-agent-why-doing-less-makes-agents-more-reliable",
+      "category": "Agent Design",
+      "title": "Why Less Is More for Agents",
+      "excerpt": "Agents that try to do everything fail unpredictably. A case for narrow scope and clear boundaries.",
+      "dateLabel": "Jun 9, 2026",
+      "cover": "/assets/post-minimal-agent.webp",
+      "featured": true
+    },
+    {
+      "slug": "how-we-built-real-time-agent-memory",
+      "category": "Engineering",
+      "title": "Building Real-Time Agent Memory",
+      "excerpt": "The architecture behind Parley's persistent memory layer — tradeoffs, failures, and what we landed on.",
+      "dateLabel": "May 28, 2026",
+      "cover": "/assets/post-agent-memory.webp",
+      "side": true
+    },
+    {
+      "slug": "orchestrating-multiple-models-lessons-from-building-our-routing-layer",
+      "category": "Engineering",
+      "title": "Lessons from Our Routing Layer",
+      "excerpt": "Not all tasks belong to the same model. How we built a dispatcher that picks the right one.",
+      "dateLabel": "May 19, 2026",
+      "cover": "/assets/post-routing-layer.webp",
+      "side": true
+    },
+    {
+      "slug": "the-agentic-shift-why-2026-is-different-from-every-ai-hype-cycle-before-it",
+      "category": "AI & Industry",
+      "title": "Why 2026 Is Different from Every AI Hype Cycle Before It",
+      "excerpt": "What makes this moment structurally different — and why the skeptics are half-right.",
+      "dateLabel": "May 7, 2026",
+      "cover": "/assets/post-agentic-shift.webp",
+      "side": true
+    },
+    {
+      "slug": "managing-customer-requests-with-parley-agents",
+      "category": "Use Cases",
+      "title": "Managing Customer Requests with Parley",
+      "dateLabel": "Apr 24, 2026",
+      "cover": "/assets/post-customer-requests.webp"
+    },
+    {
+      "slug": "designing-for-failure-what-happens-when-your-agent-gets-it-wrong",
+      "category": "Agent Design",
+      "title": "When Your Agent Gets It Wrong",
+      "dateLabel": "Apr 15, 2026",
+      "cover": "/assets/post-agent-wrong.webp"
+    },
+    {
+      "slug": "smarter-handoffs-enhancing-agent-to-human-escalation",
+      "category": "Product Updates",
+      "title": "Enhancing Agent-to-Human Escalation",
+      "dateLabel": "Apr 2, 2026",
+      "cover": "/assets/post-escalation.webp"
+    },
+    {
+      "slug": "how-a-12-person-ops-team-automated-their-entire-onboarding-flow",
+      "category": "Use Cases",
+      "title": "How a 12-Person Team Automated Onboarding",
+      "dateLabel": "Mar 21, 2026",
+      "cover": "/assets/post-onboarding.webp"
+    },
+    {
+      "slug": "how-smaller-models-yield-better-results",
+      "category": "Agent Design",
+      "title": "How Smaller Models Yield Better Results",
+      "dateLabel": "Mar 10, 2026",
+      "cover": "/assets/post-smaller-models.webp"
+    },
+    {
+      "slug": "parley-2.0-meet-the-new-agent-builder",
+      "category": "Product Updates",
+      "title": "Parley 2.0: Meet the New Agent Builder",
+      "dateLabel": "Feb 26, 2026",
+      "cover": "/assets/post-parley-2.webp"
+    }
+  ],
+  "relatedPosts": [
+    {
+      "category": "Engineering",
+      "title": "Lessons from Our Routing Layer",
+      "dateLabel": "May 19, 2026",
+      "cover": "/assets/post-routing-layer.webp",
+      "slug": "orchestrating-multiple-models-lessons-from-building-our-routing-layer"
+    },
+    {
+      "category": "Engineering",
+      "title": "Why We Replaced Webhooks",
+      "dateLabel": "Nov 6, 2025",
+      "cover": "/assets/post-webhooks.webp",
+      "slug": null
+    },
+    {
+      "category": "Engineering",
+      "title": "Scaling Our Agent Pipeline",
+      "dateLabel": "Oct 9, 2025",
+      "cover": "/assets/post-pipeline.webp",
+      "slug": null
+    }
+  ],
+  "workflows": [
+    {
+      "slug": "workflow-1",
+      "category": "Sales",
+      "title": "Lead enrichment",
+      "card": "Turn a name and email into a complete, ICP-scored profile — pulled from eight sources, written in your CRM voice, with reasoning attached to every field.",
+      "lede": "Turn every new contact into a complete, ICP-scored profile — pulled from 4 sources, written in your CRM's voice, with reasoning attached to every field.",
+      "hero": "/assets/wf1-hero.webp",
+      "heroAlt": "Interface with integrations",
+      "sectionTitle": "Built for the part of sales",
+      "sectionTitleEm": "nobody wants to do.",
+      "sectionLede": "Four things this workflow does that nobody on your team should be doing manually anymore.",
+      "wide": {
+        "title": "Written in your CRM's voice",
+        "desc": "Learned from your team’s last 200 notes. No \"leveraging synergies.\" Variables stay variables.",
+        "image": "/assets/wf1-customers.webp",
+        "alt": "List of customers"
+      },
+      "features": [
+        {
+          "dots": 2,
+          "title": "Four sources, hit in parallel",
+          "desc": "Single structured profile with full field provenance in 8–12 seconds."
+        },
+        {
+          "dots": 3,
+          "title": "Scoring with its homework shown",
+          "desc": "Every score carries top-3 reasons and top-2 risks. Reps trust it because they can read the math."
+        },
+        {
+          "dots": 4,
+          "title": "Hot leads in Slack, ready to act.",
+          "desc": "From form-fill to DM in under 90 seconds. Approve, reassign, or return — all inside Slack."
+        }
+      ],
+      "proofTitle": "Teams that stopped paying SDRs to copy-paste.",
+      "quote": "We're scoring 8,000 inbound leads a month now. The team only touches the top 12% — and they touch them six minutes after the form fill, not six hours.",
+      "name": "James R.",
+      "role": "CEO, CloudPlex",
+      "avatar": "/assets/avatar-james.webp",
+      "brand": "Cloudplex",
+      "stat": "92%",
+      "statLabel": "routing accuracy"
+    },
+    {
+      "slug": "workflow-2",
+      "category": "Sales",
+      "title": "Inbound triage",
+      "card": "Score every form fill, route hot leads to the right AE in Slack within 90 seconds — with a one-line brief.",
+      "lede": "The first 90 seconds of every new lead — classify intent, apply your routing rules, and put the right rep in the conversation.",
+      "hero": "/assets/wf2-hero.webp",
+      "heroAlt": "Interface of automation",
+      "sectionTitle": "The first 90 seconds",
+      "sectionTitleEm": "matter the most.",
+      "sectionLede": "Four things this workflow does that decide whether a lead converts or quietly disappears",
+      "wide": {
+        "title": "Routing rules in plain English",
+        "desc": "Territory, segment, round-robin, capacity — all editable on a Friday afternoon without breaking anyone’s quota",
+        "image": "/assets/wf2-prompt.webp",
+        "alt": "Promt on the black background"
+      },
+      "features": [
+        {
+          "dots": 2,
+          "title": "Intent classified under 2s",
+          "desc": "Five scored buckets route top demos to your best AEs while filtering out noise."
+        },
+        {
+          "dots": 3,
+          "title": "Create deal & assign owner",
+          "desc": "Profiles are written back to HubSpot in your CRM’s voice, learned from your last 200 contact notes."
+        },
+        {
+          "dots": 4,
+          "title": "Unified system for all leads",
+          "desc": "Forms, chats, bookings, emails, signals, and uploads are normalized into one lead format"
+        }
+      ],
+      "proofTitle": "Teams that stopped losing leads to the queue",
+      "quote": "The routing rules are the part nobody believes until they see them. I changed our 'enterprise' threshold from 500 to 250 seats on a Friday afternoon without filing a ticket.",
+      "name": "Sophie K.",
+      "role": "VP Marketing, Tytotone",
+      "avatar": "/assets/avatar-sophie.webp",
+      "brand": "TYTOTONE",
+      "stat": "3.4×",
+      "statLabel": "more demos booked from inbound"
+    },
+    {
+      "slug": "workflow-3",
+      "category": "Support",
+      "title": "Ticket triage",
+      "card": "Read incoming tickets, label, prioritize, assign to the right queue — with reasoning attached for audit.",
+      "lede": "Read every incoming ticket, classify it on four dimensions, draft a reply from your help center, and route only what your team should actually touch.",
+      "hero": "/assets/wf3-hero.webp",
+      "heroAlt": "Interface of automation for tickets",
+      "sectionTitle": "Built for the queue",
+      "sectionTitleEm": "that never empties.",
+      "sectionLede": "Four things this workflow does that nobody on your support team should be doing manually anymore.",
+      "wide": {
+        "title": "Drafted from your help center",
+        "desc": "Reply written from your docs and past resolutions — every claim cites the doc it came from. No hallucinated knowledge base.",
+        "image": "/assets/wf3-draft.webp",
+        "alt": "Draft of response of agent"
+      },
+      "features": [
+        {
+          "dots": 2,
+          "title": "Priority with its homework shown",
+          "desc": "Plan tier, blast radius, sentiment, outage signals — every P0 carries the reasons it got flagged. Reviewable. Tunable."
+        },
+        {
+          "dots": 3,
+          "title": "Intent classified, not guessed",
+          "desc": "17 categories from last 90 days of resolved tickets, with confidence scores; low-confidence tickets go to human review, not a wrong queue."
+        },
+        {
+          "dots": 4,
+          "title": "Right human, fully briefed",
+          "desc": "Under 30 seconds from ticket open, the on-call engineer gets customer tier, draft reply, linked issue, and one-click actions."
+        }
+      ],
+      "proofTitle": "Teams that stopped losing leads to the queue",
+      "quote": "Two-thirds of inbound now closes on the draft Parley wrote — because the answer is grounded in our actual docs, not a hallucination.",
+      "name": "Paul M.",
+      "role": "Operations Director, ZingZap",
+      "avatar": "/assets/avatar-paul.webp",
+      "brand": "ZingZap",
+      "stat": "62%",
+      "statLabel": "tickets resolved on first reply"
+    }
+  ],
+  "comparisonGroups": [
+    {
+      "title": "Core features",
+      "rows": [
+        {
+          "label": "Connected workspaces",
+          "values": [
+            "One",
+            "One",
+            "Unlimited"
+          ]
+        },
+        {
+          "label": "Integrations",
+          "values": [
+            "Up to 5",
+            "Up to 20",
+            "Unlimited"
+          ]
+        },
+        {
+          "label": "AI tasks / month",
+          "values": [
+            "100",
+            "1,000",
+            "Unlimited"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Memory & AI",
+      "rows": [
+        {
+          "label": "Memory",
+          "values": [
+            "30 days",
+            "Forever",
+            "Forever"
+          ]
+        },
+        {
+          "label": "Shared team memory",
+          "values": [
+            false,
+            false,
+            true
+          ]
+        },
+        {
+          "label": "Research mode",
+          "values": [
+            false,
+            true,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Workflows",
+      "rows": [
+        {
+          "label": "Email + calendar workflows",
+          "values": [
+            true,
+            true,
+            true
+          ]
+        },
+        {
+          "label": "Workflow templates",
+          "values": [
+            "Basic",
+            "All templates",
+            "All templates"
+          ]
+        },
+        {
+          "label": "Custom workflows",
+          "values": [
+            false,
+            true,
+            true
+          ]
+        },
+        {
+          "label": "Automations",
+          "values": [
+            false,
+            true,
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Team",
+      "rows": [
+        {
+          "label": "Team members",
+          "values": [
+            "One",
+            "One",
+            "Unlimited"
+          ]
+        },
+        {
+          "label": "Role-based access",
+          "values": [
+            false,
+            false,
+            true
+          ]
+        },
+        {
+          "label": "Admin dashboard",
+          "values": [
+            false,
+            false,
+            true
+          ]
+        },
+        {
+          "label": "Centralized billing",
+          "values": [
+            false,
+            false,
+            true
+          ]
+        }
+      ]
+    }
+  ],
+  "comparisonPlans": [
+    {
+      "name": "Solo",
+      "blurb": "Ideal for AI beginners. No credit card needed."
+    },
+    {
+      "name": "Pro",
+      "blurb": "Full Parley for pros seeking a real AI partner."
+    },
+    {
+      "name": "Teams",
+      "blurb": "For teams needing shared insights"
+    }
+  ],
+  "contactMethods": [
+    {
+      "icon": "mail",
+      "title": "Email us directly",
+      "desc": "For sales, partnerships, or anything sensitive. Goes to a small inbox - not a queue",
+      "value": "hello@example.com"
+    },
+    {
+      "icon": "press",
+      "title": "Press & partnerships",
+      "desc": "Coverage, integrations, co-marketing, or a story you think we should hear.",
+      "value": "press@example.com"
+    },
+    {
+      "icon": "pin",
+      "title": "San Francisco",
+      "desc": "100 Example Street, Suite 200, San Francisco, CA, United States",
+      "value": ""
+    }
+  ],
+  "workflowStats": [
+    {
+      "value": "6",
+      "label": "workflows"
+    },
+    {
+      "value": "340+",
+      "label": "runs this month"
+    },
+    {
+      "value": "30+",
+      "label": "integrations"
+    }
+  ],
+  "termsIntro": [
+    {
+      "text": "These Terms & Conditions (\"Terms\") govern your access to and use of the Parley platform, website, APIs, and related services (together, the \"Service\") operated by Parley, Inc. (\"Parley,\" \"we,\" \"us,\" or \"our\"). By creating an account, clicking \"I agree,\" or using the Service, you agree to these Terms. If you're agreeing on behalf of a company, you confirm you have authority to bind it. If you don't agree, don't use the Service."
+    }
+  ],
+  "termsSections": [
+    {
+      "num": "1",
+      "title": "The plain-English version",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "We give you software that automates workflows — enriching leads, triaging tickets, drafting replies, and similar work. You bring your data and your accounts. We process them to run the workflows you configure. You own your data; we don't sell it, and we don't train shared models on it. You pay for what you use. Either side can leave. The rest of this document is the careful version."
+        }
+      ]
+    },
+    {
+      "num": "2",
+      "title": "Eligibility & account",
+      "blocks": [
+        {
+          "type": "li",
+          "text": "You must be at least 18 and able to form a binding contract."
+        },
+        {
+          "type": "li",
+          "text": "You're responsible for everything that happens under your account, including activity by your team members and any API keys you issue."
+        },
+        {
+          "type": "li",
+          "text": "Keep your credentials secure. Tell us promptly at security@example.com if you suspect unauthorized access."
+        },
+        {
+          "type": "li",
+          "text": "You must provide accurate account information and keep it current."
+        }
+      ]
+    },
+    {
+      "num": "3",
+      "title": "The Service & acceptable use",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "You may use the Service only for lawful purposes and in line with these Terms. You agree not to:"
+        },
+        {
+          "type": "li",
+          "text": "Break any law, regulation, or third party's rights;"
+        },
+        {
+          "type": "li",
+          "text": "Send spam, run unsolicited bulk outreach, or violate anti-spam laws (e.g. CAN-SPAM, GDPR, CASL);"
+        },
+        {
+          "type": "li",
+          "text": "Reverse engineer, scrape, or extract source code, except where this restriction is prohibited by law;"
+        },
+        {
+          "type": "li",
+          "text": "Resell, sublicense, or operate the Service as a competing product;"
+        },
+        {
+          "type": "li",
+          "text": "Upload malware or probe, scan, or test the security of any system without our written consent;"
+        },
+        {
+          "type": "li",
+          "text": "Use the Service to make automated decisions about individuals with legal or similarly significant effects without appropriate human review;"
+        },
+        {
+          "type": "li",
+          "text": "Exceed rate limits or circumvent usage controls."
+        },
+        {
+          "type": "p",
+          "text": "We may suspend or limit access if your use threatens the Service, other customers, or anyone's safety — we'll give notice where practical."
+        }
+      ]
+    },
+    {
+      "num": "4",
+      "title": "Your data & content",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "You own your data. You retain all rights to the content, records, leads, tickets, messages, and other materials you submit (\"Customer Data\")."
+        },
+        {
+          "type": "p",
+          "text": "License to us. You grant Parley a limited, worldwide, non-exclusive license to host, process, and transmit Customer Data solely to provide and improve the Service for you, as instructed by your configuration."
+        },
+        {
+          "type": "p",
+          "text": "No shared-model training. We do not use your Customer Data to train models shared across customers. Each account is logically isolated."
+        },
+        {
+          "type": "p",
+          "text": "Your responsibility. You're responsible for having the rights and lawful basis (including any required consent) to submit Customer Data and have us process it — including personal data of third parties such as your leads or end users."
+        },
+        {
+          "type": "p",
+          "text": "Aggregated data. We may use de-identified, aggregated data that doesn't identify you or any individual to operate and improve the Service."
+        }
+      ]
+    },
+    {
+      "num": "5",
+      "title": "Third-party services & integrations",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "The Service connects to third-party tools you authorize (e.g. CRMs, helpdesks, Slack, data providers). Your use of those tools is governed by their own terms. We're not responsible for third-party services, their availability, or what they do with data once it leaves the Service at your direction."
+        }
+      ]
+    },
+    {
+      "num": "6",
+      "title": "Intellectual property",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "The Service, including its software, models, design, and documentation, is owned by Parley and its licensors and protected by intellectual-property laws. We grant you a limited, non-exclusive, non-transferable right to use the Service during your subscription. We own all feedback you give us and may use it without obligation."
+        }
+      ]
+    }
+  ]
+}

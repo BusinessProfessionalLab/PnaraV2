@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /admin/
 
-Sitemap: /sitemap-index.xml
+Sitemap: https://parley.startfrom.co/sitemap.xml

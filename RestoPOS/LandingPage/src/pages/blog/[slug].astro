@@ -1,0 +1,48 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import RelatedPosts from '../../components/sections/RelatedPosts.astro';
+import { dateLabel } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const d = post.data;
+---
+<Base
+  title={`${d.title} | Parley AI Agent Astro Template`}
+  description={`Read ${d.title} from the Parley AI agent Astro template blog, featuring practical articles for AI agents, automation workflows, product updates, and SaaS teams.`}
+  path={`/blog/${post.id}`}
+  ogImage={d.ogImage ?? d.cover}
+  cta={false}
+>
+  <article class="article">
+    <a class="article__back" href="/blog">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5 9 12l5.5 5.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Blog
+    </a>
+
+    <header class="article__head">
+      <p class="badge">{d.category}</p>
+      <h1 class="article__title">{d.title}</h1>
+      <p class="article__lede">{d.excerpt}</p>
+      <div class="article__author">
+        {d.avatar && <img class="article__avatar" src={d.avatar} alt="" width="40" height="40" />}
+        <p class="article__name">{d.author}</p>
+        <p class="article__role">{d.authorOrg} <span aria-hidden="true">•</span> {d.authorRole}</p>
+      </div>
+    </header>
+
+    <img class="article__cover" src={d.cover} alt="" />
+
+    <div class="article__body">
+      <Content />
+    </div>
+  </article>
+
+  <RelatedPosts slug={post.id} category={post.data.category} />
+</Base>

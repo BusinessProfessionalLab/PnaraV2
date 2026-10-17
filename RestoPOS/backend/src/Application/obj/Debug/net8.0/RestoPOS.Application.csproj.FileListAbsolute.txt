@@ -1,0 +1,16 @@
+C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\Application\bin\Debug\net8.0\RestoPOS.Application.deps.json
+C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\Application\bin\Debug\net8.0\RestoPOS.Application.dll
+C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\Application\bin\Debug\net8.0\RestoPOS.Application.pdb
+C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\Application\bin\Debug\net8.0\RestoPOS.Domain.dll
+C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\Application\bin\Debug\net8.0\RestoPOS.Domain.pdb
+C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\Application\obj\Debug\net8.0\RestoPOS.Application.csproj.AssemblyReference.cache
+C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\Application\obj\Debug\net8.0\RestoPOS.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\Application\obj\Debug\net8.0\RestoPOS.Application.AssemblyInfoInputs.cache
+C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\Application\obj\Debug\net8.0\RestoPOS.Application.AssemblyInfo.cs
+C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\Application\obj\Debug\net8.0\RestoPOS.Application.csproj.CoreCompileInputs.cache
+C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\Application\obj\Debug\net8.0\RestoPOS.Application.sourcelink.json
+C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\Application\obj\Debug\net8.0\RestoPOS.4C50787A.Up2Date
+C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\Application\obj\Debug\net8.0\RestoPOS.Application.dll
+C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\Application\obj\Debug\net8.0\refint\RestoPOS.Application.dll
+C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\Application\obj\Debug\net8.0\RestoPOS.Application.pdb
+C:\Users\mm\Desktop\PnaraV2\RestoPOS\backend\src\Application\obj\Debug\net8.0\ref\RestoPOS.Application.dll

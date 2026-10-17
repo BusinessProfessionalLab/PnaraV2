@@ -1,0 +1,36 @@
+---
+/** Shared inner-page hero: eyebrow badge, headline, and an optional right
+ *  column holding a lede and stat pills. Layout collapses to one column
+ *  below 900px, matching the Framer breakpoints. */
+import type { Stat } from '../lib/content';
+export interface Props {
+  badge: string;
+  lede?: string;
+  stats?: Stat[];
+  center?: boolean;
+  class?: string;
+  /** Renders the headline at Heading-1 size with Heading-2 weight, which is
+   *  how the pricing and contact pages set theirs. */
+  display?: boolean;
+}
+const { badge, lede, stats, center = false, display = false, class: extra = '' } = Astro.props;
+---
+<header class={`phero${center ? ' phero--center' : ''} ${extra}`.trim()}>
+  <div class="phero__main">
+    <p class="badge">{badge}</p>
+    <h1 class={display ? 'phero__title ts-display' : 'phero__title'}><slot /></h1>
+    <slot name="after-title" />
+  </div>
+  {(lede || stats) && (
+    <div class="phero__side">
+      {lede && <p class="phero__lede">{lede}</p>}
+      {stats && (
+        <ul class="phero__stats" role="list">
+          {stats.map((s) => (
+            <li class="phero__stat"><strong>{s.value}</strong><span>{s.label}</span></li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )}
+</header>

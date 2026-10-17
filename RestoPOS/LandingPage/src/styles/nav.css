@@ -1,0 +1,269 @@
+/* ============================================================
+   Navigation — ported from the project's Navigation component
+   (variants Desktop / Phone / Phone Open) and its Workflow-links
+   overlay. Springs come from the component's own transitions.
+   ============================================================ */
+
+.nav__toggle {
+  display: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--grey-900);
+  cursor: pointer;
+}
+.nav__burger { display: block; width: 24px; height: 24px; position: relative; }
+.nav__burger i {
+  position: absolute;
+  left: 3px;
+  width: 18px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: currentColor;
+  transition: transform var(--d-menu) var(--e-menu), opacity 120ms linear;
+}
+.nav__burger i:first-child { top: 9px; }
+.nav__burger i:last-child  { top: 14px; }
+.is-open .nav__burger i:first-child { transform: translateY(2.5px) rotate(45deg); }
+.is-open .nav__burger i:last-child  { transform: translateY(-2.5px) rotate(-45deg); }
+
+/* ---------- Workflow-links dropdown (desktop) ----------
+   White panel, 12px radius, 4px gap, clipped; each row carries a 4px
+   Brand square and a Background-token hover plate. */
+.nav__item { position: relative; display: flex; align-items: center; }
+/* The panel hangs 10px below the label, so the pointer would cross dead space
+   on its way down and drop the hover. This bridges that gap. It only accepts
+   the pointer while the item is already hovered or focused, so it never eats
+   clicks meant for the page underneath. */
+.nav__item--has-menu::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  translate: -50% 0;
+  width: 187px;
+  height: 12px;
+  pointer-events: none;
+}
+.nav__item--has-menu:hover::after,
+.nav__item--has-menu:focus-within::after {
+  pointer-events: auto;
+}
+.nav__drop {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  translate: -50% 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 163px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--white);
+  box-shadow: 0 12px 24px rgba(37, 31, 25, 0.1);
+  overflow: clip;
+  opacity: 0;
+  translate: -50% -4px;
+  pointer-events: none;
+  transition: opacity var(--d-spring) var(--e-spring),
+              translate var(--d-spring) var(--e-spring);
+}
+.nav__item--has-menu:hover .nav__drop,
+.nav__item--has-menu:focus-within .nav__drop {
+  opacity: 1;
+  translate: -50% 0;
+  pointer-events: auto;
+}
+.nav__dropitem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-family: var(--font-ui);
+  font-size: var(--m-size);
+  line-height: var(--body-line);
+  color: var(--grey-900);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color var(--d-spring) var(--e-spring);
+}
+.nav__dropitem:hover { background: var(--background); }
+.nav__dropdot {
+  width: 4px;
+  height: 4px;
+  flex: none;
+  background: var(--brand-500);
+}
+
+/* ---------- Phone / Phone Open ----------
+   The Framer phone variant stacks brand+burger on one row and reveals a
+   vertical menu below it; padding grows 16/0 -> 20/20 when open. */
+@media (max-width: 810px) {
+  .nav-bar { background: var(--background); }
+  .is-open.nav-bar { background: var(--background) !important; backdrop-filter: none !important; }
+
+  .nav-bar .nav {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    justify-content: stretch;
+    gap: 0;
+    padding: 16px 16px 0;
+    transition: padding var(--d-menu) var(--e-menu);
+  }
+  .nav-bar.is-open .nav { padding: 20px 16px; }
+
+  .nav-bar .nav__brand   { grid-column: 1; grid-row: 1; justify-self: start; }
+  .nav-bar .nav__toggle  { display: block; grid-column: 2; grid-row: 1; justify-self: end; }
+
+  .nav-bar .nav__right {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 32px;
+    width: 100%;
+    height: 0;
+    padding: 0;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      height var(--menu-duration, var(--d-menu)) var(--e-menu),
+      padding var(--menu-duration, var(--d-menu)) var(--e-menu),
+      opacity 160ms linear,
+      visibility 0s linear var(--d-menu);
+  }
+  .nav-bar.is-open .nav__right {
+    height: var(--menu-h, auto);
+    padding: 16px 0;
+    opacity: 1;
+    visibility: visible;
+    overflow-y: auto;
+    transition:
+      height var(--menu-duration, var(--d-menu)) var(--e-menu),
+      padding var(--menu-duration, var(--d-menu)) var(--e-menu),
+      opacity 160ms linear,
+      visibility 0s linear 0s;
+  }
+
+  .nav-bar .nav__links {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 32px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    width: 100%;
+    text-align: left;
+  }
+  .nav-bar .nav__item { align-items: flex-start; }
+  .nav-bar .nav__item--has-menu::after { display: none; }
+  .nav-bar .nav__sep { display: none; }
+  .nav-bar .nav__links a { font-size: var(--h5-size); }
+
+  .nav-bar .nav__item--has-menu { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .nav-bar .nav__drop {
+    position: static;
+    translate: none;
+    opacity: 1;
+    pointer-events: auto;
+    padding: 0;
+    gap: 8px;
+    min-width: 163px;
+    background: none;
+    box-shadow: none;
+    overflow: visible;
+    transition: none;
+  }
+  .nav-bar .nav__dropitem { padding: 8px 12px 8px 0; }
+  /* The phone-open variant keeps the button at its intrinsic width, and the
+     panel is a fixed-height flex column, so its children must not shrink. */
+  .nav-bar .nav__cta { align-self: flex-start; width: auto; flex: none; }
+  .nav-bar .nav__links { flex: none; }
+  .nav-bar .nav__item { flex: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav, .nav__right, .nav__drop, .nav__burger i, .nav__dropitem {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   Form button + Load More — ported from the Framer components of
+   the same names, including their state variants.
+   ============================================================ */
+
+.formbtn { border: 0; cursor: pointer; font: inherit; }
+.formbtn .fbtn__chip { position: relative; }
+
+.formbtn__check,
+.formbtn__spinner {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.formbtn__check svg { width: 20px; height: 20px; color: var(--grey-900); }
+
+/* The spinner is the component's conic sweep, masked to a ring. */
+.formbtn__spinner i,
+.loadmore__spinner i {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg at 50% 50%, transparent 0deg, currentColor 342deg);
+  mask: radial-gradient(circle, transparent 0 5.5px, #000 6.5px);
+  -webkit-mask: radial-gradient(circle, transparent 0 5.5px, #000 6.5px);
+  animation: fb-spin 900ms linear infinite;
+}
+.formbtn__spinner { color: var(--grey-900); }
+
+@keyframes fb-spin { to { transform: rotate(360deg); } }
+
+.formbtn.is-loading .fbtn__arrows { visibility: hidden; }
+.formbtn.is-loading .formbtn__spinner { display: flex; }
+.formbtn.is-disabled { opacity: 0.5; pointer-events: none; }
+.formbtn.is-success .fbtn__arrows { visibility: hidden; }
+.formbtn.is-success .formbtn__check { display: flex; }
+.formbtn.is-error .fbtn__chip { background: var(--error); }
+.formbtn.is-error .fbtn__arrows svg { color: var(--white); }
+
+.loadmore {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100px;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--grey-900);
+  color: var(--white);
+  font-family: var(--font-ui);
+  font-weight: var(--button-weight);
+  font-size: var(--button-size);
+  line-height: var(--button-line);
+  cursor: pointer;
+  transition: opacity var(--d-spring) var(--e-spring);
+}
+.loadmore:hover { opacity: 0.85; }
+.loadmore__spinner { display: none; color: var(--white); }
+.loadmore.is-loading .loadmore__label { display: none; }
+.loadmore.is-loading .loadmore__spinner { display: block; }
+.loadmore.is-hidden { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .formbtn__spinner i, .loadmore__spinner i { animation-duration: 2s; }
+}

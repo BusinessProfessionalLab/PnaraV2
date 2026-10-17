@@ -1,0 +1,35 @@
+---
+import FormButton from '../FormButton.astro';
+
+/** Set PUBLIC_FORM_ENDPOINT to your own handler. Without it, submissions
+ *  stay in the browser and the form shows its success state. */
+const endpoint = import.meta.env.PUBLIC_FORM_ENDPOINT ?? '';
+const fields = [
+  { id: 'first-name', label: 'First name', type: 'text', placeholder: 'Sarah', autocomplete: 'given-name' },
+  { id: 'work-email', label: 'Work email', type: 'email', placeholder: 'sarah@example.com', autocomplete: 'email' },
+  { id: 'company', label: 'Company', type: 'text', placeholder: 'Acme Inc.', autocomplete: 'organization' },
+];
+---
+<div class="cform">
+  <img class="cform__bg" src="/assets/contact-clouds.webp" alt="" loading="lazy" />
+  <form
+    class="cform__panel"
+    method="post"
+    action="#"
+    data-demo-form
+    data-endpoint={endpoint || undefined}
+    data-success-url="/thank-you"
+  >
+    {fields.map((f) => (
+      <div class="cform__field">
+        <label class="cform__label" for={f.id}>{f.label}</label>
+        <input class="cform__input" id={f.id} name={f.id} type={f.type} placeholder={f.placeholder} autocomplete={f.autocomplete} />
+      </div>
+    ))}
+    <div class="cform__field">
+      <label class="cform__label" for="message">Your message</label>
+      <textarea class="cform__input cform__input--area" id="message" name="message" rows="4" placeholder="Drop your message…"></textarea>
+    </div>
+    <FormButton label="Send your message" class="cform__submit" />
+  </form>
+</div>

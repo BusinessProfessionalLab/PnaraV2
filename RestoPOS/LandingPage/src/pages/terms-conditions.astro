@@ -1,0 +1,46 @@
+---
+import Base from '../layouts/Base.astro';
+import { group, type TermsSection, type Block } from '../lib/content';
+const intro = (await group<{ text: string }>('termsIntro'))[0];
+const sections = await group<TermsSection>('termsSections');
+
+/** Consecutive li blocks are wrapped into a single list. */
+function chunk(blocks: Block[]) {
+  const out: { type: string; items: Block[] }[] = [];
+  for (const b of blocks) {
+    const kind = b.type === 'li' ? 'list' : 'block';
+    const last = out[out.length - 1];
+    if (last && last.type === kind && kind === 'list') last.items.push(b);
+    else out.push({ type: kind, items: [b] });
+  }
+  return out;
+}
+---
+<Base
+  title="Terms and Conditions | Parley Astro Template"
+  description="Terms and conditions page included with the Parley AI agent Astro template."
+  path="/terms-conditions"
+  cta={false}
+>
+  <article class="legal">
+    <p class="badge legal__updated">Last updated &#183; 27 May 2026</p>
+    <h1 class="legal__title">Terms &amp; Conditions</h1>
+    <p class="legal__intro">{intro.text}</p>
+
+    {sections.map((s) => (
+      <section class="legal__section">
+        <p class="legal__num" aria-hidden="true">{s.num}</p>
+        <div class="legal__body">
+          <h4 class="legal__h">{s.title}</h4>
+          {chunk(s.blocks).map((c) =>
+            c.type === 'list' ? (
+              <ul class="legal__list">{c.items.map((i) => <li>{i.text}</li>)}</ul>
+            ) : (
+              <p>{c.items[0].text}</p>
+            )
+          )}
+        </div>
+      </section>
+    ))}
+  </article>
+</Base>

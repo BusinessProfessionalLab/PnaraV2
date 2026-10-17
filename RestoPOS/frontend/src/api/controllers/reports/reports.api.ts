@@ -4,6 +4,9 @@ import { reportKeys, stockAlertKeys } from "@/api/keys";
 import type {
   CategorySalesDetailDto,
   CustomerReturnRateReportDto,
+  LoyaltyClubReportDto,
+  LoyaltyClubReportComparison,
+  LoyaltyClubReportPeriod,
   DashboardSummaryDto,
   HourlyHeatmapRowDto,
   HourlySalesRow,
@@ -141,6 +144,9 @@ export const reportsApi = {
         params,
       })
       .then((r) => r.data),
+
+  loyaltyClub: (params: { period: LoyaltyClubReportPeriod; comparison: LoyaltyClubReportComparison; fromUtc?: string | null; toUtc?: string | null }) =>
+    apiClient.get<LoyaltyClubReportDto>("/api/reports/customers/loyalty-club", { params }).then((r) => r.data),
 };
 
 /* --------------------------------- hooks -------------------------------- */
@@ -324,6 +330,20 @@ export function useCustomerReturnRate(
   return useQuery({
     queryKey: reportKeys.customerReturn(preset, fromUtc, toUtc),
     queryFn: () => reportsApi.customerReturnRate({ preset, fromUtc, toUtc }),
+    enabled: options?.enabled,
+  });
+}
+
+export function useLoyaltyClubReport(
+  period: LoyaltyClubReportPeriod = "Last30Days",
+  comparison: LoyaltyClubReportComparison = "PreviousPeriod",
+  fromUtc?: string | null,
+  toUtc?: string | null,
+  options?: ReportQueryOptions,
+) {
+  return useQuery({
+    queryKey: reportKeys.loyaltyClub(period, comparison, fromUtc, toUtc),
+    queryFn: () => reportsApi.loyaltyClub({ period, comparison, fromUtc, toUtc }),
     enabled: options?.enabled,
   });
 }

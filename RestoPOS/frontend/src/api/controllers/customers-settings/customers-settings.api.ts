@@ -75,12 +75,62 @@ export type LoyaltyCampaignDto = {
   attributedRevenueRials: number;
 };
 
+export type LoyaltyRewardDto = {
+  id: string;
+  name: string;
+  type: 0 | 1 | 2;
+  pointsCost: number;
+  discountRials: number;
+  discountPercent: number;
+  maxDiscountRials: number;
+  productName?: string | null;
+  isActive: boolean;
+};
+
+export type LoyaltyRewardInput = Omit<LoyaltyRewardDto, "id" | "isActive">;
+
+export type LoyaltyOverviewDto = {
+  totalMembers: number;
+  activeMembersLast30Days: number;
+  activeMembersPrevious30Days: number;
+  newMembersThisMonth: number;
+  pointsIssuedThisMonth: number;
+  walletOutstandingRials: number;
+  hourlyOrders: { hour: number; orderCount: number }[];
+  peakHour: number | null;
+  tierDistribution: { name: string; memberCount: number; memberSharePercent: number }[];
+  lapsedCustomers: { id: string; name: string; phoneNumber: string; lastVisitShamsi: string; daysSinceLastVisit: number }[];
+  memberSalesSharePercent: number;
+  guestSalesSharePercent: number;
+  memberAverageTicketRials: number;
+  guestAverageTicketRials: number;
+  returningMemberRatePercent: number;
+};
+
+export type CustomerWalletBalanceDto = { balanceRials: number };
+export type CustomerPortalPreviewDto = {
+  customerId: string;
+  customerName: string;
+  loyaltyPoints: number;
+  walletBalanceRials: number;
+  visitCount: number;
+  currentTierName: string;
+  nextTierName?: string | null;
+  nextTierProgressPercent: number;
+  visitsToNextTier: number;
+  rewards: { id: string; name: string; type: 0 | 1 | 2; pointsCost: number; productName?: string | null; canRedeem: boolean; pointsNeeded: number }[];
+  recentActivities: { id: string; type: string; pointsDelta: number; notes?: string | null; occurredAtUtc: string }[];
+};
+
 /**
  * CustomersAndSettingsController — the backend groups the `api/customers`
  * and `api/settings` routes in one controller, so they share one module here.
  */
 export const customersSettingsApi = {
   /* ------------------------------ customers ----------------------------- */
+  loyaltyOverview: () =>
+    apiClient.get<LoyaltyOverviewDto>("/api/customers/loyalty/overview").then((r) => r.data),
+
   customers: (term?: string) =>
     apiClient
       .get<CustomerDto[]>("/api/customers", {
@@ -88,15 +138,21 @@ export const customersSettingsApi = {
       })
       .then((r) => r.data),
 
-  customersPaged: (page = 1, pageSize = 50, term?: string) =>
+  customersPaged: (page = 1, pageSize = 50, term?: string, marketingConsent?: boolean, tier?: string) =>
     apiClient
       .get<PaginatedList<CustomerDto>>("/api/customers/paged", {
-        params: { page, pageSize, term },
+        params: { page, pageSize, term, marketingConsent, tier },
       })
       .then((r) => r.data),
 
   customerById: (id: string) =>
     apiClient.get<CustomerDto>(`/api/customers/by-id/${id}`).then((r) => r.data),
+
+  customerWallet: (id: string) =>
+    apiClient.get<CustomerWalletBalanceDto>(`/api/customers/${id}/wallet`).then((r) => r.data),
+
+  customerPortalPreview: (id: string) =>
+    apiClient.get<CustomerPortalPreviewDto>(`/api/customers/${id}/loyalty/portal-preview`).then((r) => r.data),
 
   customerByPhone: (phone: string) =>
     apiClient
@@ -139,6 +195,23 @@ export const customersSettingsApi = {
   loyaltySettings: () =>
     apiClient.get<LoyaltyProgramSettingsDto>("/api/customers/loyalty/settings").then((r) => r.data),
 
+  loyaltyRewards: (includeInactive = false) =>
+    apiClient.get<LoyaltyRewardDto[]>("/api/customers/loyalty/rewards", { params: { includeInactive } }).then((r) => r.data),
+
+  createLoyaltyReward: (payload: LoyaltyRewardInput) =>
+    apiClient.post<LoyaltyRewardDto>("/api/customers/loyalty/rewards", payload).then((r) => r.data),
+
+  updateLoyaltyReward: (id: string, payload: Omit<LoyaltyRewardDto, "id">) =>
+    apiClient.put<LoyaltyRewardDto>(`/api/customers/loyalty/rewards/${id}`, payload).then((r) => r.data),
+
+  deactivateLoyaltyReward: (id: string) =>
+    apiClient.delete<void>(`/api/customers/loyalty/rewards/${id}`).then((r) => r.data),
+
+  redeemLoyaltyReward: (customerId: string, rewardId: string) =>
+    apiClient.post<{ reward: LoyaltyRewardDto; transactionId: string; pointsSpent: number; remainingPoints: number }>(
+      `/api/customers/${customerId}/loyalty/rewards/${rewardId}/redeem`,
+    ).then((r) => r.data),
+
   updateLoyaltySettings: (payload: LoyaltyProgramSettingsDto) =>
     apiClient.put<LoyaltyProgramSettingsDto>("/api/customers/loyalty/settings", payload).then((r) => r.data),
 
@@ -157,6 +230,15 @@ export const customersSettingsApi = {
       .put<StoreSettingsDto>("/api/settings", payload)
       .then((r) => r.data),
 };
+
+export function useLoyaltyOverview(enabled = true) {
+  return useQuery({
+    queryKey: customerKeys.loyaltyOverview,
+    queryFn: customersSettingsApi.loyaltyOverview,
+    enabled,
+    staleTime: 60_000,
+  });
+}
 
 /* --------------------------------- hooks -------------------------------- */
 
@@ -193,10 +275,18 @@ export function useCustomers(term?: string) {
   });
 }
 
-export function useCustomersPaged(page = 1, pageSize = 50, term?: string) {
+export function useCustomersPaged(
+  page = 1,
+  pageSize = 50,
+  term?: string,
+  enabled = true,
+  marketingConsent?: boolean,
+  tier?: string,
+) {
   return useQuery({
-    queryKey: customerKeys.paged(page, pageSize, term),
-    queryFn: () => customersSettingsApi.customersPaged(page, pageSize, term),
+    queryKey: customerKeys.paged(page, pageSize, term, marketingConsent, tier),
+    queryFn: () => customersSettingsApi.customersPaged(page, pageSize, term, marketingConsent, tier),
+    enabled,
   });
 }
 
@@ -204,6 +294,22 @@ export function useCustomer(id: string | null) {
   return useQuery({
     queryKey: customerKeys.detail(id ?? ""),
     queryFn: () => customersSettingsApi.customerById(id as string),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCustomerWallet(id: string | null) {
+  return useQuery({
+    queryKey: customerKeys.wallet(id ?? ""),
+    queryFn: () => customersSettingsApi.customerWallet(id as string),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCustomerPortalPreview(id: string | null) {
+  return useQuery({
+    queryKey: [...customerKeys.all, "portal-preview", id ?? ""] as const,
+    queryFn: () => customersSettingsApi.customerPortalPreview(id as string),
     enabled: Boolean(id),
   });
 }
@@ -236,6 +342,47 @@ export function useLoyaltySettings() {
   return useQuery({
     queryKey: [...customerKeys.all, "loyalty-settings"],
     queryFn: customersSettingsApi.loyaltySettings,
+  });
+}
+
+export function useLoyaltyRewards() {
+  return useQuery({
+    queryKey: customerKeys.loyaltyRewards,
+    queryFn: () => customersSettingsApi.loyaltyRewards(),
+  });
+}
+
+export function useCreateLoyaltyReward() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: customersSettingsApi.createLoyaltyReward,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: customerKeys.loyaltyRewards }),
+  });
+}
+
+export function useUpdateLoyaltyReward() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Omit<LoyaltyRewardDto, "id"> }) =>
+      customersSettingsApi.updateLoyaltyReward(id, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: customerKeys.loyaltyRewards }),
+  });
+}
+
+export function useDeactivateLoyaltyReward() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: customersSettingsApi.deactivateLoyaltyReward,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: customerKeys.loyaltyRewards }),
+  });
+}
+
+export function useRedeemLoyaltyReward() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ customerId, rewardId }: { customerId: string; rewardId: string }) =>
+      customersSettingsApi.redeemLoyaltyReward(customerId, rewardId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: customerKeys.all }),
   });
 }
 

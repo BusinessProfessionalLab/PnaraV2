@@ -181,6 +181,20 @@ public class LoyaltyPointLedgerConfiguration : IEntityTypeConfiguration<LoyaltyP
     }
 }
 
+public class LoyaltyRewardConfiguration : IEntityTypeConfiguration<LoyaltyReward>
+{
+    public void Configure(EntityTypeBuilder<LoyaltyReward> builder)
+    {
+        builder.ToTable("LoyaltyRewards");
+        builder.Property(x => x.Name).HasMaxLength(120).IsRequired();
+        builder.Property(x => x.ProductName).HasMaxLength(200);
+        builder.Property(x => x.DiscountRials).HasColumnType(MoneyConfig.Rial);
+        builder.Property(x => x.DiscountPercent).HasColumnType(MoneyConfig.Rate);
+        builder.Property(x => x.MaxDiscountRials).HasColumnType(MoneyConfig.Rial);
+        builder.HasIndex(x => new { x.IsActive, x.PointsCost });
+    }
+}
+
 public class CustomerWalletLedgerConfiguration : IEntityTypeConfiguration<CustomerWalletLedger>
 {
     public void Configure(EntityTypeBuilder<CustomerWalletLedger> builder)

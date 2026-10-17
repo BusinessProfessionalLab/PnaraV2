@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Pnara")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8445b41944bd50178a0dae1d1e8f50ffc9c1b636")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+70e1c94d9f1fc229c2889b9e775c387cccfe04ef")]
 [assembly: System.Reflection.AssemblyProductAttribute("Pnara")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RestoPOS.Application")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

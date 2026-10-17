@@ -157,6 +157,18 @@ public sealed class ReportsController(ISender sender) : ControllerBase
         CancellationToken ct = default) =>
         Ok(await sender.Send(new GetCustomerReturnRateQuery(preset, fromUtc, toUtc), ct));
 
+    /// <summary>Loyalty club member, retention, SMS, at-risk, and peak-hour analytics.</summary>
+    [HttpGet("customers/loyalty-club")]
+    [Authorize(Policy = Permissions.CustomersView)]
+    [ProducesResponseType(typeof(LoyaltyClubReportDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<LoyaltyClubReportDto>> GetLoyaltyClubReport(
+        [FromQuery] LoyaltyClubReportPeriod period = LoyaltyClubReportPeriod.Last30Days,
+        [FromQuery] LoyaltyClubReportComparison comparison = LoyaltyClubReportComparison.PreviousPeriod,
+        [FromQuery] DateTime? fromUtc = null,
+        [FromQuery] DateTime? toUtc = null,
+        CancellationToken ct = default) =>
+        Ok(await sender.Send(new GetLoyaltyClubReportQuery(period, comparison, fromUtc, toUtc), ct));
+
     // ==========================================
     // Legacy endpoints (existing Next.js reports hub)
     // ==========================================

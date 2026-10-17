@@ -95,8 +95,15 @@ public sealed class GetLoyaltyProgramSettingsHandler(IApplicationDbContext db)
         settings.CashbackPercent, settings.CashbackMaxRials, settings.CashbackMinSpendRials,
         settings.CashbackProductIds, settings.RewardPointsThreshold, settings.RewardDiscountRials,
         settings.RewardProductName,
-        JsonSerializer.Deserialize<LoyaltyTierRuleDto[]>(settings.LoyaltyTierRulesJson) ?? [],
+        DeserializeTiers(settings.LoyaltyTierRulesJson),
         settings.LapsedCustomerDays);
+
+    private static IReadOnlyList<LoyaltyTierRuleDto> DeserializeTiers(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+        try { return JsonSerializer.Deserialize<LoyaltyTierRuleDto[]>(json) ?? []; }
+        catch (JsonException) { return []; }
+    }
 }
 
 public sealed class UpdateLoyaltyProgramSettingsHandler(IApplicationDbContext db)

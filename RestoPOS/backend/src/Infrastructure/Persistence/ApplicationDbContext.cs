@@ -39,6 +39,7 @@ public class ApplicationDbContext(
     public DbSet<DiningTable> DiningTables => Set<DiningTable>();
     public DbSet<CashDrawerMovement> CashDrawerMovements => Set<CashDrawerMovement>();
     public DbSet<LoyaltyPointLedger> LoyaltyPointLedgers => Set<LoyaltyPointLedger>();
+    public DbSet<LoyaltyReward> LoyaltyRewards => Set<LoyaltyReward>();
     public DbSet<CustomerWalletLedger> CustomerWalletLedgers => Set<CustomerWalletLedger>();
     public DbSet<LoyaltySmsCampaign> LoyaltySmsCampaigns => Set<LoyaltySmsCampaign>();
     public DbSet<LoyaltySmsMessage> LoyaltySmsMessages => Set<LoyaltySmsMessage>();

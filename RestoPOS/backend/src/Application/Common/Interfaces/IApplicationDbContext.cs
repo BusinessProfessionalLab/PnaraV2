@@ -31,6 +31,7 @@ public interface IApplicationDbContext
     DbSet<DiningTable> DiningTables { get; }
     DbSet<CashDrawerMovement> CashDrawerMovements { get; }
     DbSet<LoyaltyPointLedger> LoyaltyPointLedgers { get; }
+    DbSet<LoyaltyReward> LoyaltyRewards { get; }
     DbSet<CustomerWalletLedger> CustomerWalletLedgers { get; }
     DbSet<LoyaltySmsCampaign> LoyaltySmsCampaigns { get; }
     DbSet<LoyaltySmsMessage> LoyaltySmsMessages { get; }

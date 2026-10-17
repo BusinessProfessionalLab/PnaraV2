@@ -1,4 +1,6 @@
 using FluentValidation;
+using System.Linq.Expressions;
+using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using RestoPOS.Application.Common.Interfaces;
@@ -45,7 +47,12 @@ public sealed record SoftDeleteCustomerCommand(Guid Id) : IRequest;
 public sealed record GetCustomerByIdQuery(Guid Id) : IRequest<CustomerDto>;
 public sealed record GetCustomerByPhoneQuery(string PhoneNumber) : IRequest<CustomerDto>;
 public sealed record SearchCustomersQuery(string? Term) : IRequest<IReadOnlyList<CustomerDto>>;
-public sealed record GetCustomersPagedQuery(int Page = 1, int PageSize = 50, string? Term = null) : IRequest<PaginatedList<CustomerDto>>;
+public sealed record GetCustomersPagedQuery(
+    int Page = 1,
+    int PageSize = 50,
+    string? Term = null,
+    bool? MarketingConsent = null,
+    string? Tier = null) : IRequest<PaginatedList<CustomerDto>>;
 public sealed record AdjustLoyaltyPointsCommand(Guid CustomerId, int Delta, string? Notes) : IRequest<CustomerDto>;
 public sealed record LoyaltyPointTransactionDto(Guid Id, LoyaltyLedgerType Type, int PointsDelta, int BalanceAfter, Guid? OrderId, string? Notes, DateTime OccurredAtUtc);
 public sealed record GetCustomerPointHistoryQuery(Guid CustomerId, int Page = 1, int PageSize = 50)
@@ -179,6 +186,11 @@ public sealed class GetCustomersPagedQueryHandler(IApplicationDbContext db) : IR
             query = query.Where(c => c.PhoneNumber.Contains(term) || (c.FullName != null && c.FullName.Contains(term)));
         }
 
+        if (request.MarketingConsent.HasValue)
+            query = query.Where(c => c.MarketingConsent == request.MarketingConsent.Value);
+
+        query = await ApplyTierFilterAsync(query, request.Tier, db, cancellationToken);
+
         var total = await query.CountAsync(cancellationToken);
         var items = await query.OrderByDescending(c => c.LastVisitAt)
             .Skip((request.Page - 1) * request.PageSize)
@@ -192,6 +204,46 @@ public sealed class GetCustomersPagedQueryHandler(IApplicationDbContext db) : IR
             PageSize = request.PageSize,
             TotalCount = total
         };
+    }
+
+    private static async Task<IQueryable<Customer>> ApplyTierFilterAsync(
+        IQueryable<Customer> query, string? selectedTier, IApplicationDbContext db, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(selectedTier)) return query;
+
+        var json = await db.StoreSettings.AsNoTracking().Select(x => x.LoyaltyTierRulesJson).FirstOrDefaultAsync(cancellationToken);
+        LoyaltyTierRuleDto[] tiers;
+        try { tiers = string.IsNullOrWhiteSpace(json) ? [] : JsonSerializer.Deserialize<LoyaltyTierRuleDto[]>(json) ?? []; }
+        catch (JsonException) { tiers = []; }
+        if (tiers.Length == 0)
+        {
+            tiers =
+            [
+                new LoyaltyTierRuleDto("برنزی", 0, 0, 1, 0),
+                new LoyaltyTierRuleDto("نقره‌ای", 8, 50_000_000, 1.2m, 3),
+                new LoyaltyTierRuleDto("طلایی", 20, 150_000_000, 1.5m, 5)
+            ];
+        }
+
+        var orderedTiers = tiers.OrderByDescending(x => x.MinimumVisits)
+            .ThenByDescending(x => x.MinimumSpendRials).ToArray();
+        var selectedIndex = Array.FindIndex(orderedTiers, x => x.Name == selectedTier);
+        if (selectedIndex < 0) return query.Where(_ => false);
+
+        var customer = Expression.Parameter(typeof(Customer), "customer");
+        Expression IsEligible(LoyaltyTierRuleDto rule)
+        {
+            var visits = Expression.GreaterThanOrEqual(
+                Expression.Property(customer, nameof(Customer.VisitCount)), Expression.Constant(rule.MinimumVisits));
+            var spend = Expression.GreaterThanOrEqual(
+                Expression.Property(customer, nameof(Customer.TotalSpent)), Expression.Constant(rule.MinimumSpendRials));
+            return Expression.OrElse(visits, spend);
+        }
+
+        Expression predicate = IsEligible(orderedTiers[selectedIndex]);
+        for (var i = 0; i < selectedIndex; i++)
+            predicate = Expression.AndAlso(predicate, Expression.Not(IsEligible(orderedTiers[i])));
+        return query.Where(Expression.Lambda<Func<Customer, bool>>(predicate, customer));
     }
 }
 

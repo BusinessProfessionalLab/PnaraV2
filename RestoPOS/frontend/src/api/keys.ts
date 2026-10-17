@@ -135,10 +135,13 @@ export const stockAlertKeys = { all: stockAlertRoot };
 const customerRoot = ["customers"] as const;
 export const customerKeys = {
   all: customerRoot,
+  loyaltyOverview: [...customerRoot, "loyalty-overview"] as const,
+  loyaltyRewards: [...customerRoot, "loyalty-rewards"] as const,
   list: (term?: string) => [...customerRoot, "list", term ?? ""] as const,
-  paged: (page: number, pageSize: number, term?: string) =>
-    [...customerRoot, "paged", { page, pageSize, term: term ?? "" }] as const,
+  paged: (page: number, pageSize: number, term?: string, marketingConsent?: boolean, tier?: string) =>
+    [...customerRoot, "paged", { page, pageSize, term: term ?? "", marketingConsent: marketingConsent ?? null, tier: tier ?? "" }] as const,
   detail: (id: string) => [...customerRoot, "detail", id] as const,
+  wallet: (id: string) => [...customerRoot, "wallet", id] as const,
   orders: (id: string) => [...customerRoot, "orders", id] as const,
 };
 
@@ -224,4 +227,6 @@ export const reportKeys = {
     fromUtc?: string | null,
     toUtc?: string | null,
   ) => [...reportRoot, "customer-return", { preset, fromUtc, toUtc }] as const,
+  loyaltyClub: (period: string, comparison: string, fromUtc?: string | null, toUtc?: string | null) =>
+    [...reportRoot, "loyalty-club", { period, comparison, fromUtc, toUtc }] as const,
 };

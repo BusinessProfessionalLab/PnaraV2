@@ -1,24 +1,24 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\sepeh\\source\\repos\\PnaraV2\\RestoPOS\\backend\\src\\Domain\\RestoPOS.Domain.csproj": {}
+    "C:\\Users\\sydev10\\source\\repos\\Pnara\\PnaraV2\\RestoPOS\\backend\\src\\Domain\\RestoPOS.Domain.csproj": {}
   },
   "projects": {
-    "C:\\Users\\sepeh\\source\\repos\\PnaraV2\\RestoPOS\\backend\\src\\Domain\\RestoPOS.Domain.csproj": {
+    "C:\\Users\\sydev10\\source\\repos\\Pnara\\PnaraV2\\RestoPOS\\backend\\src\\Domain\\RestoPOS.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\sepeh\\source\\repos\\PnaraV2\\RestoPOS\\backend\\src\\Domain\\RestoPOS.Domain.csproj",
+        "projectUniqueName": "C:\\Users\\sydev10\\source\\repos\\Pnara\\PnaraV2\\RestoPOS\\backend\\src\\Domain\\RestoPOS.Domain.csproj",
         "projectName": "RestoPOS.Domain",
-        "projectPath": "C:\\Users\\sepeh\\source\\repos\\PnaraV2\\RestoPOS\\backend\\src\\Domain\\RestoPOS.Domain.csproj",
-        "packagesPath": "C:\\Users\\sepeh\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\sepeh\\source\\repos\\PnaraV2\\RestoPOS\\backend\\src\\Domain\\obj\\",
+        "projectPath": "C:\\Users\\sydev10\\source\\repos\\Pnara\\PnaraV2\\RestoPOS\\backend\\src\\Domain\\RestoPOS.Domain.csproj",
+        "packagesPath": "C:\\Users\\sydev10\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\sydev10\\source\\repos\\Pnara\\PnaraV2\\RestoPOS\\backend\\src\\Domain\\obj\\",
         "projectStyle": "PackageReference",
         "centralPackageVersionsManagementEnabled": true,
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\sepeh\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\sydev10\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -27,7 +27,6 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -99,20 +98,6 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[8.0.31, 8.0.31]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[8.0.31, 8.0.31]"
-            },
-            {
-              "name": "Microsoft.WindowsDesktop.App.Ref",
-              "version": "[8.0.31, 8.0.31]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"

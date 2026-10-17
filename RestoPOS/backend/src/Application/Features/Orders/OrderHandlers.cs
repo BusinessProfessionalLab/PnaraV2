@@ -26,12 +26,13 @@ internal static class OrderLoader
         var customer = await db.Customers.FirstOrDefaultAsync(c => c.PhoneNumber == order.CustomerPhone, ct);
         if (customer is null)
         {
-            customer = Customer.Create(order.CustomerPhone, null);
+            customer = Customer.Create(order.CustomerPhone, order.CustomerName);
             db.Customers.Add(customer);
             await db.SaveChangesAsync(ct);
         }
 
         order.CustomerId = customer.Id;
+        if (!string.IsNullOrWhiteSpace(order.CustomerName)) customer.FullName = order.CustomerName.Trim();
         customer.LastVisitAt = DateTime.UtcNow;
     }
 }
@@ -96,6 +97,7 @@ public sealed class CreateDraftOrderCommandHandler(
 
         var order = Order.CreateDraft(await numbers.NextAsync(cancellationToken), request.OrderType, cashierId, shift?.Id, settings.VatRate, request.TableNumber, phone);
         order.Notes = request.Notes;
+        order.CustomerName = request.CustomerName?.Trim();
         order.DiningTableId = request.DiningTableId;
         if (request.DiningTableId is Guid tableId)
         {

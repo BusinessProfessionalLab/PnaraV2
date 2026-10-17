@@ -175,5 +175,65 @@ public class LoyaltyPointLedgerConfiguration : IEntityTypeConfiguration<LoyaltyP
         builder.Property(x => x.Notes).HasMaxLength(500);
         builder.HasOne(x => x.Customer).WithMany().HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(x => new { x.CustomerId, x.OccurredAtUtc });
+        builder.HasIndex(x => x.OrderId)
+            .IsUnique()
+            .HasFilter("\"OrderId\" IS NOT NULL AND \"Type\" = 0");
+    }
+}
+
+public class LoyaltyRewardConfiguration : IEntityTypeConfiguration<LoyaltyReward>
+{
+    public void Configure(EntityTypeBuilder<LoyaltyReward> builder)
+    {
+        builder.ToTable("LoyaltyRewards");
+        builder.Property(x => x.Name).HasMaxLength(120).IsRequired();
+        builder.Property(x => x.ProductName).HasMaxLength(200);
+        builder.Property(x => x.DiscountRials).HasColumnType(MoneyConfig.Rial);
+        builder.Property(x => x.DiscountPercent).HasColumnType(MoneyConfig.Rate);
+        builder.Property(x => x.MaxDiscountRials).HasColumnType(MoneyConfig.Rial);
+        builder.HasIndex(x => new { x.IsActive, x.PointsCost });
+    }
+}
+
+public class CustomerWalletLedgerConfiguration : IEntityTypeConfiguration<CustomerWalletLedger>
+{
+    public void Configure(EntityTypeBuilder<CustomerWalletLedger> builder)
+    {
+        builder.ToTable("CustomerWalletLedgers");
+        builder.Property(x => x.AmountRials).HasColumnType(MoneyConfig.Rial);
+        builder.Property(x => x.BalanceAfterRials).HasColumnType(MoneyConfig.Rial);
+        builder.Property(x => x.Type).HasMaxLength(32).IsRequired();
+        builder.Property(x => x.Notes).HasMaxLength(500);
+        builder.HasOne(x => x.Customer).WithMany().HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(x => new { x.CustomerId, x.OccurredAtUtc });
+        builder.HasIndex(x => x.OrderId).IsUnique().HasFilter("\"OrderId\" IS NOT NULL");
+    }
+}
+
+public class LoyaltySmsCampaignConfiguration : IEntityTypeConfiguration<LoyaltySmsCampaign>
+{
+    public void Configure(EntityTypeBuilder<LoyaltySmsCampaign> builder)
+    {
+        builder.ToTable("LoyaltySmsCampaigns");
+        builder.Property(x => x.Name).HasMaxLength(160).IsRequired();
+        builder.Property(x => x.Body).HasMaxLength(1000).IsRequired();
+        builder.HasIndex(x => x.QueuedAtUtc);
+    }
+}
+
+public class LoyaltySmsMessageConfiguration : IEntityTypeConfiguration<LoyaltySmsMessage>
+{
+    public void Configure(EntityTypeBuilder<LoyaltySmsMessage> builder)
+    {
+        builder.ToTable("LoyaltySmsMessages");
+        builder.Property(x => x.PhoneNumber).HasMaxLength(32).IsRequired();
+        builder.Property(x => x.Body).HasMaxLength(1000).IsRequired();
+        builder.Property(x => x.Status).HasMaxLength(24).IsRequired();
+        builder.Property(x => x.ProviderMessageId).HasMaxLength(128);
+        builder.Property(x => x.LastError).HasMaxLength(1000);
+        builder.HasOne(x => x.Campaign).WithMany(x => x.Messages).HasForeignKey(x => x.CampaignId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(x => x.Customer).WithMany().HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(x => new { x.Status, x.NextAttemptAtUtc });
+        builder.HasIndex(x => new { x.CampaignId, x.CustomerId }).IsUnique();
     }
 }

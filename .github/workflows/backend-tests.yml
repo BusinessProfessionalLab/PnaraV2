@@ -1,0 +1,43 @@
+name: Backend tests
+
+on:
+  push:
+    paths:
+      - "RestoPOS/backend/**"
+      - ".github/workflows/backend-tests.yml"
+  pull_request:
+    paths:
+      - "RestoPOS/backend/**"
+      - ".github/workflows/backend-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Build and test (.NET 8)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore RestoPOS/backend/RestoPOS.sln
+
+      - name: Build
+        run: dotnet build RestoPOS/backend/RestoPOS.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test RestoPOS/backend/RestoPOS.sln --configuration Release --no-build --logger "trx;LogFileName=backend-tests.trx" --collect:"XPlat Code Coverage"
+
+      - name: Upload test and coverage results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: "RestoPOS/backend/**/TestResults/**"
+          if-no-files-found: ignore

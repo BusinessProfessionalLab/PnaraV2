@@ -60,6 +60,7 @@ async function syncCartToServerInternal(): Promise<OrderDto> {
     tableNumber: snapshot.tableNumber || null,
     diningTableId: snapshot.diningTableId || null,
     customerPhone: snapshot.customerPhone || null,
+    customerName: snapshot.customerName || null,
     notes: snapshot.notes || null,
     items,
   };

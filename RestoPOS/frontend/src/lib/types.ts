@@ -199,6 +199,7 @@ export type OrderDto = {
   orderType: OrderType;
   tableNumber?: string | null;
   customerPhone?: string | null;
+  customerName?: string | null;
   cashierId: string;
   shiftId?: string | null;
   subtotal: number;
@@ -243,6 +244,15 @@ export type CustomerDto = {
   firstVisitShamsi: string;
   lastVisitAt: string;
   lastVisitShamsi: string;
+  birthDate?: string | null;
+  gender?: string | null;
+  personalityType?: string | null;
+  favoriteProducts?: string[];
+  tags?: string[];
+  notes?: string | null;
+  marketingConsent?: boolean;
+  marketingConsentUpdatedAtUtc?: string | null;
+  registrationSource?: string;
 };
 
 export type UnitConversionDto = {
@@ -679,4 +689,23 @@ export type CustomerReturnRateReportDto = {
   returningCustomerCount: number;
   firstTimeCustomerCount: number;
   returningRatePercent: number;
+};
+
+export type LoyaltyClubReportPeriod = "Last30Days" | "ThisMonth" | "Last3Months" | "CustomRange";
+export type LoyaltyClubReportComparison = "PreviousPeriod" | "PreviousYear" | "None";
+export type LoyaltyClubReportDto = {
+  periodLabelFa: string;
+  memberSalesSharePercent: number;
+  memberAverageTicketRials: number;
+  memberAverageTicketPercentOfGuest: number;
+  memberReturningRatePercent: number;
+  guestReturningRatePercent: number;
+  retentionByMonth: { monthLabel: string; returningRatePercent: number; activeMemberCount: number }[];
+  smsSentCount: number;
+  smsAttributedOrderCount: number;
+  smsAttributedRevenueRials: number;
+  smsConversionRatePercent: number;
+  smsConversionChangePercentagePoints: number | null;
+  atRiskCustomers: { id: string; name: string; lastVisitShamsi: string; daysSinceLastVisit: number; expectedReturnIntervalDays: number }[];
+  peakHours: { hour: number; orderCount: number; memberOrderCount: number; guestOrderCount: number; percentOfPeak: number }[];
 };

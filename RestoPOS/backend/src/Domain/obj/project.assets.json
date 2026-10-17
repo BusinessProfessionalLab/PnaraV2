@@ -1,0 +1,117 @@
+{
+  "version": 4,
+  "targets": {
+    "net8.0": {}
+  },
+  "libraries": {},
+  "projectFileDependencyGroups": {
+    "net8.0": []
+  },
+  "packageFolders": {
+    "C:\\Users\\sydev10\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "C:\\Users\\sydev10\\source\\repos\\Pnara\\PnaraV2\\RestoPOS\\backend\\src\\Domain\\RestoPOS.Domain.csproj",
+      "projectName": "RestoPOS.Domain",
+      "projectPath": "C:\\Users\\sydev10\\source\\repos\\Pnara\\PnaraV2\\RestoPOS\\backend\\src\\Domain\\RestoPOS.Domain.csproj",
+      "packagesPath": "C:\\Users\\sydev10\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\sydev10\\source\\repos\\Pnara\\PnaraV2\\RestoPOS\\backend\\src\\Domain\\obj\\",
+      "projectStyle": "PackageReference",
+      "centralPackageVersionsManagementEnabled": true,
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
+      "configFilePaths": [
+        "C:\\Users\\sydev10\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+      ],
+      "originalTargetFrameworks": [
+        "net8.0"
+      ],
+      "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "net8.0": {
+          "framework": "net8.0",
+          "targetAlias": "net8.0",
+          "projectReferences": {}
+        }
+      },
+      "warningProperties": {
+        "warnAsError": [
+          "NU1605"
+        ]
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
+      },
+      "SdkAnalysisLevel": "10.0.400"
+    },
+    "frameworks": {
+      "net8.0": {
+        "framework": "net8.0",
+        "targetAlias": "net8.0",
+        "centralPackageVersions": {
+          "coverlet.collector": "6.0.2",
+          "FluentAssertions": "6.12.2",
+          "FluentValidation": "11.11.0",
+          "FluentValidation.DependencyInjectionExtensions": "11.11.0",
+          "Mapster": "7.4.0",
+          "Mapster.DependencyInjection": "1.0.1",
+          "MediatR": "12.4.1",
+          "Microsoft.AspNetCore.Authentication.JwtBearer": "8.0.11",
+          "Microsoft.AspNetCore.Identity.EntityFrameworkCore": "8.0.11",
+          "Microsoft.AspNetCore.Mvc.Testing": "8.0.11",
+          "Microsoft.EntityFrameworkCore": "8.0.11",
+          "Microsoft.EntityFrameworkCore.Design": "8.0.11",
+          "Microsoft.EntityFrameworkCore.Tools": "8.0.11",
+          "Microsoft.Extensions.Configuration.Abstractions": "8.0.0",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.2",
+          "Microsoft.Extensions.Hosting.WindowsServices": "8.0.1",
+          "Microsoft.Extensions.Identity.Stores": "8.0.11",
+          "Microsoft.Extensions.Logging.Abstractions": "8.0.2",
+          "Microsoft.Extensions.Options.ConfigurationExtensions": "8.0.0",
+          "Microsoft.NET.Test.Sdk": "17.12.0",
+          "Moq": "4.20.72",
+          "NetArchTest.Rules": "1.3.2",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "8.0.11",
+          "NSubstitute": "5.3.0",
+          "Respawn": "6.2.1",
+          "Serilog.AspNetCore": "8.0.3",
+          "Serilog.Sinks.Console": "6.0.0",
+          "Serilog.Sinks.File": "6.0.0",
+          "Swashbuckle.AspNetCore": "6.9.0",
+          "System.IdentityModel.Tokens.Jwt": "8.2.1",
+          "Testcontainers.PostgreSql": "3.10.0",
+          "xunit": "2.9.2",
+          "xunit.runner.visualstudio": "2.8.2"
+        },
+        "imports": [
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48",
+          "net481"
+        ],
+        "assetTargetFallback": true,
+        "warn": true,
+        "frameworkReferences": {
+          "Microsoft.NETCore.App": {
+            "privateAssets": "all"
+          }
+        },
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json"
+      }
+    }
+  }
+}

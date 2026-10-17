@@ -21,6 +21,7 @@ type CartState = {
   tableNumber: string;
   diningTableId: string | null;
   customerPhone: string;
+  customerName: string;
   notes: string;
   discountPercent: number;
   discountAmount: number;
@@ -37,6 +38,7 @@ type CartState = {
         | "tableNumber"
         | "diningTableId"
         | "customerPhone"
+        | "customerName"
         | "notes"
         | "discountPercent"
         | "discountAmount"
@@ -85,6 +87,7 @@ export const useCartStore = create<CartState>()(
       tableNumber: "",
       diningTableId: null,
       customerPhone: "",
+      customerName: "",
       notes: "",
       discountPercent: 0,
       discountAmount: 0,
@@ -161,6 +164,8 @@ export const useCartStore = create<CartState>()(
           serverOrderId: null,
           serverOrderNumber: null,
           notes: "",
+          customerPhone: "",
+          customerName: "",
           diningTableId: null,
           discountAmount: 0,
           discountPercent: 0,
@@ -173,6 +178,7 @@ export const useCartStore = create<CartState>()(
           orderType: order.orderType,
           tableNumber: order.tableNumber ?? "",
           customerPhone: order.customerPhone ?? "",
+          customerName: order.customerName ?? "",
           notes: order.notes ?? "",
           discountPercent: order.discountPercent,
           discountAmount: order.discountAmount,

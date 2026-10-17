@@ -26,6 +26,7 @@ export interface CreateDraftRequest {
   tableNumber: string | null;
   diningTableId?: string | null;
   customerPhone: string | null;
+  customerName?: string | null;
   notes: string | null;
   items: DraftOrderItem[];
 }

@@ -60,6 +60,8 @@ public sealed record GetCategoriesQuery(bool IncludeHidden = false) : MediatR.IR
 public sealed record GetCategoryByIdQuery(Guid Id) : MediatR.IRequest<CategoryDto>;
 public sealed record ReorderCategoriesCommand(IReadOnlyList<CategoryOrderItem> Items) : MediatR.IRequest;
 public sealed record CategoryOrderItem(Guid Id, int DisplayPriority);
+public sealed record ReorderMenuItemsCommand(Guid CategoryId, IReadOnlyList<MenuItemOrderItem> Items) : MediatR.IRequest;
+public sealed record MenuItemOrderItem(Guid Id, int DisplayPriority);
 
 public sealed record CreateMenuItemCommand(
     string Title,

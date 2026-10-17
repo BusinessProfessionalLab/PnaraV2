@@ -134,6 +134,36 @@ public sealed class ReorderCategoriesCommandHandler(IApplicationDbContext db) : 
     }
 }
 
+public sealed class ReorderMenuItemsCommandValidator : AbstractValidator<ReorderMenuItemsCommand>
+{
+    public ReorderMenuItemsCommandValidator()
+    {
+        RuleFor(x => x.CategoryId).NotEmpty();
+        RuleFor(x => x.Items).NotEmpty();
+        RuleFor(x => x.Items).Must(items => items.Select(item => item.Id).Distinct().Count() == items.Count)
+            .WithMessage("Duplicate menu item IDs are not allowed.");
+    }
+}
+
+public sealed class ReorderMenuItemsCommandHandler(IApplicationDbContext db) : IRequestHandler<ReorderMenuItemsCommand>
+{
+    public async Task Handle(ReorderMenuItemsCommand request, CancellationToken cancellationToken)
+    {
+        var ids = request.Items.Select(item => item.Id).ToList();
+        var items = await db.MenuItems
+            .Where(item => item.CategoryId == request.CategoryId && ids.Contains(item.Id))
+            .ToListAsync(cancellationToken);
+        if (items.Count != ids.Count)
+            throw new NotFoundException(nameof(MenuItem), "One or more menu items were not found in the requested category.");
+
+        var priorities = request.Items.ToDictionary(item => item.Id, item => item.DisplayPriority);
+        foreach (var item in items)
+            item.DisplayPriority = priorities[item.Id];
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+}
+
 public sealed class CreateMenuItemCommandValidator : AbstractValidator<CreateMenuItemCommand>
 {
     public CreateMenuItemCommandValidator()

@@ -1,44 +1,45 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Moq;
+using NSubstitute;
 using RestoPOS.Application.Common.Interfaces;
 using RestoPOS.Application.Features.Menu;
 using RestoPOS.Domain.Entities;
-using RestoPOS.Infrastructure.Persistence;
 
 namespace RestoPOS.Application.Tests;
 
-public class MenuCommandTests
+public sealed class MenuCommandTests
 {
     [Fact]
-    public async Task CreateCategory_persists_entity()
+    public async Task Create_category_passes_the_entity_to_the_context_and_forwards_cancellation()
     {
-        var db = CreateDb();
+        var db = Substitute.For<IApplicationDbContext>();
+        var categories = Substitute.For<DbSet<Category>>();
+        Category? added = null;
+        categories.Add(Arg.Do<Category>(category => added = category))
+            .Returns((Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<Category>)null!);
+        db.Categories.Returns(categories);
+        var cancellationToken = new CancellationTokenSource().Token;
+        db.SaveChangesAsync(cancellationToken).Returns(1);
         var handler = new CreateCategoryCommandHandler(db);
 
-        var id = await handler.Handle(new CreateCategoryCommand("قهوه", "Coffee", 1, true, null, null, null), CancellationToken.None);
+        var id = await handler.Handle(new CreateCategoryCommand("Coffee", "Coffee", 2, true, null, null, null), cancellationToken);
 
-        var stored = await db.Categories.SingleAsync();
-        stored.Id.Should().Be(id);
-        stored.Name.Should().Be("قهوه");
+        added.Should().NotBeNull();
+        added!.Id.Should().Be(id);
+        added.Name.Should().Be("Coffee");
+        await db.Received(1).SaveChangesAsync(cancellationToken);
     }
 
-    [Fact]
-    public async Task CreateMenuItem_requires_existing_category()
+    [Theory]
+    [InlineData("", 0)]
+    [InlineData("Valid", -0.01)]
+    [InlineData("Valid", 100.01)]
+    public async Task Create_category_validator_rejects_invalid_input(string name, decimal discountPercent)
     {
-        var db = CreateDb();
-        var handler = new CreateMenuItemCommandHandler(db);
-        var act = () => handler.Handle(new CreateMenuItemCommand("لاته", null, 180000, false, null, 1, Guid.NewGuid(), true, Domain.Enums.TicketStation.Bar, 4), CancellationToken.None);
-        await act.Should().ThrowAsync<Domain.Exceptions.NotFoundException>();
-    }
+        var result = await new CreateCategoryCommandValidator().ValidateAsync(
+            new CreateCategoryCommand(name, null, 0, true, null, null, null, discountPercent),
+            CancellationToken.None);
 
-    private static ApplicationDbContext CreateDb()
-    {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-        var current = new Mock<ICurrentUserService>();
-        current.SetupGet(c => c.UserId).Returns(Guid.NewGuid());
-        return new ApplicationDbContext(options, current.Object, new NoOpDomainEventDispatcher());
+        result.IsValid.Should().BeFalse();
     }
 }

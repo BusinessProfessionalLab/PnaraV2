@@ -734,11 +734,10 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("OptimalStock")
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<byte[]>("RowVersion")
+                    b.Property<uint>("RowVersion")
                         .IsConcurrencyToken()
-                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea");
+                        .HasColumnName("xmin");
 
                     b.Property<string>("Sku")
                         .IsRequired()
@@ -1021,6 +1020,58 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.ToTable("LoyaltyPointLedgers", (string)null);
                 });
 
+            modelBuilder.Entity("RestoPOS.Domain.Entities.LoyaltyReward", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("DiscountPercent")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("DiscountRials")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("MaxDiscountRials")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<int>("PointsCost")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProductName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive", "PointsCost");
+
+                    b.ToTable("LoyaltyRewards", (string)null);
+                });
+
             modelBuilder.Entity("RestoPOS.Domain.Entities.LoyaltySmsCampaign", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1093,6 +1144,9 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime?>("DeliveredAtUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsTransactional")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("LastError")
                         .HasMaxLength(1000)

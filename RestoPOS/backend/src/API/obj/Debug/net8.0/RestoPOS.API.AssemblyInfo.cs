@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Pnara")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+70e1c94d9f1fc229c2889b9e775c387cccfe04ef")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+731efbee1cc97ef710a3bdd6578fc8f2314b64e2")]
 [assembly: System.Reflection.AssemblyProductAttribute("Pnara")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RestoPOS.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

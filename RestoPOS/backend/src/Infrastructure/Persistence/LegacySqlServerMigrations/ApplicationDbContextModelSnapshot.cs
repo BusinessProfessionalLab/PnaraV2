@@ -733,11 +733,11 @@ namespace RestoPOS.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("OptimalStock")
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<byte[]>("RowVersion")
+                    b.Property<uint>("RowVersion")
                         .IsConcurrencyToken()
-                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea");
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.Property<string>("Sku")
                         .IsRequired()
